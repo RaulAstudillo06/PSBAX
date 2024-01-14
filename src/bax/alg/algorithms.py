@@ -37,7 +37,11 @@ class Algorithm(ABC, Base):
         return next_x
 
     def take_step(self, f):
-        """Take one step of the algorithm."""
+        """Take one step of the algorithm.
+        Args:
+            f: Function to query. Function takes in torch tensor of shape (1, input_dim).
+        
+        """
         x = self.get_next_x()
         if x is not None:
             y = f(torch.tensor(x).unsqueeze(0)).item()
