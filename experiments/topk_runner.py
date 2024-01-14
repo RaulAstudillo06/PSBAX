@@ -102,17 +102,6 @@ def metric_jacc(obj_func: Callable, posterior_mean_func: PosteriorMean):
     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
     return output_dist_fn_jaccard(output_mf, output_gt)
 
-def metric_jacc(obj_func: Callable, posterior_mean_func: PosteriorMean):
-    '''
-    TODO: metrics are sharing the same algo_mf, algo_gt?
-    '''
-    algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
-    _, output_gt = algo_gt.run_algorithm_on_f(obj_func)
-    algo_mf = TopK({"x_path": x_path, "k": k}, verbose=False)
-    # FIXME: posterior_mean_func cannot be directly input into algo
-    _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
-    return output_dist_fn_jaccard(output_mf, output_gt)
-
 def metric_norm(obj_func: Callable, posterior_mean_func: PosteriorMean):
     algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
     _, output_gt = algo_gt.run_algorithm_on_f(obj_func)
