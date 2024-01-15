@@ -41,6 +41,8 @@ def experiment_manager(
         model_type: Type of model (see utils.py for options)
     """
     for trial in range(first_trial, last_trial + 1):
+        # TODO: should algo.exe be initialized here?
+        # src.bax.alg.alorithms: x_path[len_path] if len_path < len(x_path) else None
         one_trial(
             problem=problem,
             obj_func=obj_func,

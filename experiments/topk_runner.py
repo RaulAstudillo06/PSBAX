@@ -48,7 +48,6 @@ def obj_func(X):
     '''
     # check if x is a torch tensor
     if not isinstance(X, torch.Tensor):
-        print(X)
         X = torch.tensor(X)
     f_0 = lambda x:  2 * torch.abs(x) * torch.sin(x)
     return torch.sum(torch.stack([f_0(x) for x in X]), dim=-1)
@@ -56,18 +55,12 @@ def obj_func(X):
 x_path = unif_random_sample_domain(domain, len_path)
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 
-algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
-exepath_gt, output_gt = algo_gt.run_algorithm_on_f(obj_func)
-
 def algo_exe(obj_func: Callable) -> Tensor:
     '''Execute TopK algorithm on obj_func.
+    TODO: algo needs to be initialized at each trial?
     '''
     _, output = algo.run_algorithm_on_f(obj_func)
-    print(output)
     return output.x
-
-metric_jacc = lambda x: algo.output_dist_fn_jaccard(x, output_gt)
-metric_norm = lambda x: algo.output_dist_fn_norm(x, output_gt)
 
 def output_dist_fn_norm(a, b):
     """Output dist_fn based on concatenated vector norm."""
@@ -96,9 +89,8 @@ def metric_jacc(obj_func: Callable, posterior_mean_func: PosteriorMean):
     TODO: metrics are sharing the same algo_mf, algo_gt?
     '''
     algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
-    _, output_gt = algo_gt.run_algorithm_on_f(obj_func)
+    _, output_gt = algo_gt.run_algorithm_on_f(obj_func) # TODO: this should be saved as a common attribute
     algo_mf = TopK({"x_path": x_path, "k": k}, verbose=False)
-    # FIXME: posterior_mean_func cannot be directly input into algo
     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
     return output_dist_fn_jaccard(output_mf, output_gt)
 
@@ -106,7 +98,6 @@ def metric_norm(obj_func: Callable, posterior_mean_func: PosteriorMean):
     algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
     _, output_gt = algo_gt.run_algorithm_on_f(obj_func)
     algo_mf = TopK({"x_path": x_path, "k": k}, verbose=False)
-    # FIXME: posterior_mean_func cannot be directly input into algo
     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
     return output_dist_fn_norm(output_mf, output_gt)
 
@@ -114,7 +105,6 @@ def metric_norm(obj_func: Callable, posterior_mean_func: PosteriorMean):
 performance_metrics = {
     "Jaccard": metric_jacc,
     "Norm": metric_norm,
-
 }
 
 experiment_manager(

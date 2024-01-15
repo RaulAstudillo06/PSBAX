@@ -23,7 +23,7 @@ from src.performance_metrics import compute_obj_val_at_max_post_mean
 
 
 # Objective function
-input_dim = 6
+input_dim = 6 # FIXME: is this different from n_dim?
 
 
 def obj_func(X: Tensor) -> Tensor:
@@ -33,7 +33,7 @@ def obj_func(X: Tensor) -> Tensor:
 
 
 # Set algorithm details
-n_dim = 6
+n_dim = input_dim
 domain = [[0, 1]] * n_dim
 init_x = [[0.0] * n_dim]
 
@@ -78,6 +78,9 @@ if len(sys.argv) == 3:
 elif len(sys.argv) == 2:
     first_trial = int(sys.argv[1])
     last_trial = int(sys.argv[1])
+else:
+    first_trial = 1
+    last_trial = 1
 
 experiment_manager(
     problem="hartmann",

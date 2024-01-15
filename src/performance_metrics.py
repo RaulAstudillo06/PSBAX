@@ -41,3 +41,4 @@ def compute_obj_val_at_max_post_mean(
 
     obj_val_at_max_post_mean_func = obj_func(max_post_mean_func).item()
     return obj_val_at_max_post_mean_func
+
