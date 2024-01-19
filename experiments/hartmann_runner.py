@@ -19,7 +19,7 @@ sys.path.append(script_dir[:-12])
 
 from src.bax.alg.evolution_strategies import EvolutionStrategies
 from src.experiment_manager import experiment_manager
-from src.performance_metrics import compute_obj_val_at_max_post_mean
+from src.performance_metrics import ObjValAtMaxPostMean, compute_obj_val_at_max_post_mean
 
 
 # Objective function
@@ -67,6 +67,10 @@ def obj_val_at_max_post_mean(
 performance_metrics = {
     "Objective value at maximizer of the posterior mean": obj_val_at_max_post_mean
 }
+
+performance_metrics = [
+    ObjValAtMaxPostMean(obj_func),
+]
 
 # Policies
 policy = "ps"

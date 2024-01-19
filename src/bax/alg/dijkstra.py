@@ -184,7 +184,7 @@ class Dijkstra(Algorithm):
 
     def run_algorithm_on_f_standalone(self, f):
 
-        # prevent parallel processes from sharing random state
+        # TODO: prevent parallel processes from sharing random state
         # np.random.seed()
 
         def dijkstras(start: Vertex, goal: Vertex):

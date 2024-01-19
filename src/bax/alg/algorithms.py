@@ -42,7 +42,7 @@ class Algorithm(ABC, Base):
             f: Function to query. Function takes in torch tensor of shape (1, input_dim).
         
         """
-        x = self.get_next_x()
+        x = self.get_next_x() # NOTE: x is a list / np.array(d, )
         if x is not None:
             y = f(torch.tensor(x).unsqueeze(0)).item()
             self.exe_path.x.append(x)

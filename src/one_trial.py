@@ -12,7 +12,8 @@ from torch import Tensor
 
 from src.acquisition_functions.posterior_sampling import gen_posterior_sampling_batch
 from src.fit_model import fit_model
-from src.performance_metrics import compute_performance_metrics
+from src.performance_metrics import compute_performance_metrics, evaluate_performance
+
 from src.utils import (
     generate_initial_data,
     generate_random_points,
@@ -115,9 +116,13 @@ def one_trial(
             model_training_time = t1 - t0
 
             # Historical performance metrics
+            # performance_metrics_vals = [
+            #     compute_performance_metrics(obj_func, model, performance_metrics)
+            # ]
             performance_metrics_vals = [
-                compute_performance_metrics(obj_func, model, performance_metrics)
+                evaluate_performance(performance_metrics, model)
             ]
+            
 
             # Historical acquisition runtimes
             runtimes = []
@@ -145,8 +150,11 @@ def one_trial(
         model_training_time = t1 - t0
 
         # Historical performance metrics
+        # performance_metrics_vals = [
+        #     compute_performance_metrics(obj_func, model, performance_metrics)
+        # ]
         performance_metrics_vals = [
-            compute_performance_metrics(obj_func, model, performance_metrics)
+            evaluate_performance(performance_metrics, model)
         ]
 
         # Historical acquisition runtimes
@@ -194,13 +202,18 @@ def one_trial(
         model_training_time = t1 - t0
 
         # Append current objective value at the maximum of the posterior mean
-        current_performance_metrics = compute_performance_metrics(
-            obj_func, model, performance_metrics
-        )
-        performance_metrics_vals.append(current_performance_metrics)
+        # current_performance_metrics = compute_performance_metrics(
+        #     obj_func, model, performance_metrics
+        # )
+        # TODO: is this necessary?
+        current_performance_metrics = evaluate_performance(performance_metrics, model)
 
-        for i, performance_metric_id in enumerate(performance_metrics.keys()):
-            print(performance_metric_id + ": " + str(current_performance_metrics[i]))
+        # for i, performance_metric_id in enumerate(performance_metrics.keys()):
+        #     print(performance_metric_id + ": " + str(current_performance_metrics[i]))
+        
+        for i, metric in enumerate(performance_metrics):
+            print(metric.name + ": " + str(current_performance_metrics[i]))
+
 
         # Save data
         try:

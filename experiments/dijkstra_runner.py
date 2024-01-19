@@ -22,7 +22,7 @@ from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import make_grid, edges_of_path, positions_of_path, area_of_polygons
 
 from src.experiment_manager import experiment_manager
-from src.performance_metrics import compute_obj_val_at_max_post_mean
+from src.performance_metrics import compute_obj_val_at_max_post_mean, ShortestPathCost, ShortestPathArea
 
 input_dim = 2
 grid_size = 10
@@ -133,6 +133,11 @@ performance_metrics = {
     'Cost': metric_cost,
     'Area': metric_area
 }
+
+performance_metrics = [
+    ShortestPathCost(algo),
+    ShortestPathArea(algo, obj_func),
+]
 
 experiment_manager(
     problem="dijkstra",

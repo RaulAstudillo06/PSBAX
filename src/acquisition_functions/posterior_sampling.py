@@ -24,3 +24,5 @@ def gen_posterior_sampling_batch(model, algo_exe, batch_size):
         post_obj_x_output = model(x_output)
         batch = x_output[torch.argmax(post_obj_x_output.variance)].unsqueeze(0)
     return batch
+
+# algo.run_algorithm_on_f_botorch(obj_func)

@@ -21,7 +21,7 @@ sys.path.append(script_dir[:-12])
 
 from src.bax.alg.algorithms import TopK
 from src.experiment_manager import experiment_manager
-from src.performance_metrics import compute_obj_val_at_max_post_mean
+from src.performance_metrics import JaccardSimilarity, NormDifference
 from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import jaccard_similarity
 
@@ -52,7 +52,7 @@ def obj_func(X):
     f_0 = lambda x:  2 * torch.abs(x) * torch.sin(x)
     return torch.sum(torch.stack([f_0(x) for x in X]), dim=-1)
 
-x_path = unif_random_sample_domain(domain, len_path)
+x_path = unif_random_sample_domain(domain, len_path) # NOTE: Action set
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 
 def algo_exe(obj_func: Callable) -> Tensor:
@@ -106,6 +106,11 @@ performance_metrics = {
     "Jaccard": metric_jacc,
     "Norm": metric_norm,
 }
+
+performance_metrics = [
+    JaccardSimilarity(algo, obj_func),
+    NormDifference(algo, obj_func),
+]
 
 experiment_manager(
     problem="topk",
