@@ -214,7 +214,7 @@ def one_trial(
         for i, metric in enumerate(performance_metrics):
             print(metric.name + ": " + str(current_performance_metrics[i]))
 
-
+        performance_metrics_vals.append(current_performance_metrics)
         # Save data
         try:
             if not os.path.exists(results_folder):
