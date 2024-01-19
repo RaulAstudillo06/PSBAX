@@ -15,7 +15,7 @@ from src.performance_metrics import *
 results_dir = "./results/"
 problem = "topk"
 batch_size = 1
-save_fig = False
+save_fig = True
 policies = ["ps"]
 
 metrics = []
@@ -56,10 +56,15 @@ for metrics_name in metrics:
     ax.legend()
     ax.set_title(metrics_name + " vs. Iteration")
     if save_fig:
+        path = os.path.join(files_dir, "plots")
+        if not os.path.exists(path):
+            os.makedirs(path, exist_ok=True)
         fig.savefig(
             os.path.join(
-                files_dir, "plots", metrics_name + ".png"
-            )
+                path, metrics_name + ".png"
+            ),
+            bbox_inches="tight",
+            dpi=300,
         )
     plt.show()
 
