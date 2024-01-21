@@ -138,6 +138,10 @@ class EvolutionStrategies(Algorithm):
             exe_path_crop = self.exe_path
 
         return exe_path_crop
+    
+    def execute(self, f):
+        output = super().execute(f) # list of length n_dim
+        return np.array(output).reshape(1, -1)
 
 
 class SimpleMutator:

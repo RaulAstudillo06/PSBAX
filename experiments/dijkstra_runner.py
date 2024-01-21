@@ -107,32 +107,22 @@ algo_params = {
 }
 algo = Dijkstra(algo_params, vertices, start, goal)
 
-def algo_exe(obj_func: Callable) -> Tensor:
-    _, output_list = algo.run_algorithm_on_f(obj_func)
-    node_list = output_list[1]
-    edge_list = []
-    for i in range(len(node_list)-1):
-        edge_list.append((node_list[i].position, node_list[i+1].position))
-    edge_locs_list = [(e[0] + e[1]) / 2 for e in edge_list]
-    
-    return np.array(edge_locs_list) # NOTE: not needed but first converting to np.array makes it faster?
+# def metric_cost(obj_func: Callable, posterior_mean_func: PosteriorMean):
+#     algo_mf = Dijkstra(algo_params, vertices, start, goal)
+#     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
+#     return output_mf[0]
 
-def metric_cost(obj_func: Callable, posterior_mean_func: PosteriorMean):
-    algo_mf = Dijkstra(algo_params, vertices, start, goal)
-    _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
-    return output_mf[0]
+# def metric_area(obj_func: Callable, posterior_mean_func: PosteriorMean):
+#     algo_gt = Dijkstra(algo_params, vertices, start, goal)
+#     _, true_output = algo_gt.run_algorithm_on_f(obj_func)
+#     algo_mf = Dijkstra(algo_params, vertices, start, goal)
+#     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
+#     return area_of_polygons(true_output[1], output_mf[1])
 
-def metric_area(obj_func: Callable, posterior_mean_func: PosteriorMean):
-    algo_gt = Dijkstra(algo_params, vertices, start, goal)
-    _, true_output = algo_gt.run_algorithm_on_f(obj_func)
-    algo_mf = Dijkstra(algo_params, vertices, start, goal)
-    _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
-    return area_of_polygons(true_output[1], output_mf[1])
-
-performance_metrics = {
-    'Cost': metric_cost,
-    'Area': metric_area
-}
+# performance_metrics = {
+#     'Cost': metric_cost,
+#     'Area': metric_area
+# }
 
 performance_metrics = [
     ShortestPathCost(algo),
@@ -142,7 +132,7 @@ performance_metrics = [
 experiment_manager(
     problem="dijkstra",
     obj_func=obj_func,
-    algo_exe=algo_exe,
+    algorithm=algo,
     performance_metrics=performance_metrics,
     input_dim=input_dim,
     noise_type="noiseless",
@@ -154,4 +144,5 @@ experiment_manager(
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,
+    save_data=False,
 )

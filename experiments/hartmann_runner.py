@@ -52,24 +52,18 @@ algo_params = {
 }
 algo = EvolutionStrategies(algo_params)
 
-
-def algo_exe(obj_func: Callable) -> Tensor:
-    _, output = algo.run_algorithm_on_f(obj_func)
-    return output
-
-
 def obj_val_at_max_post_mean(
     obj_func: Callable, posterior_mean_func: PosteriorMean
 ) -> Tensor:
     return compute_obj_val_at_max_post_mean(obj_func, posterior_mean_func, input_dim)
 
 
-performance_metrics = {
-    "Objective value at maximizer of the posterior mean": obj_val_at_max_post_mean
-}
+# performance_metrics = {
+#     "Objective value at maximizer of the posterior mean": obj_val_at_max_post_mean
+# }
 
 performance_metrics = [
-    ObjValAtMaxPostMean(obj_func),
+    ObjValAtMaxPostMean(obj_func, input_dim),
 ]
 
 # Policies
@@ -89,7 +83,7 @@ else:
 experiment_manager(
     problem="hartmann",
     obj_func=obj_func,
-    algo_exe=algo_exe,
+    algorithm=algo,
     performance_metrics=performance_metrics,
     input_dim=input_dim,
     noise_type="noiseless",
@@ -101,4 +95,5 @@ experiment_manager(
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,
+    save_data=True,
 )

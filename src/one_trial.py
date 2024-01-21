@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, List
 
 import numpy as np
 import os
@@ -12,7 +12,7 @@ from torch import Tensor
 
 from src.acquisition_functions.posterior_sampling import gen_posterior_sampling_batch
 from src.fit_model import fit_model
-from src.performance_metrics import compute_performance_metrics, evaluate_performance
+from src.performance_metrics import evaluate_performance
 
 from src.utils import (
     generate_initial_data,
@@ -25,8 +25,8 @@ from src.utils import (
 def one_trial(
     problem: str,
     obj_func: Callable,
-    algo_exe: Callable,
-    performance_metrics: Dict,
+    algorithm,
+    performance_metrics: List,
     input_dim: int,
     noise_type: str,
     noise_level: float,
@@ -39,6 +39,7 @@ def one_trial(
     model_type: str,
     ignore_failures: bool,
     policy_params: Optional[Dict] = None,
+    save_data: bool = False,
 ) -> None:
     policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
 
@@ -174,7 +175,7 @@ def one_trial(
         new_batch = get_new_suggested_batch(
             policy=policy,
             model=model,
-            algo_exe=algo_exe,
+            algorithm=algorithm,
             batch_size=batch_size,
             input_dim=input_dim,
             policy_params=policy_params,
@@ -216,41 +217,43 @@ def one_trial(
 
         performance_metrics_vals.append(current_performance_metrics)
         # Save data
-        try:
-            if not os.path.exists(results_folder):
-                os.makedirs(results_folder)
-            if not os.path.exists(results_folder + "inputs/"):
-                os.makedirs(results_folder + "inputs/")
-            if not os.path.exists(results_folder + "obj_vals/"):
-                os.makedirs(results_folder + "obj_vals/")
-            if not os.path.exists(results_folder + "runtimes/"):
-                os.makedirs(results_folder + "runtimes/")
-        except:
-            pass
+        
+        if save_data:
+            try:
+                if not os.path.exists(results_folder):
+                    os.makedirs(results_folder)
+                if not os.path.exists(results_folder + "inputs/"):
+                    os.makedirs(results_folder + "inputs/")
+                if not os.path.exists(results_folder + "obj_vals/"):
+                    os.makedirs(results_folder + "obj_vals/")
+                if not os.path.exists(results_folder + "runtimes/"):
+                    os.makedirs(results_folder + "runtimes/")
+            except:
+                pass
 
-        inputs_reshaped = inputs.numpy().reshape(inputs.shape[0], -1)
-        np.savetxt(
-            results_folder + "inputs/inputs_" + str(trial) + ".txt", inputs_reshaped
-        )
-        np.savetxt(
-            results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt",
-            obj_vals.numpy(),
-        )
-        np.savetxt(
-            results_folder + "runtimes/runtimes_" + str(trial) + ".txt",
-            np.atleast_1d(runtimes),
-        )
-        np.savetxt(
-            results_folder + "performance_metrics_" + str(trial) + ".txt",
-            np.atleast_1d(performance_metrics_vals),
-        )
+            inputs_reshaped = inputs.numpy().reshape(inputs.shape[0], -1)
+            np.savetxt(
+                results_folder + "inputs/inputs_" + str(trial) + ".txt", inputs_reshaped
+            )
+            np.savetxt(
+                results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt",
+                obj_vals.numpy(),
+            )
+            np.savetxt(
+                results_folder + "runtimes/runtimes_" + str(trial) + ".txt",
+                np.atleast_1d(runtimes),
+            )
+            np.savetxt(
+                results_folder + "performance_metrics_" + str(trial) + ".txt",
+                np.atleast_1d(performance_metrics_vals),
+            )
 
 
 # Computes new batch to evaluate
 def get_new_suggested_batch(
     policy: str,
     model: Model,
-    algo_exe: Callable,
+    algorithm,
     batch_size,
     input_dim: int,
     model_type: str,
@@ -267,4 +270,4 @@ def get_new_suggested_batch(
         return generate_random_points(num_points=1, input_dim=input_dim)
     elif policy == "ps":
         standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
-        return gen_posterior_sampling_batch(model, algo_exe, batch_size)
+        return gen_posterior_sampling_batch(model, algorithm, batch_size)

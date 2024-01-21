@@ -6,7 +6,7 @@ from botorch.utils.gp_sampling import get_gp_samples
 from torch import Tensor
 
 
-def gen_posterior_sampling_batch(model, algo_exe, batch_size):
+def gen_posterior_sampling_batch(model, algorithm, batch_size):
     if batch_size > 1:
         raise ValueError("Batch size > 1 currently not supported")
     else:
@@ -17,7 +17,7 @@ def gen_posterior_sampling_batch(model, algo_exe, batch_size):
             num_rff_features=1000,
         )
         obj_func_sample = PosteriorMean(model=obj_func_sample)
-        x_output = algo_exe(obj_func_sample)
+        x_output = algorithm.execute(obj_func_sample) # np.array(N, n_dim)
         x_output = torch.tensor(x_output)
         if len(x_output.shape) == 1:
             x_output = x_output.view(torch.Size([1, x_output.shape[0]]))

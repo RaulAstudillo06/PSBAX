@@ -8,7 +8,7 @@ from src.one_trial import one_trial
 def experiment_manager(
     problem: str,
     obj_func: Callable,
-    algo_exe: Callable,
+    algorithm,
     performance_metrics: Dict,
     input_dim: int,
     noise_type: str,
@@ -23,12 +23,13 @@ def experiment_manager(
     model_type: str = "single_task_gp",
     ignore_failures: bool = False,
     policy_params: Optional[Dict] = None,
+    save_data: bool = False,
 ) -> None:
     r"""
     Args:
         problem: Problem ID
         obj_func:
-        algo_exe:
+        algorithm: Algorithm object
         performance_metrics:
         input_dim: Input dimension
         policy: Acquisition function
@@ -41,12 +42,12 @@ def experiment_manager(
         model_type: Type of model (see utils.py for options)
     """
     for trial in range(first_trial, last_trial + 1):
-        # TODO: should algo.exe be initialized here?
+        # TODO: should I pass in Algorithm class and initialize algorithm here?
         # src.bax.alg.alorithms: x_path[len_path] if len_path < len(x_path) else None
         one_trial(
             problem=problem,
             obj_func=obj_func,
-            algo_exe=algo_exe,
+            algorithm=algorithm,
             performance_metrics=performance_metrics,
             input_dim=input_dim,
             noise_type=noise_type,
@@ -60,4 +61,5 @@ def experiment_manager(
             restart=restart,
             model_type=model_type,
             ignore_failures=ignore_failures,
+            save_data=save_data,
         )

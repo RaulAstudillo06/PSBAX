@@ -25,7 +25,7 @@ class Dijkstra(Algorithm):
         goal=None,
         edge_to_position=None,
         node_representation="locations",
-        verbose=True,
+        verbose=False,
     ):
         """
         Parameters
@@ -347,3 +347,12 @@ class Dijkstra(Algorithm):
             return dist
 
         return dist_fn
+    
+    def execute(self, f):
+        _, output_list = self.run_algorithm_on_f(f)
+        node_list = output_list[1]
+        edge_list = []
+        for i in range(len(node_list)-1):
+            edge_list.append((node_list[i].position, node_list[i+1].position))
+        edge_locs_list = [(e[0] + e[1]) / 2 for e in edge_list]
+        return np.array(edge_locs_list)

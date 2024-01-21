@@ -11,7 +11,7 @@ from .misc_util import dict_to_namespace
 class Base:
     """Simple base class."""
 
-    def __init__(self, params=None, verbose=True):
+    def __init__(self, params=None, verbose=False):
         """
         Parameters
         ----------

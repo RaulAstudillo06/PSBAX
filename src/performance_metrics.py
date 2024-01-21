@@ -19,25 +19,24 @@ class PerformanceMetric:
         raise NotImplementedError
 
 class ObjValAtMaxPostMean(PerformanceMetric):
-    def __init__(self, obj_func: Callable):
+    def __init__(self, obj_func: Callable, input_dim: int):
         super().__init__("obj_val_at_max_post_mean")
         self.obj_func = obj_func
+        self.dim = input_dim
 
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
-        input_dim = posterior_mean_func.dim
         obj_val_at_max_post_mean_func = self.compute_obj_val_at_max_post_mean(
-            self, posterior_mean_func, input_dim
+            posterior_mean_func
         )
         return obj_val_at_max_post_mean_func
     
     def compute_obj_val_at_max_post_mean(
         self,
         posterior_mean_func: PosteriorMean,
-        input_dim: int,
     ) -> Tensor:
-        standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
-        num_restarts = 6 * input_dim
-        raw_samples = 180 * input_dim
+        standard_bounds = torch.tensor([[0.0] * self.dim, [1.0] * self.dim])
+        num_restarts = 6 * self.dim
+        raw_samples = 180 * self.dim
 
         max_post_mean_func = optimize_acqf_and_get_suggested_batch(
             acq_func=posterior_mean_func,
@@ -87,7 +86,7 @@ class NormDifference(PerformanceMetric):
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         if self.output_gt is None:
             _, self.output_gt = self.algo.run_algorithm_on_f(self.obj_func)
-        _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
+        _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func) 
         
         return self.output_dist_fn_norm(output_mf, self.output_gt)
     

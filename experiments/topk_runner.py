@@ -55,13 +55,6 @@ def obj_func(X):
 x_path = unif_random_sample_domain(domain, len_path) # NOTE: Action set
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 
-def algo_exe(obj_func: Callable) -> Tensor:
-    '''Execute TopK algorithm on obj_func.
-    TODO: algo needs to be initialized at each trial?
-    '''
-    _, output = algo.run_algorithm_on_f(obj_func)
-    return output.x
-
 def output_dist_fn_norm(a, b):
     """Output dist_fn based on concatenated vector norm."""
     a_list = []
@@ -84,28 +77,27 @@ def output_dist_fn_jaccard(a, b):
     dist = 1 - jac_sim
     return dist
 
-def metric_jacc(obj_func: Callable, posterior_mean_func: PosteriorMean):
-    '''
-    TODO: metrics are sharing the same algo_mf, algo_gt?
-    '''
-    algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
-    _, output_gt = algo_gt.run_algorithm_on_f(obj_func) # TODO: this should be saved as a common attribute
-    algo_mf = TopK({"x_path": x_path, "k": k}, verbose=False)
-    _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
-    return output_dist_fn_jaccard(output_mf, output_gt)
+# def metric_jacc(obj_func: Callable, posterior_mean_func: PosteriorMean):
+#     '''
+#     TODO: metrics are sharing the same algo_mf, algo_gt?
+#     '''
+#     algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
+#     _, output_gt = algo_gt.run_algorithm_on_f(obj_func) # TODO: this should be saved as a common attribute
+#     algo_mf = TopK({"x_path": x_path, "k": k}, verbose=False)
+#     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
+#     return output_dist_fn_jaccard(output_mf, output_gt)
 
-def metric_norm(obj_func: Callable, posterior_mean_func: PosteriorMean):
-    algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
-    _, output_gt = algo_gt.run_algorithm_on_f(obj_func)
-    algo_mf = TopK({"x_path": x_path, "k": k}, verbose=False)
-    _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
-    return output_dist_fn_norm(output_mf, output_gt)
+# def metric_norm(obj_func: Callable, posterior_mean_func: PosteriorMean):
+#     algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
+#     _, output_gt = algo_gt.run_algorithm_on_f(obj_func)
+#     algo_mf = TopK({"x_path": x_path, "k": k}, verbose=False)
+#     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
+#     return output_dist_fn_norm(output_mf, output_gt)
 
-
-performance_metrics = {
-    "Jaccard": metric_jacc,
-    "Norm": metric_norm,
-}
+# performance_metrics = {
+#     "Jaccard": metric_jacc,
+#     "Norm": metric_norm,
+# }
 
 performance_metrics = [
     JaccardSimilarity(algo, obj_func),
@@ -115,7 +107,7 @@ performance_metrics = [
 experiment_manager(
     problem="topk",
     obj_func=obj_func,
-    algo_exe=algo_exe,
+    algorithm=algo,
     performance_metrics=performance_metrics,
     input_dim=input_dim,
     noise_type="noiseless",
@@ -127,4 +119,5 @@ experiment_manager(
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,
+    save_data=False,
 )

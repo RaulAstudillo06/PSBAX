@@ -92,6 +92,16 @@ class Algorithm(ABC, Base):
             return np.linalg.norm(a_arr - b_arr)
 
         return dist_fn
+    
+    def execute(self, f):
+        """Execute the algorithm on function f.
+        Args:
+            f: Function to query. Function takes in torch tensor of shape (1, input_dim).
+        Returns:
+            Output of algorithm.
+        """
+        exe_path, output = self.run_algorithm_on_f(f)
+        return output
 
 
 class FixedPathAlgorithm(Algorithm):
@@ -510,6 +520,17 @@ class TopK(FixedPathAlgorithm):
         jac_sim = jaccard_similarity(a_x_tup, b_x_tup)
         dist = 1 - jac_sim
         return dist
+    
+    # overwrite execute
+    def execute(self, f):
+        """Execute the algorithm on function f.
+        Args:
+            f: Function to query. Function takes in torch tensor of shape (1, input_dim).
+        Returns:
+            Output of algorithm as a np.array(k, d).
+        """
+        exe_path, output = self.run_algorithm_on_f(f)
+        return np.array(output.x) # (k, d)
 
 
 class Noop(Algorithm):
