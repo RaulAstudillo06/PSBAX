@@ -95,5 +95,6 @@ experiment_manager(
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,
+    model_type="dkgp",
     save_data=True,
 )
