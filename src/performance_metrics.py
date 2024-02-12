@@ -4,6 +4,7 @@ from typing import Callable, Dict
 
 import numpy as np
 import torch
+import pandas as pd
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.models.model import Model
 from torch import Tensor
@@ -15,7 +16,7 @@ class PerformanceMetric:
     def __init__(self, name: str):
         self.name = name
 
-    def __call__(self, obj_func: Callable, posterior_mean_func: PosteriorMean) -> Tensor:
+    def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         raise NotImplementedError
 
 class ObjValAtMaxPostMean(PerformanceMetric):
@@ -62,18 +63,7 @@ class JaccardSimilarity(PerformanceMetric):
             _, self.output_gt = self.algo.run_algorithm_on_f(self.obj_func)
         _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
         
-        return self.output_dist_fn_jaccard(output_mf, self.output_gt)
-    
-    @staticmethod
-    def output_dist_fn_jaccard(a, b):
-        """Output dist_fn based on Jaccard similarity."""
-        a_x_tup = set([tuple(x) for x in a.x])
-        b_x_tup = set([tuple(x) for x in b.x])
-
-        jac_sim = len(a_x_tup & b_x_tup) / len(a_x_tup | b_x_tup)
-        dist = 1 - jac_sim
-        return dist
-
+        return output_dist_fn_jaccard(output_mf, self.output_gt)
 
 class NormDifference(PerformanceMetric):
     def __init__(self, algo, obj_func):
@@ -88,22 +78,7 @@ class NormDifference(PerformanceMetric):
             _, self.output_gt = self.algo.run_algorithm_on_f(self.obj_func)
         _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func) 
         
-        return self.output_dist_fn_norm(output_mf, self.output_gt)
-    
-    @staticmethod
-    def output_dist_fn_norm(a, b):
-        """Output dist_fn based on concatenated vector norm."""
-        a_list = []
-        list(map(a_list.extend, a.x))
-        a_list.extend(a.y)
-        a_arr = np.array(a_list)
-
-        b_list = []
-        list(map(b_list.extend, b.x))
-        b_list.extend(b.y)
-        b_arr = np.array(b_list)
-
-        return np.linalg.norm(a_arr - b_arr)
+        return output_dist_fn_norm(output_mf, self.output_gt)
 
 
 class ShortestPathCost(PerformanceMetric):
@@ -130,6 +105,71 @@ class ShortestPathArea(PerformanceMetric):
         
         return area_of_polygons(self.output_gt[1], output_mf[1])
     
+
+class DiscretePerformanceMetric(PerformanceMetric):
+    def __init__(self, name, data_df):
+        '''
+        self.output_gt: list of indices 
+        '''
+        super().__init__(name)
+        self.df = data_df
+        
+    def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
+        raise NotImplementedError
+    
+    def index_to_x(self, idx):
+        return self.df.drop(columns=["y"]).loc[idx].values # np.array(len(idx), d)
+
+    def index_to_y(self, idx):
+        return self.df.loc[idx, "y"].values # np.array(len(idx),)
+    
+class DiscreteTopKMetric(DiscretePerformanceMetric):
+    def __init__(self, name, algo, data_df):
+        super().__init__(name, data_df)
+        self.algo = algo
+        self.output_gt = None
+        self.k = algo.params.k
+    
+    def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
+        if self.output_gt is None:
+            df_y = self.df["y"]
+            self.output_gt = topk_indices(df_y, self.k)
+        _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
+        # gt_x = [self.index_to_x(idx) for idx in self.output_gt]
+        # mf_x = [self.index_to_x(idx) for idx in output_mf]
+        if "Norm" in self.name:
+            return self.norm_difference(self.output_gt, output_mf)
+        elif "Jaccard" in self.name:
+            return self.jaccard_similarity(self.output_gt, output_mf)
+        else:
+            raise NotImplementedError
+    
+    def jaccard_similarity(self, x1, x2):
+        '''
+        Args: 
+            x1, x2: list of indices
+        '''
+        x1_set = set(x1)
+        x2_set = set(x2)
+        return len(x1_set.intersection(x2_set)) / len(x1_set.union(x2_set))
+    
+    def norm_difference(self, x1, x2):
+        '''
+        Args: 
+            x1, x2: list of indices
+        '''
+        x1_arr = self.index_to_x(x1)
+        x1_y = self.index_to_y(x1)
+        x2_arr = self.index_to_x(x2)
+        x2_y = self.index_to_y(x2)
+
+        x1_arr = x1_arr.flatten()
+        x1_arr = np.append(x1_arr, x1_y)
+        x2_arr = x2_arr.flatten()
+        x2_arr = np.append(x2_arr, x2_y)
+
+        return np.linalg.norm(x1_arr - x2_arr)
+
 
 
 def evaluate_performance(metrics, model) -> Tensor:
@@ -176,3 +216,33 @@ def compute_obj_val_at_max_post_mean(
     obj_val_at_max_post_mean_func = obj_func(max_post_mean_func).item()
     return obj_val_at_max_post_mean_func
 
+
+def output_dist_fn_norm(a, b):
+    """Output dist_fn based on concatenated vector norm."""
+    a_list = []
+    list(map(a_list.extend, a.x))
+    a_list.extend(a.y)
+    a_arr = np.array(a_list)
+
+    b_list = []
+    list(map(b_list.extend, b.x))
+    b_list.extend(b.y)
+    b_arr = np.array(b_list)
+
+    return np.linalg.norm(a_arr - b_arr)
+
+def output_dist_fn_jaccard(a, b):
+    """Output dist_fn based on Jaccard similarity."""
+    a_x_tup = set([tuple(x) for x in a.x])
+    b_x_tup = set([tuple(x) for x in b.x])
+
+    jac_sim = len(a_x_tup & b_x_tup) / len(a_x_tup | b_x_tup)
+    dist = 1 - jac_sim
+    return dist
+
+def topk_indices(y: pd.Series, k):
+    # check if k is a float
+    if isinstance(k, float):
+        return list(y.sort_values(ascending=False).index[:int(k * y.shape[0])].values)
+    elif isinstance(k, int):
+        return list(y.sort_values(ascending=False).index[:k].values)

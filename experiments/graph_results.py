@@ -13,24 +13,33 @@ sys.path.append('../')
 from src.performance_metrics import *
 
 results_dir = "./results/"
+# problem = "dijkstra"
+# problem = "hartmann"
 problem = "topk"
+path = os.path.join(results_dir, problem)
 batch_size = 1
 save_fig = True
-policies = ["ps"]
+policies = ["bax", "ps"]
 
 metrics = []
 
 if problem == "topk":
     metrics = ['Jaccard', 'Norm']
+elif problem == "dijkstra":
+    metrics = ['ShortestPathCost', 'ShortestPathArea']
+elif problem == "hartmann":
+    metrics = ['ObjValAtMaxPostMean']
 
 algo_performance_arrs = {}
 for policy in policies:
-    files_dir = os.path.join(results_dir, problem, policy + "_" + str(batch_size))
+    files_dir = os.path.join(path, policy + "_" + str(batch_size))
     arrs = {}
 
     for f in os.listdir(files_dir):
         if f.endswith(".txt"):
             arr = np.loadtxt(os.path.join(files_dir, f))
+            if len(arr.shape) == 1:
+                arr = arr[:, None]
             for i, metrics_name in enumerate(metrics):
                 arrs[metrics_name] = arrs.get(metrics_name, []) + [arr[:, i]]
     for (metrics_name, arr) in arrs.items():
@@ -56,18 +65,19 @@ for metrics_name in metrics:
     ax.legend()
     ax.set_title(metrics_name + " vs. Iteration")
     if save_fig:
-        path = os.path.join(files_dir, "plots")
-        if not os.path.exists(path):
-            os.makedirs(path, exist_ok=True)
+        fig_dir = os.path.join(path, "plots")
+        if not os.path.exists(fig_dir):
+            os.makedirs(fig_dir, exist_ok=True)
+        # add strategy to file name
+        fig_name = "_".join(policies) + "_" + metrics_name
         fig.savefig(
             os.path.join(
-                path, metrics_name + ".png"
+                fig_dir, fig_name + ".png"
             ),
             bbox_inches="tight",
             dpi=300,
         )
     plt.show()
-
 
 
 #%%

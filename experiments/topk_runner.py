@@ -6,6 +6,7 @@ import os
 import sys
 import torch
 import numpy as np
+import argparse
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.settings import debug
 from botorch.test_functions.synthetic import Hartmann
@@ -14,7 +15,6 @@ from torch import Tensor
 torch.set_default_dtype(torch.float64)
 torch.autograd.set_detect_anomaly(False)
 debug._set_state(False)
-
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
@@ -27,21 +27,30 @@ from src.bax.util.graph import jaccard_similarity
 
 input_dim = 2
 domain = [[-10, 10]] * input_dim
+rescaled_domain = [[0, 1]] * input_dim
 len_path = 150
 k = 10
-policy = "ps"
-if len(sys.argv) == 3:
-    first_trial = int(sys.argv[1])
-    last_trial = int(sys.argv[2])
-elif len(sys.argv) == 2:
-    first_trial = int(sys.argv[1])
-    last_trial = int(sys.argv[1])
-else:
-    first_trial = 1
-    last_trial = 5
+policy = "bax"
+# if len(sys.argv) == 3:
+#     first_trial = int(sys.argv[1])
+#     last_trial = int(sys.argv[2])
+# elif len(sys.argv) == 2:
+#     first_trial = int(sys.argv[1])
+#     last_trial = int(sys.argv[1])
+# else:
+#     first_trial = 1
+#     last_trial = 5
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--trials', type=int, default=5)
+parser.add_argument('--save', type=bool, default=True)
+args = parser.parse_args()
+first_trial = 1
+last_trial = args.trials
 
 
-def obj_func(X):
+def obj_func(X, domain=domain):
     '''
     Args:
         X: (1, n_dim)
@@ -49,10 +58,14 @@ def obj_func(X):
     # check if x is a torch tensor
     if not isinstance(X, torch.Tensor):
         X = torch.tensor(X)
+    # rescale X from 0, 1 to domain
+    X_rescaled = X.clone()
+    X_rescaled = torch.mul(X, torch.tensor([domain[i][1] - domain[i][0] for i in range(len(domain))])) + torch.tensor([domain[i][0] for i in range(len(domain))])
+    
     f_0 = lambda x:  2 * torch.abs(x) * torch.sin(x)
-    return torch.sum(torch.stack([f_0(x) for x in X]), dim=-1)
+    return torch.sum(torch.stack([f_0(x) for x in X_rescaled]), dim=-1)
 
-x_path = unif_random_sample_domain(domain, len_path) # NOTE: Action set
+x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 
 def output_dist_fn_norm(a, b):
@@ -112,12 +125,12 @@ experiment_manager(
     input_dim=input_dim,
     noise_type="noiseless",
     noise_level=0.0,
-    policy=policy,
+    policy=args.policy,
     batch_size=1,
     num_init_points=2 * (input_dim + 1),
     num_iter=100,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,
-    save_data=False,
+    save_data=args.save,
 )

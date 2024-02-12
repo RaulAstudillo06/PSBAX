@@ -2,6 +2,7 @@
 
 from typing import Callable, Dict, Optional
 
+import os
 import numpy as np
 import torch
 from botorch.acquisition.acquisition import AcquisitionFunction
@@ -75,3 +76,13 @@ def optimize_acqf_and_get_suggested_batch(
     candidates = candidates.detach()
     new_x = get_best_candidates(batch_candidates=candidates, batch_values=acq_values)
     return new_x
+
+
+
+def seed_torch(seed, verbose=True):
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False

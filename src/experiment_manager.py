@@ -3,11 +3,11 @@
 from typing import Callable, Dict, List, Optional
 
 from src.one_trial import one_trial
+from src.discobax_trial import discobax_trial
 
 
 def experiment_manager(
     problem: str,
-    obj_func: Callable,
     algorithm,
     performance_metrics: Dict,
     input_dim: int,
@@ -20,10 +20,13 @@ def experiment_manager(
     first_trial: int,
     last_trial: int,
     restart: bool,
+    obj_func = None,
+    data_df = None,
     model_type: str = "single_task_gp",
     ignore_failures: bool = False,
     policy_params: Optional[Dict] = None,
     save_data: bool = False,
+    **kwargs,
 ) -> None:
     r"""
     Args:
@@ -41,25 +44,49 @@ def experiment_manager(
         restart: If true, it will try to restart the experiment from available data
         model_type: Type of model (see utils.py for options)
     """
+    discrete = kwargs.get("discrete", False)
+    
+
     for trial in range(first_trial, last_trial + 1):
         # TODO: should I pass in Algorithm class and initialize algorithm here?
         # src.bax.alg.alorithms: x_path[len_path] if len_path < len(x_path) else None
-        one_trial(
-            problem=problem,
-            obj_func=obj_func,
-            algorithm=algorithm,
-            performance_metrics=performance_metrics,
-            input_dim=input_dim,
-            noise_type=noise_type,
-            noise_level=noise_level,
-            policy=policy,
-            policy_params=policy_params,
-            batch_size=batch_size,
-            num_init_points=num_init_points,
-            num_iter=num_iter,
-            trial=trial,
-            restart=restart,
-            model_type=model_type,
-            ignore_failures=ignore_failures,
-            save_data=save_data,
-        )
+        if discrete:
+            discobax_trial(
+                problem=problem,
+                df = data_df,
+                algorithm=algorithm,
+                performance_metrics=performance_metrics,
+                input_dim=input_dim,
+                noise_type=noise_type,
+                noise_level=noise_level,
+                policy=policy,
+                policy_params=policy_params,
+                batch_size=batch_size,
+                num_init_points=num_init_points,
+                num_iter=num_iter,
+                trial=trial,
+                restart=restart,
+                model_type=model_type,
+                ignore_failures=ignore_failures,
+                save_data=save_data,
+            )
+        else:
+            one_trial(
+                problem=problem,
+                obj_func=obj_func,
+                algorithm=algorithm,
+                performance_metrics=performance_metrics,
+                input_dim=input_dim,
+                noise_type=noise_type,
+                noise_level=noise_level,
+                policy=policy,
+                policy_params=policy_params,
+                batch_size=batch_size,
+                num_init_points=num_init_points,
+                num_iter=num_iter,
+                trial=trial,
+                restart=restart,
+                model_type=model_type,
+                ignore_failures=ignore_failures,
+                save_data=save_data,
+            )

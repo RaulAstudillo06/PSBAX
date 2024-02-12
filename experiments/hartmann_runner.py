@@ -4,6 +4,7 @@ from typing import Callable
 import os
 import sys
 import torch
+import argparse
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.settings import debug
 from botorch.test_functions.synthetic import Hartmann
@@ -66,19 +67,26 @@ performance_metrics = [
     ObjValAtMaxPostMean(obj_func, input_dim),
 ]
 
-# Policies
-policy = "ps"
+# # Run experiment
+# if len(sys.argv) == 3:
+#     first_trial = int(sys.argv[1])
+#     last_trial = int(sys.argv[2])
+# elif len(sys.argv) == 2:
+#     first_trial = int(sys.argv[1])
+#     last_trial = int(sys.argv[1])
+# else:
+#     first_trial = 1
+#     last_trial = 5
 
-# Run experiment
-if len(sys.argv) == 3:
-    first_trial = int(sys.argv[1])
-    last_trial = int(sys.argv[2])
-elif len(sys.argv) == 2:
-    first_trial = int(sys.argv[1])
-    last_trial = int(sys.argv[1])
-else:
-    first_trial = 1
-    last_trial = 1
+# use argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--trials', type=int, default=5)
+parser.add_argument('--save', type=bool, default=True)
+args = parser.parse_args()
+
+first_trial = 1
+last_trial = args.trials
 
 experiment_manager(
     problem="hartmann",
@@ -88,12 +96,12 @@ experiment_manager(
     input_dim=input_dim,
     noise_type="noiseless",
     noise_level=0.0,
-    policy=policy,
+    policy=args.policy,
     batch_size=1,
     num_init_points=2 * (input_dim + 1),
     num_iter=100,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,
-    save_data=True,
+    save_data=args.save,
 )

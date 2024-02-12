@@ -11,6 +11,7 @@ from botorch.models.model import Model
 from torch import Tensor
 
 from src.acquisition_functions.posterior_sampling import gen_posterior_sampling_batch
+from src.acquisition_functions.bax_acquisition import BAXAcquisitionFunction
 from src.fit_model import fit_model
 from src.performance_metrics import evaluate_performance
 
@@ -40,6 +41,7 @@ def one_trial(
     ignore_failures: bool,
     policy_params: Optional[Dict] = None,
     save_data: bool = False,
+    **kwargs,
 ) -> None:
     policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
 
@@ -271,3 +273,47 @@ def get_new_suggested_batch(
     elif policy == "ps":
         standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
         return gen_posterior_sampling_batch(model, algorithm, batch_size)
+    elif policy == "bax":
+        x_batch = generate_random_points(
+            num_points=500, input_dim=input_dim
+        )
+        # FIXME 
+        acq_func = BAXAcquisitionFunction(model=model, algo=algorithm, )
+        acq_func.initialize()
+        acq_vals = acq_func(x_batch)
+        x_next = x_batch[torch.argsort(acq_vals)[-batch_size:]]
+
+        return x_next
+
+def get_new_suggested_batch_discrete(
+    policy: str,
+    model: Model,
+    algorithm,
+    batch_size,
+    input_dim: int,
+    model_type: str,
+    policy_params: Optional[Dict] = None,
+) -> Tensor:
+    standard_bounds = torch.tensor(
+        [[0.0] * input_dim, [1.0] * input_dim]
+    )  # This assumes the input domain has been normalized beforehand
+    num_restarts = input_dim * batch_size
+    raw_samples = 30 * input_dim * batch_size
+    batch_initial_conditions = None
+
+    if policy == "random":
+        return generate_random_points(num_points=1, input_dim=input_dim)
+    elif policy == "ps":
+        standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
+        return gen_posterior_sampling_batch(model, algorithm, batch_size)
+    elif policy == "bax":
+        x_batch = generate_random_points(
+            num_points=500, input_dim=input_dim
+        )
+        # FIXME 
+        acq_func = BAXAcquisitionFunction(model=model, algo=algorithm, )
+        acq_func.initialize()
+        acq_vals = acq_func(x_batch)
+        x_next = x_batch[torch.argsort(acq_vals)[-batch_size:]]
+
+        return x_next

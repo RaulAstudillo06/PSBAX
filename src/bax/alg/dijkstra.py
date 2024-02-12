@@ -48,7 +48,7 @@ class Dijkstra(Algorithm):
             If True, print description string.
         """
         super().__init__(params, verbose)
-
+        
         self.vertices = vertices
         assert node_representation in ["locations", "indices"]
         if node_representation == "indices":
@@ -166,10 +166,11 @@ class Dijkstra(Algorithm):
 
     def finish_algorithm(self):
         """To do if algorithm completes."""
-        print(
-            f"Found goal after {self.num_expansions} expansions and "
-            f"{self.num_queries} queries with estimated cost {self.best_cost}"
-        )
+        if self.params.verbose:
+            print(
+                f"Found goal after {self.num_expansions} expansions and "
+                f"{self.num_queries} queries with estimated cost {self.best_cost}"
+            )
         self.best_path = [
             self.vertices[i] for i in backtrack_indices(self.current.index, self.prev)
         ]
@@ -180,7 +181,8 @@ class Dijkstra(Algorithm):
                 cost += self.params.true_cost(path[i], path[i + 1])[0]
             print(f"True cost: {cost}")
 
-        print_true_cost_of_path(self.best_path)
+        if self.params.verbose:
+            print_true_cost_of_path(self.best_path)
 
     def run_algorithm_on_f_standalone(self, f):
 
@@ -204,9 +206,10 @@ class Dijkstra(Algorithm):
                 explored[current.index] = True
                 num_expansions += 1
                 if current.index == goal.index:
-                    print(
-                        f"Found goal after {num_expansions} expansions and {num_queries} queries with estimated cost {best_cost}"
-                    )
+                    if self.params.verbose:
+                        print(
+                            f"Found goal after {num_expansions} expansions and {num_queries} queries with estimated cost {best_cost}"
+                        )
                     best_path = [
                         self.vertices[i] for i in backtrack_indices(current.index, prev)
                     ]
@@ -215,7 +218,8 @@ class Dijkstra(Algorithm):
                         cost = 0
                         for i in range(len(path) - 1):
                             cost += self.params.true_cost(path[i], path[i + 1])[0]
-                        print("true cost", cost)
+                        if self.params.verbose:
+                            print("true cost", cost)
 
                     true_cost_of_path(best_path)
                     return best_cost, best_path
