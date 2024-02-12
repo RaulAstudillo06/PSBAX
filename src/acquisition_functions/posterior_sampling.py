@@ -3,20 +3,41 @@
 import torch
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.utils.gp_sampling import get_gp_samples
-from torch import Tensor
+from botorch.models.deterministic import GenericDeterministicModel
+from botorch.models.gp_regression import SingleTaskGP
+from copy import deepcopy
+
+from src.models.deep_kernel_gp import DKGP
 
 
 def gen_posterior_sampling_batch(model, algorithm, batch_size):
     if batch_size > 1:
         raise ValueError("Batch size > 1 currently not supported")
     else:
-        obj_func_sample = get_gp_samples(
-            model=model,
-            num_outputs=1,
-            n_samples=1,
-            num_rff_features=1000,
-        )
-        obj_func_sample = PosteriorMean(model=obj_func_sample)
+        if isinstance(model, DKGP):
+            aux_model = deepcopy(model)
+            inputs = aux_model.train_inputs[0]
+            aux_model.train_inputs = (aux_model.embedding(inputs),)
+            gp_layer_sample = get_gp_samples(
+                model=aux_model,
+                num_outputs=1,
+                n_samples=1,
+                num_rff_features=1000,
+            )
+    
+            def aux_obj_func_sample_callable(X):
+                return gp_layer_sample.posterior(aux_model.embedding(X)).mean
+            
+            obj_func_sample = GenericDeterministicModel(f=aux_obj_func_sample_callable)
+        elif isinstance(model, SingleTaskGP):
+            obj_func_sample = get_gp_samples(
+                model=model,
+                num_outputs=1,
+                n_samples=1,
+                num_rff_features=1000,
+            )
+            obj_func_sample = PosteriorMean(model=obj_func_sample)
+
         x_output = algorithm.execute(obj_func_sample) # np.array(N, n_dim)
         x_output = torch.tensor(x_output)
         if len(x_output.shape) == 1:

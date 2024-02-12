@@ -4,10 +4,9 @@ from typing import Callable
 import os
 import sys
 import torch
-import argparse
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.settings import debug
-from botorch.test_functions.synthetic import Hartmann
+from botorch.test_functions.synthetic import Ackley
 from torch import Tensor
 
 torch.set_default_dtype(torch.float64)
@@ -24,12 +23,12 @@ from src.performance_metrics import ObjValAtMaxPostMean, compute_obj_val_at_max_
 
 
 # Objective function
-input_dim = 6 # FIXME: is this different from n_dim?
+input_dim = 5 # FIXME: is this different from n_dim?
 
 
 def obj_func(X: Tensor) -> Tensor:
-    hartmann = Hartmann(dim=input_dim)
-    objective_X = -hartmann.evaluate_true(X)
+    ackley = Ackley(dim=input_dim)
+    objective_X = -ackley.evaluate_true(65.536 * X - 32.768)
     return objective_X
 
 
@@ -67,42 +66,35 @@ performance_metrics = [
     ObjValAtMaxPostMean(obj_func, input_dim),
 ]
 
-# # Run experiment
-# if len(sys.argv) == 3:
-#     first_trial = int(sys.argv[1])
-#     last_trial = int(sys.argv[2])
-# elif len(sys.argv) == 2:
-#     first_trial = int(sys.argv[1])
-#     last_trial = int(sys.argv[1])
-# else:
-#     first_trial = 1
-#     last_trial = 5
+# Policies
+policy = "ps"
 
-# use argparse
-parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
-parser.add_argument('--trials', type=int, default=5)
-parser.add_argument('--save', type=bool, default=True)
-args = parser.parse_args()
-
-first_trial = 1
-last_trial = args.trials
+# Run experiment
+if len(sys.argv) == 3:
+    first_trial = int(sys.argv[1])
+    last_trial = int(sys.argv[2])
+elif len(sys.argv) == 2:
+    first_trial = int(sys.argv[1])
+    last_trial = int(sys.argv[1])
+else:
+    first_trial = 1
+    last_trial = 1
 
 experiment_manager(
-    problem="hartmann",
+    problem="ackley",
     obj_func=obj_func,
     algorithm=algo,
     performance_metrics=performance_metrics,
     input_dim=input_dim,
     noise_type="noiseless",
     noise_level=0.0,
-    policy=args.policy,
+    policy=policy,
     batch_size=1,
     num_init_points=2 * (input_dim + 1),
-    num_iter=100,
+    num_iter=200,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,
     model_type="dkgp",
-    save_data=args.save,
+    save_data=True,
 )

@@ -22,7 +22,7 @@ def experiment_manager(
     restart: bool,
     obj_func = None,
     data_df = None,
-    model_type: str = "single_task_gp",
+    model_type: str = "gp",
     ignore_failures: bool = False,
     policy_params: Optional[Dict] = None,
     save_data: bool = False,
