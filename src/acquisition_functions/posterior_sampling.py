@@ -10,7 +10,8 @@ from copy import deepcopy
 from src.models.deep_kernel_gp import DKGP
 
 
-def gen_posterior_sampling_batch(model, algorithm, batch_size):
+def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
+    eval_all = kwargs.get("eval_all", False)
     if batch_size > 1:
         raise ValueError("Batch size > 1 currently not supported")
     else:
@@ -48,7 +49,8 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size):
 
 # algo.run_algorithm_on_f_botorch(obj_func)
 
-def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size):
+def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size, **kwargs):
+    eval_all = kwargs.get("eval_all", False)
     if batch_size > 1:
         raise ValueError("Batch size > 1 currently not supported")
     else:
@@ -60,9 +62,15 @@ def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size):
         )
         obj_func_sample = PosteriorMean(model=obj_func_sample)
         idx_output = algorithm.execute(obj_func_sample) # np.array(N, n_dim)
-        x_output = torch.tensor(algorithm.index_to_x(idx_output))
-        if len(x_output.shape) == 1:
-            x_output = x_output.view(torch.Size([1, x_output.shape[0]]))
-        post_obj_x_output = model(x_output)
-        selected_idx = torch.argmax(post_obj_x_output.variance)
-    return idx_output[selected_idx]
+        if eval_all:
+            return idx_output
+        else: 
+            x_output = algorithm.index_to_x(idx_output)
+            if len(x_output.shape) == 1:
+                x_output = x_output.view(torch.Size([1, x_output.shape[0]]))
+            post_obj_x_output = model(x_output)
+            selected_idx = torch.argmax(post_obj_x_output.variance)
+        return [idx_output[selected_idx]]
+
+
+

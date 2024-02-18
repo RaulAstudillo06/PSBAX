@@ -32,7 +32,7 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
             "Dijkstras": 30,
             "EvolutionStrategies": 50,
             "TopK": 100,
-            "SubsetSelect": 3,
+            "SubsetSelect": 20,
         }
         for (k, v) in default_params.items():
             if k not in kwargs:

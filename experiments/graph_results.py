@@ -15,28 +15,41 @@ from src.performance_metrics import *
 results_dir = "./results/"
 # problem = "dijkstra"
 # problem = "hartmann"
-problem = "topk"
+# problem = "schmidt_2021_ifng"
+problem = "test_schmidt_2021_ifng"
 path = os.path.join(results_dir, problem)
 batch_size = 1
 save_fig = True
-policies = ["bax", "ps"]
+policies = [
+    "ps", 
+    "bax", 
+    "OPT", 
+    "random"
+]
+graph_trials = 100
 
 metrics = []
 
 if problem == "topk":
-    metrics = ['Jaccard', 'Norm']
+    # metrics = ['Jaccard', 'Norm']
+    metrics = ['Norm']
 elif problem == "dijkstra":
     metrics = ['ShortestPathCost', 'ShortestPathArea']
 elif problem == "hartmann":
     metrics = ['ObjValAtMaxPostMean']
+elif problem == "test_schmidt_2021_ifng":
+    metrics = ['DiscoBAXMetric']
+elif problem == "schmidt_2021_ifng":
+    metrics = ['DiscoBAXMetric']
 
 algo_performance_arrs = {}
 for policy in policies:
     files_dir = os.path.join(path, policy + "_" + str(batch_size))
     arrs = {}
 
+    
     for f in os.listdir(files_dir):
-        if f.endswith(".txt"):
+        if f.endswith(".txt") and int(f.split(".")[0].split("_")[-1]) <= graph_trials:
             arr = np.loadtxt(os.path.join(files_dir, f))
             if len(arr.shape) == 1:
                 arr = arr[:, None]
@@ -47,11 +60,21 @@ for policy in policies:
     algo_performance_arrs[policy] = arrs
 
 iters = min([arr.shape[1] for arr in algo_performance_arrs[policy].values()])
+
+try:
+    OPT_values = algo_performance_arrs["OPT"] # TODO: comment out
+except:
+    pass
 # plot
 for metrics_name in metrics:
     fig, ax = plt.subplots(figsize=(10, 8))
     for policy in policies:
+        # if policy == "OPT":
+        #     continue
         arrs = algo_performance_arrs[policy]
+        # plot OPT minus arr
+        # if "OPT" in algo_performance_arrs:
+        #     arrs[metrics_name] = OPT_values[metrics_name] - arrs[metrics_name]
         ax.plot(np.arange(iters), np.mean(arrs[metrics_name], axis=0), label=policy)
         ax.fill_between(
             np.arange(iters),

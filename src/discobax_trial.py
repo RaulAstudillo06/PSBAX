@@ -9,6 +9,7 @@ import time
 import torch
 from botorch.models.model import Model
 from torch import Tensor
+import matplotlib.pyplot as plt
 
 
 import pandas as pd
@@ -25,6 +26,7 @@ from src.utils import (
     generate_initial_data,
     generate_random_points,
     get_obj_vals,
+    seed_torch,
 )
 
 
@@ -33,7 +35,7 @@ from src.utils import (
 # See experiment_manager.py for parameters
 def discobax_trial(
     problem: str,
-    df: pd.DataFrame,
+    obj_func,
     algorithm,
     performance_metrics: List,
     noise_type: str,
@@ -48,13 +50,14 @@ def discobax_trial(
     ignore_failures: bool,
     policy_params: Optional[Dict] = None,
     save_data: bool = False,
-    **kwargs,
+    additional_params: Optional[Dict] = None,
 ) -> None:
-    test_ratio = kwargs.get("test_ratio", 0)
-    topk_percent = kwargs.get("topk_percent", 0.1)
-    seed = kwargs.get("seed", 0)
-    df_x = df.drop(columns=["y"])
-    df_y = df["y"]
+    test_ratio = additional_params.get("test_ratio", 0)
+    topk_percent = additional_params.get("topk_percent", 0.1)
+    seed = additional_params.get("seed", trial)
+    eval_all = additional_params.get("eval_all", False)
+    check_GP_fit = additional_params.get("check_GP_fit", False)
+    seed_torch(seed)
 
     policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
 
@@ -65,19 +68,33 @@ def discobax_trial(
         project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
     )
 
+    obj_func.initialize(seed=seed)
+    algorithm.set_obj_func(obj_func)
+    for metric in performance_metrics:
+        metric.set_algo(algorithm)
+
+    if policy == "OPT":
+        if not os.path.exists(results_folder):
+            os.makedirs(results_folder)
+        for metric in performance_metrics:
+            OPT = metric.compute_OPT(obj_func)
+            fn = results_folder + "performance_metrics_" + str(trial) + ".txt"
+            # create an array of OPT with size (iter + 1, 1)
+            OPT_arr = np.array([OPT for i in range(num_iter + 1)]).reshape(-1, 1)
+            np.savetxt(fn, OPT_arr)
+        return 
+
     if restart:
         pass
     else:
-        # NOTE: Reduce dimensionality w/ PCA on whole dataset? How to match PCA values with indices?
 
-        available_indices = list(df.index)
-        
-        
+        available_indices = obj_func.get_idx()
         test_indices = sorted(list(np.random.choice(available_indices,size=int(test_ratio * len(available_indices)),replace=False,)))
         available_indices = sorted(list(set(available_indices) - set(test_indices)))
+        obj_func.update_df(obj_func.df.loc[available_indices])
+
         cumulative_indices = []
         last_selected_indices = []
-
         last_selected_indices = list(np.random.choice(available_indices, num_init_points))
         cumulative_indices += last_selected_indices
 
@@ -86,8 +103,8 @@ def discobax_trial(
         cumulative_precision_topk = list()
         cumulative_proportion_top_clusters_recovered = list()
 
-        inputs = torch.tensor(df_x.loc[last_selected_indices].values)
-        obj_vals = torch.tensor(df_y.loc[last_selected_indices].values)
+        inputs = obj_func.get_x(last_selected_indices)
+        obj_vals = obj_func(last_selected_indices)
         t0 = time.time()
         model = fit_model(
             inputs,
@@ -110,39 +127,34 @@ def discobax_trial(
         print("Trial: " + str(trial))
         print("Iteration: " + str(iteration))
 
-        available_indices = list(set(available_indices) - set(cumulative_indices))
-
         # New suggested batch
         t0 = time.time()
-        if policy == "random":
-            last_selected_indices = np.random.choice(available_indices, num_init_points)
-        elif policy == "ps":
+        if "random" in policy:
+            if eval_all:
+                last_selected_indices = list(np.random.choice(obj_func.get_idx(), algorithm.params.k))
+            last_selected_indices = list(np.random.choice(obj_func.get_idx(), batch_size))
+        elif "ps" in policy:
             last_selected_indices = gen_posterior_sampling_batch_discrete(
-                model, algorithm, batch_size
-            )
-        elif policy == "bax":
+                model, algorithm, batch_size, eval_all=eval_all,
+            ) # a list
+        elif "bax" in policy:
             acq_func = BAXAcquisitionFunction(model=model, algo=algorithm, )
             acq_func.initialize()
-            x_cand = torch.tensor(df_x.loc[available_indices].values)
+            x_cand = obj_func.get_x()
             acq_vals = acq_func(x_cand)
             top_acq_vals = torch.argsort(acq_vals)[-batch_size:]
-            last_selected_indices = available_indices[top_acq_vals]
+            last_selected_indices = [obj_func.get_idx()[top_acq_vals]] # this should be a list
         
         t1 = time.time()
         acquisition_time = t1 - t0
         runtimes.append(acquisition_time + model_training_time)
 
         # Get obj vals at new batch
-        cumulative_indices.append(last_selected_indices)
-        new_obj_vals = df_y.loc[last_selected_indices]
-        x_new = df_x.loc[last_selected_indices].values
-        # check if x_new is 1d
-        if len(x_new.shape) == 1:
-            x_new = torch.tensor(x_new.reshape(1, -1))
-        else:
-            x_new = torch.tensor(x_new)
+        cumulative_indices += last_selected_indices
+        new_obj_vals = obj_func(last_selected_indices)
+        x_new = obj_func.get_x(last_selected_indices)
         inputs = torch.cat([inputs, x_new])   
-        obj_vals = torch.cat([obj_vals, torch.tensor(new_obj_vals).unsqueeze(0)])
+        obj_vals = torch.cat([obj_vals, new_obj_vals])
 
         # Fit GP model
         t0 = time.time()
@@ -154,11 +166,31 @@ def discobax_trial(
         t1 = time.time()
         model_training_time = t1 - t0
 
-        # Append current objective value at the maximum of the posterior mean
-        # current_performance_metrics = compute_performance_metrics(
-        #     obj_func, model, performance_metrics
-        # )
-        # TODO: is this necessary?
+        # Check how good the model's fit is 
+        if check_GP_fit:
+            x_ = obj_func.get_x()
+            y_ = obj_func.get_y()
+            post_ = model.posterior(x_)
+            mean_ = post_.mean.detach().numpy().flatten()
+            std_ = post_.variance.detach().sqrt().numpy().flatten()
+            sampled_int_idx = obj_func.index_to_int_index(cumulative_indices)
+            sampled_mean_ = mean_[sampled_int_idx]
+            sampled_y_ = y_[sampled_int_idx]
+
+            # plot scatter of true vs predicted mean
+            fig, ax = plt.subplots()
+            ax.scatter(y_, mean_, color='b', marker='.', s=20)
+            ax.scatter(sampled_y_, sampled_mean_, color='g', marker='.', s=10)
+            ax.plot([0, 1], [0, 1], transform=ax.transAxes, color='r')
+            ax.set_xlabel('True')
+            ax.set_ylabel('GP Mean')
+            ax.set_title(f'Policy {policy}, Iter {iteration}')
+
+            plots_folder = results_folder + "plots/"
+            if not os.path.exists(plots_folder):
+                os.makedirs(plots_folder)
+            plt.savefig(plots_folder + "trial_" + str(trial) + "_" + str(iteration) + ".png")
+
         current_performance_metrics = evaluate_performance(performance_metrics, model)
 
         # for i, performance_metric_id in enumerate(performance_metrics.keys()):
@@ -168,8 +200,7 @@ def discobax_trial(
             print(metric.name + ": " + str(current_performance_metrics[i]))
 
         performance_metrics_vals.append(current_performance_metrics)
-        # Save data
-        
+
         if save_data:
             try:
                 if not os.path.exists(results_folder):
@@ -182,7 +213,7 @@ def discobax_trial(
                     os.makedirs(results_folder + "runtimes/")
             except:
                 pass
-
+            # 
             inputs_reshaped = inputs.numpy().reshape(inputs.shape[0], -1)
             np.savetxt(
                 results_folder + "inputs/inputs_" + str(trial) + ".txt", inputs_reshaped

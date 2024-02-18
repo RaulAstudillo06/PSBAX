@@ -3,7 +3,7 @@
 from typing import Callable, Dict, List, Optional
 
 from src.one_trial import one_trial
-from src.discobax_trial import discobax_trial
+from .discobax_trial import discobax_trial
 
 
 def experiment_manager(
@@ -45,18 +45,22 @@ def experiment_manager(
         model_type: Type of model (see utils.py for options)
     """
     discrete = kwargs.get("discrete", False)
-    
+
+
+    additional_params = {}
+    for key, value in kwargs.items():
+        if key not in experiment_manager.__code__.co_varnames:
+            additional_params[key] = value
 
     for trial in range(first_trial, last_trial + 1):
-        # TODO: should I pass in Algorithm class and initialize algorithm here?
-        # src.bax.alg.alorithms: x_path[len_path] if len_path < len(x_path) else None
         if discrete:
             discobax_trial(
                 problem=problem,
-                df = data_df,
+                # df = data_df,
+                obj_func=obj_func,
                 algorithm=algorithm,
                 performance_metrics=performance_metrics,
-                input_dim=input_dim,
+                # input_dim=input_dim,
                 noise_type=noise_type,
                 noise_level=noise_level,
                 policy=policy,
@@ -69,6 +73,7 @@ def experiment_manager(
                 model_type=model_type,
                 ignore_failures=ignore_failures,
                 save_data=save_data,
+                additional_params=additional_params,
             )
         else:
             one_trial(
