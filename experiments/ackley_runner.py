@@ -41,7 +41,6 @@ algo_params = {
     "n_generation": 50,
     "n_population": 10,
     "samp_str": "mut",
-    "opt_mode": "min",
     "init_x": init_x[0],
     "domain": domain,
     "normal_scale": 0.05,
@@ -80,6 +79,8 @@ else:
     first_trial = 1
     last_trial = 1
 
+model_architecture = [32, 32, 4] # Excluding input_dim and output_dim
+
 experiment_manager(
     problem="ackley",
     obj_func=obj_func,
@@ -97,4 +98,5 @@ experiment_manager(
     restart=False,
     model_type="dkgp",
     save_data=True,
+    architecture=model_architecture,
 )

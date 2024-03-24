@@ -24,13 +24,15 @@ from src.experiment_manager import experiment_manager
 from src.performance_metrics import JaccardSimilarity, NormDifference
 from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import jaccard_similarity
+from src.utils import seed_torch
 
 input_dim = 2
-domain = [[-10, 10]] * input_dim
+# domain = [[-10, 10]] * input_dim # NOTE: original domain
+domain = [[-6, 6]] * input_dim # NOTE: himmelblau domain
 rescaled_domain = [[0, 1]] * input_dim
 len_path = 150
 k = 10
-policy = "bax"
+
 # if len(sys.argv) == 3:
 #     first_trial = int(sys.argv[1])
 #     last_trial = int(sys.argv[2])
@@ -44,10 +46,23 @@ policy = "bax"
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
-parser.add_argument('--save', type=bool, default=True)
+parser.add_argument('--save', '-s', action='store_true', default=False)
+parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
 first_trial = 1
 last_trial = args.trials
+
+# === To RUN === # 
+# python topk_runner.py -s --trials 30 --policy ps
+
+def himmelblau(X: Tensor, minimize=False) -> Tensor:
+    a = X[:, 0]
+    b = X[:, 1]
+    result = (a ** 2 + b - 11) ** 2 + (a + b ** 2 - 7) ** 2
+    if not minimize:
+        return -result
+    else:
+        return result
 
 
 def obj_func(X, domain=domain):
@@ -62,10 +77,26 @@ def obj_func(X, domain=domain):
     X_rescaled = X.clone()
     X_rescaled = torch.mul(X, torch.tensor([domain[i][1] - domain[i][0] for i in range(len(domain))])) + torch.tensor([domain[i][0] for i in range(len(domain))])
     
-    f_0 = lambda x:  2 * torch.abs(x) * torch.sin(x)
-    return torch.sum(torch.stack([f_0(x) for x in X_rescaled]), dim=-1)
+    # f_0 = lambda x:  2 * torch.abs(x) * torch.sin(x)
+    # return torch.sum(torch.stack([f_0(x) for x in X_rescaled]), dim=-1)
+    f_0 = himmelblau
+    return f_0(X_rescaled)
+
+seed_torch(1234) # NOTE: fix seed for generating x_path
 
 x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
+
+himmelblau_opt = np.array(
+    [
+        [3, 2],
+        [-2.805118, 3.283186],
+        [-3.779310, -3.283186],
+        [3.584458, -1.848126],
+    ]
+)
+himmelblau_opt = (himmelblau_opt - np.array(domain)[:, 0]) / (np.array(domain)[:, 1] - np.array(domain)[:, 0])
+x_path = np.concatenate([x_path, np.array(himmelblau_opt)], axis=0)
+
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 
 def output_dist_fn_norm(a, b):
@@ -118,7 +149,7 @@ performance_metrics = [
 ]
 
 experiment_manager(
-    problem="topk",
+    problem="topk_himmelblau",
     obj_func=obj_func,
     algorithm=algo,
     performance_metrics=performance_metrics,

@@ -122,7 +122,7 @@ class DKGP(SingleTaskGP):
             likelihood=likelihood,
             # TODO: unclear what should be done here for NN outputs, etc.
             # input_transform=input_transform if not dkl else None,
-            outcome_transform=Standardize(m=1),
+            # outcome_transform=Standardize(m=1), # NOTE: standardizes in fit_model
         )
 
         if self.dkl:

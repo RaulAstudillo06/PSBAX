@@ -4,6 +4,7 @@ from typing import Callable, Dict, List, Optional
 
 from src.one_trial import one_trial
 from .discobax_trial import discobax_trial
+from .california_trial import california_trial
 
 
 def experiment_manager(
@@ -47,13 +48,14 @@ def experiment_manager(
     discrete = kwargs.get("discrete", False)
 
 
+
     additional_params = {}
     for key, value in kwargs.items():
         if key not in experiment_manager.__code__.co_varnames:
             additional_params[key] = value
 
     for trial in range(first_trial, last_trial + 1):
-        if discrete:
+        if "discobax" in problem:
             discobax_trial(
                 problem=problem,
                 # df = data_df,
@@ -73,8 +75,29 @@ def experiment_manager(
                 model_type=model_type,
                 ignore_failures=ignore_failures,
                 save_data=save_data,
-                additional_params=additional_params,
+                **additional_params,
             )
+        # elif "california" in problem:
+        #     california_trial(
+        #         problem=problem,
+        #         obj_func=obj_func,
+        #         algorithm=algorithm,
+        #         performance_metrics=performance_metrics,
+        #         input_dim=input_dim,
+        #         noise_type=noise_type,
+        #         noise_level=noise_level,
+        #         policy=policy,
+        #         policy_params=policy_params,
+        #         batch_size=batch_size,
+        #         num_init_points=num_init_points,
+        #         num_iter=num_iter,
+        #         trial=trial,
+        #         restart=restart,
+        #         model_type=model_type,
+        #         ignore_failures=ignore_failures,
+        #         save_data=save_data,
+        #         additional_params=additional_params,
+        #     )
         else:
             one_trial(
                 problem=problem,
@@ -94,4 +117,5 @@ def experiment_manager(
                 model_type=model_type,
                 ignore_failures=ignore_failures,
                 save_data=save_data,
+                **additional_params,
             )

@@ -89,11 +89,13 @@ class Adam(Optimizer):
 
 class CMAES:
   '''CMA-ES wrapper.'''
-  def __init__(self, num_params,      # number of model parameters
+  def __init__(self, 
+               num_params,      # number of model parameters
                sigma_init=0.10,       # initial standard deviation
                popsize=255,           # population size
-               weight_decay=0.01):    # weight decay coefficient
-
+               weight_decay=0.01, # weight decay coefficient
+               cma_seed=None,
+               ):    
     self.num_params = num_params
     self.sigma_init = sigma_init
     self.popsize = popsize
@@ -101,10 +103,14 @@ class CMAES:
     self.solutions = None
 
     import cma
+    
     self.es = cma.CMAEvolutionStrategy( self.num_params * [0],
                                         self.sigma_init,
                                         {'popsize': self.popsize,
                                         })
+    if cma_seed is not None:
+      self.es.opts.set({'seed': cma_seed})
+
 
   def rms_stdev(self):
     sigma = self.es.result[6]

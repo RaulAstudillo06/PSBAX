@@ -50,13 +50,15 @@ def discobax_trial(
     ignore_failures: bool,
     policy_params: Optional[Dict] = None,
     save_data: bool = False,
-    additional_params: Optional[Dict] = None,
+    **kwargs,
 ) -> None:
-    test_ratio = additional_params.get("test_ratio", 0)
-    topk_percent = additional_params.get("topk_percent", 0.1)
-    seed = additional_params.get("seed", trial)
-    eval_all = additional_params.get("eval_all", False)
-    check_GP_fit = additional_params.get("check_GP_fit", False)
+    test_ratio = kwargs.get("test_ratio", 0)
+    topk_percent = kwargs.get("topk_percent", 0.1)
+    seed = kwargs.get("seed", trial)
+    eval_all = kwargs.get("eval_all", False)
+    check_GP_fit = kwargs.get("check_GP_fit", False)
+    update_objective = kwargs.get("update_objective", False)
+    architecture = kwargs.get("architecture", None)
     seed_torch(seed)
 
     policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
@@ -68,12 +70,23 @@ def discobax_trial(
         project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
     )
 
-    obj_func.initialize(seed=seed)
-    algorithm.set_obj_func(obj_func)
-    for metric in performance_metrics:
-        metric.set_algo(algorithm)
+    if not os.path.exists(results_folder):
+        os.makedirs(results_folder)
 
-    if policy == "OPT":
+    # save stderr to a file
+    try:
+        sys.stderr = open(results_folder + "stderr.txt", "w")
+    except:
+        print("Not writing to stderr.txt")
+        pass
+
+    if update_objective:
+        obj_func.initialize(seed=seed)
+        algorithm.set_obj_func(obj_func)
+        for metric in performance_metrics:
+            metric.set_algo(algorithm)
+
+    if "OPT" in policy:
         if not os.path.exists(results_folder):
             os.makedirs(results_folder)
         for metric in performance_metrics:
@@ -85,13 +98,64 @@ def discobax_trial(
         return 
 
     if restart:
-        pass
+        try: 
+            inputs = torch.tensor(np.loadtxt(
+                results_folder + "inputs/inputs_" + str(trial) + ".txt"
+            ))
+            obj_vals = torch.tensor(np.loadtxt(
+                results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt"
+            ))
+            runtimes = list(np.atleast_1d(np.loadtxt(
+                results_folder + "runtimes/runtimes_" + str(trial) + ".txt"
+            )))
+            # performance_metrics_vals = list(np.atleast_1d(np.loadtxt(
+            #     results_folder + "performance_metrics_" + str(trial) + ".txt"
+            # )))
+            performance_metrics_arr = np.loadtxt(
+                results_folder + "performance_metrics_" + str(trial) + ".txt"
+            )
+            performance_metrics_vals = []
+            if len(performance_metrics_arr.shape) == 1:
+                for i in range(performance_metrics_arr.shape[0]):
+                    performance_metrics_vals.append(np.array([performance_metrics_arr[i]]))
+            else:
+                for i in range(performance_metrics_arr.shape[0]):
+                    performance_metrics_vals.append(performance_metrics_arr[i])
+            iteration = len(runtimes)
+
+            if iteration == num_iter:
+                return
+            
+            t0 = time.time()
+            model = fit_model(
+                inputs,
+                obj_vals,
+                model_type=model_type,
+                architecture=architecture,
+            )
+            t1 = time.time()
+            model_training_time = t1 - t0
+            
+            available_indices = obj_func.get_idx()
+            cumulative_indices = [] # only used for graphing
+            last_selected_indices = []
+
+            # check if inputs @ inputs.T is positive definite
+            try:
+                torch.linalg.cholesky(inputs @ inputs.T) # (n, n)
+            except:
+                pass
+
+        except:
+            pass
+            
+            
     else:
 
         available_indices = obj_func.get_idx()
-        test_indices = sorted(list(np.random.choice(available_indices,size=int(test_ratio * len(available_indices)),replace=False,)))
-        available_indices = sorted(list(set(available_indices) - set(test_indices)))
-        obj_func.update_df(obj_func.df.loc[available_indices])
+        # test_indices = sorted(list(np.random.choice(available_indices,size=int(test_ratio * len(available_indices)),replace=False,)))
+        # available_indices = sorted(list(set(available_indices) - set(test_indices)))
+        # obj_func.update_df(obj_func.df.loc[available_indices])
 
         cumulative_indices = []
         last_selected_indices = []
@@ -110,6 +174,7 @@ def discobax_trial(
             inputs,
             obj_vals,
             model_type=model_type,
+            architecture=architecture,
         )
         t1 = time.time()
         model_training_time = t1 - t0
@@ -144,6 +209,8 @@ def discobax_trial(
             acq_vals = acq_func(x_cand)
             top_acq_vals = torch.argsort(acq_vals)[-batch_size:]
             last_selected_indices = [obj_func.get_idx()[top_acq_vals]] # this should be a list
+        else:
+            raise ValueError("Policy not recognized")
         
         t1 = time.time()
         acquisition_time = t1 - t0
@@ -162,6 +229,7 @@ def discobax_trial(
             inputs,
             obj_vals,
             model_type=model_type,
+            architecture=architecture,
         )
         t1 = time.time()
         model_training_time = t1 - t0
@@ -173,18 +241,28 @@ def discobax_trial(
             post_ = model.posterior(x_)
             mean_ = post_.mean.detach().numpy().flatten()
             std_ = post_.variance.detach().sqrt().numpy().flatten()
-            sampled_int_idx = obj_func.index_to_int_index(cumulative_indices)
-            sampled_mean_ = mean_[sampled_int_idx]
-            sampled_y_ = y_[sampled_int_idx]
+            if len(cumulative_indices) > 1:
+                sampled_int_idx = obj_func.index_to_int_index(cumulative_indices)
+                sampled_mean_ = mean_[sampled_int_idx]
+                sampled_y_ = y_[sampled_int_idx]
+
+            # calculate RSS 
+            RSS = np.sum((mean_ - y_.numpy()) ** 2)
+
 
             # plot scatter of true vs predicted mean
             fig, ax = plt.subplots()
-            ax.scatter(y_, mean_, color='b', marker='.', s=20)
-            ax.scatter(sampled_y_, sampled_mean_, color='g', marker='.', s=10)
-            ax.plot([0, 1], [0, 1], transform=ax.transAxes, color='r')
+            ax.scatter(y_, mean_, color='b', marker='.', s=20, label='All')
+            if len(cumulative_indices) > 1:
+                ax.scatter(sampled_y_, sampled_mean_, color='g', marker='.', s=10, label='Sampled')
+            # plot y = x line
+            ax.plot([min(y_), max(y_)], [min(y_), max(y_)], color='r')
+            # ax.set_aspect('equal')
             ax.set_xlabel('True')
             ax.set_ylabel('GP Mean')
-            ax.set_title(f'Policy {policy}, Iter {iteration}')
+            ax.set_title(f'Policy {policy}, Iter {iteration}, RSS: {RSS:.2f}')
+            
+            ax.legend()
 
             plots_folder = results_folder + "plots/"
             if not os.path.exists(plots_folder):
@@ -199,6 +277,7 @@ def discobax_trial(
         for i, metric in enumerate(performance_metrics):
             print(metric.name + ": " + str(current_performance_metrics[i]))
 
+        
         performance_metrics_vals.append(current_performance_metrics)
 
         if save_data:

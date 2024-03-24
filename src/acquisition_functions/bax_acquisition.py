@@ -4,6 +4,11 @@ import torch
 from botorch.acquisition.monte_carlo import MCAcquisitionFunction
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.utils.gp_sampling import get_gp_samples
+from botorch.models.deterministic import GenericDeterministicModel
+from botorch.models.gp_regression import SingleTaskGP
+from copy import deepcopy
+
+from src.models.deep_kernel_gp import DKGP
 
 
 class BAXAcquisitionFunction(MCAcquisitionFunction):
@@ -18,7 +23,8 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
             algo, 
             **kwargs
         ):
-        super().__init__(model=model, **kwargs)
+        
+        super().__init__(model=model)
         self.algorithm = algo
 
         default_params = {
@@ -38,8 +44,8 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
             if k not in kwargs:
                 kwargs[k] = v
         # TODO: where is batch_size supposed to be used?
-
-        self.n_samples = n_paths_dict[self.algorithm.params.name]
+        
+        self.n_samples = kwargs.get("exe_paths", n_paths_dict[self.algorithm.params.name])
 
         for (k, v) in kwargs.items():
             setattr(self, k, v)
@@ -159,23 +165,40 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
 
         batch_size = kwargs.pop("batch_size", 1)
 
-        obj_func_samples = get_gp_samples(
-            model=self.model,
-            num_outputs=1,  
-            n_samples=self.n_samples,
-            num_rff_features=1000,
-        )
-        
         f_sample_list = []
         for i in range(self.n_samples):
-            f_sample = get_gp_samples(
-                model=self.model,
-                num_outputs=1,  
-                n_samples=1,
-                num_rff_features=1000,
-            )
-            f_sample = PosteriorMean(model=f_sample)
-            f_sample_list.append(f_sample)
+            # f_sample = get_gp_samples(
+            #     model=self.model,
+            #     num_outputs=1,  
+            #     n_samples=1,
+            #     num_rff_features=1000,
+            # )
+            # f_sample = PosteriorMean(model=f_sample)
+
+            if isinstance(self.model, DKGP):
+                aux_model = deepcopy(self.model)
+                inputs = aux_model.train_inputs[0]
+                aux_model.train_inputs = (aux_model.embedding(inputs),)
+                gp_layer_sample = get_gp_samples(
+                    model=aux_model,
+                    num_outputs=1,
+                    n_samples=1,
+                    num_rff_features=1000,
+                )
+        
+                def aux_obj_func_sample_callable(X):
+                    return gp_layer_sample.posterior(aux_model.embedding(X)).mean
+                
+                obj_func_sample = GenericDeterministicModel(f=aux_obj_func_sample_callable)
+            elif isinstance(self.model, SingleTaskGP):
+                obj_func_sample = get_gp_samples(
+                    model=self.model,
+                    num_outputs=1,
+                    n_samples=1,
+                    num_rff_features=1000,
+                )
+                obj_func_sample = PosteriorMean(model=obj_func_sample)
+            f_sample_list.append(obj_func_sample)
 
         exe_path_list, output_list = self.run_algorithm_on_f_list(f_sample_list)
         self.exe_path_list = exe_path_list
@@ -185,12 +208,28 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
             self, 
             f_sample_list, 
         ):
-        algo_list = [self.algorithm.get_copy() for _ in range(self.n_samples)]
 
-        for algo in algo_list:
-            algo.initialize()
+        # if self.algorithm.params.name == "Dijkstras":
+        #     exe_path_list = []
+        #     output_list = []
+        #     for f_sample in f_sample_list:
+        #         algo = self.algorithm.initialize()
+        #         exe_path, output = algo.run_algorithm_on_f(f_sample)
+        #         if self.crop:
+        #             exe_path = algo.get_exe_path_crop()
+
+        #         exe_path_list.append(exe_path)
+        #         output_list.append(output)
+            
+        #     return exe_path_list, output_list
+
+        self.algorithm.initialize()
+        algo_list = []
+        algo_list = [self.algorithm.get_copy() for _ in range(self.n_samples)]
         
         if self.algorithm.params.name == "TopK":
+            for algo in algo_list:
+                algo.initialize()
             x_list = [algo.get_next_x() for algo in algo_list]
             while any(x is not None for x in x_list):
                 fx_list = [f(torch.tensor(x).unsqueeze(0)).item() for f, x in zip(f_sample_list, x_list)]
@@ -212,7 +251,9 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
             exe_path_list = []
             output_list = []
             for f_sample, algo in zip(f_sample_list, algo_list):
+                # algo = self.algorithm.get_copy()
                 exe_path, output = algo.run_algorithm_on_f(f_sample)
+                # algo_list.append(algo)
                 exe_path_list.append(exe_path)
                 output_list.append(output)
             

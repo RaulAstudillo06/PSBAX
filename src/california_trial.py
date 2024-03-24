@@ -24,7 +24,7 @@ from src.utils import (
 
 
 # See experiment_manager.py for parameters
-def one_trial(
+def california_trial(
     problem: str,
     obj_func: Callable,
     algorithm,
@@ -42,14 +42,13 @@ def one_trial(
     ignore_failures: bool,
     policy_params: Optional[Dict] = None,
     save_data: bool = False,
-    **kwargs,
+    additional_params: Optional[Dict] = None,
 ) -> None:
     seed_torch(trial)
-    policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
+    architecture = additional_params.get("architecture", None)
 
-    # Problem specific parameters / data / etc.
-    architecture = kwargs.get("architecture", None)
-    
+
+    policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
 
     # Get script directory
     script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -58,88 +57,12 @@ def one_trial(
         project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
     )
 
+    # edge_locs = additional_params.get("edge_locs", None)
+    edge_positions = additional_params.get("edge_positions", None)
+    # edge_locs = list(edge_positions)
+
     if restart:
-        # Check if training data is already available
-        try:
-            # Current available evaluations
-            inputs = np.loadtxt(results_folder + "inputs/inputs_" + str(trial) + ".txt")
-            inputs = inputs.reshape(
-                inputs.shape[0],
-                batch_size,
-                int(inputs.shape[1] / batch_size),
-            )
-            inputs = torch.tensor(inputs)
-            obj_vals = torch.tensor(
-                np.loadtxt(results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt")
-            )
-            # Historical maximum performance metrics
-            performance_metrics = torch.tensor(
-                np.loadtxt(
-                    results_folder
-                    + "performance_metrics_vals/performance_metrics_vals_"
-                    + str(trial)
-                    + ".txt"
-                )
-            )
-            # Historical acquisition runtimes
-            runtimes = list(
-                np.atleast_1d(
-                    np.loadtxt(
-                        results_folder + "runtimes/runtimes_" + str(trial) + ".txt"
-                    )
-                )
-            )
-
-            # Fit GP model
-            t0 = time.time()
-            model = fit_model(
-                inputs,
-                obj_vals,
-                model_type=model_type,
-                architecture=architecture,
-            )
-            t1 = time.time()
-            model_training_time = t1 - t0
-
-            iteration = len(performance_metrics_vals[:, 0]) - 1
-            print("Restarting experiment from available data.")
-
-        except:
-            # Initial data
-            inputs, obj_vals = generate_initial_data(
-                num_init_points=num_init_points,
-                input_dim=input_dim,
-                obj_func=obj_func,
-                noise_type=noise_type,
-                noise_level=noise_level,
-                seed=trial,
-                **kwargs,
-            )
-
-            # Fit GP model
-            t0 = time.time()
-            model = fit_model(
-                inputs,
-                obj_vals,
-                model_type=model_type,
-                architecture=architecture,
-            )
-            t1 = time.time()
-            model_training_time = t1 - t0
-
-            # Historical performance metrics
-            # performance_metrics_vals = [
-            #     compute_performance_metrics(obj_func, model, performance_metrics)
-            # ]
-            performance_metrics_vals = [
-                evaluate_performance(performance_metrics, model)
-            ]
-            
-
-            # Historical acquisition runtimes
-            runtimes = []
-
-            iteration = 0
+        raise NotImplementedError
     else:
         # Initial data
         inputs, obj_vals = generate_initial_data(
@@ -149,8 +72,16 @@ def one_trial(
             noise_type=noise_type,
             noise_level=noise_level,
             seed=trial,
-            **kwargs,
+            edge_positions=edge_positions,
         )
+
+        # x_init_args = np.random.choice(range(len(edge_locs)), num_init_points)
+        # x_init = [edge_positions[idx] for idx in x_init_args]
+        # inputs = torch.tensor(x_init)
+        # obj_vals = obj_func(inputs)
+
+        # =============== TODO ===============
+
 
         # Fit GP model
         t0 = time.time()
@@ -193,7 +124,6 @@ def one_trial(
             input_dim=input_dim,
             policy_params=policy_params,
             model_type=model_type,
-            **kwargs,
         )
         t1 = time.time()
         acquisition_time = t1 - t0
@@ -273,7 +203,6 @@ def get_new_suggested_batch(
     input_dim: int,
     model_type: str,
     policy_params: Optional[Dict] = None,
-    **kwargs,
 ) -> Tensor:
     standard_bounds = torch.tensor(
         [[0.0] * input_dim, [1.0] * input_dim]
@@ -282,28 +211,17 @@ def get_new_suggested_batch(
     raw_samples = 30 * input_dim * batch_size
     batch_initial_conditions = None
 
-    edge_positions = kwargs.get("edge_positions", None) # California
-    
-
     if "random" in policy:
         return generate_random_points(num_points=1, input_dim=input_dim)
     elif "ps" in policy:
+        standard_bounds = torch.tensor([[0.0] * input_dim, [1.0] * input_dim])
         return gen_posterior_sampling_batch(model, algorithm, batch_size)
     elif "bax" in policy:
-
-        if edge_positions is not None:
-            x_batch = torch.tensor(edge_positions) # In BAX, they query all the edge locs as well.
-        else:
-            num_points=kwargs.get("bax_num_cand", 500)
-            x_batch = generate_random_points(
-                num_points=num_points, input_dim=input_dim
-            )
-        # TODO: change number of points 
-        acq_func = BAXAcquisitionFunction(
-            model=model, 
-            algo=algorithm,
-            **kwargs, 
+        x_batch = generate_random_points(
+            num_points=500, input_dim=input_dim
         )
+        # FIXME 
+        acq_func = BAXAcquisitionFunction(model=model, algo=algorithm, )
         acq_func.initialize()
         acq_vals = acq_func(x_batch)
         x_next = x_batch[torch.argsort(acq_vals)[-batch_size:]]

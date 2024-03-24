@@ -84,6 +84,8 @@ class Dijkstra(Algorithm):
         self.curr_neigh_idx = 0
         self.do_after_query = False
 
+        self.true_cost_of_shortest_path = None
+
     def get_next_x(self):
         """
         Given the current execution path, return the next x in the execution path. If
@@ -142,16 +144,18 @@ class Dijkstra(Algorithm):
 
     def after_query(self):
         """To do after an edge has been queried."""
-        last_edge_y = self.exe_path.y[-1]
-        step_cost = np.log1p(np.exp(last_edge_y))
+        last_edge_y = self.exe_path.y[-1] # comes from calling y = f(x), f is a sample from gp
+        step_cost = np.log1p(np.exp(last_edge_y)) # softplus on sample from gp
         assert step_cost >= 0
         neighbor = self.current.neighbors[self.curr_neigh_idx]
         self.curr_neigh_idx += 1
 
+        # update neighbor's weight (relaxing the edge)
         if (not self.explored[neighbor.index]) and (
             self.best_cost + step_cost < self.min_cost[neighbor.index]
         ):
             # Push by cost
+            # self.best_cost is cost at current node
             heapq.heappush(self.to_explore, (self.best_cost + step_cost, neighbor))
             self.min_cost[neighbor.index] = self.best_cost + step_cost
             self.prev[neighbor.index] = self.current.index
@@ -175,16 +179,26 @@ class Dijkstra(Algorithm):
             self.vertices[i] for i in backtrack_indices(self.current.index, self.prev)
         ]
 
-        def print_true_cost_of_path(path):
-            cost = 0
-            for i in range(len(path) - 1):
-                cost += self.params.true_cost(path[i], path[i + 1])[0]
-            print(f"True cost: {cost}")
+        true_cost_of_shortest_path = 0
+        for i in range(len(self.best_path) - 1):
+            true_cost_of_shortest_path += self.params.true_cost(self.best_path[i], self.best_path[i + 1])[0]
+
+        self.true_cost_of_shortest_path = true_cost_of_shortest_path # torch.tensor
+        # def print_true_cost_of_path(path):
+        #     cost = 0
+        #     for i in range(len(path) - 1):
+        #         cost += self.params.true_cost(path[i], path[i + 1])[0]
+        #     print(f"True cost: {cost}")
+            
 
         if self.params.verbose:
-            print_true_cost_of_path(self.best_path)
+            # print_true_cost_of_path(self.best_path)
+            print(f"True cost: {true_cost_of_shortest_path}")
 
     def run_algorithm_on_f_standalone(self, f):
+        '''Executes self.take_step(f) (super.take_step(f) --> self.get_next_x --> self.get_next_edge)
+        until self.take_step(f) returns None. 
+        '''
 
         # TODO: prevent parallel processes from sharing random state
         # np.random.seed()
@@ -220,8 +234,7 @@ class Dijkstra(Algorithm):
                             cost += self.params.true_cost(path[i], path[i + 1])[0]
                         if self.params.verbose:
                             print("true cost", cost)
-
-                    true_cost_of_path(best_path)
+                        return cost
                     return best_cost, best_path
 
                 for neighbor in current.neighbors:
@@ -355,8 +368,23 @@ class Dijkstra(Algorithm):
     def execute(self, f):
         _, output_list = self.run_algorithm_on_f(f)
         node_list = output_list[1]
-        edge_list = []
-        for i in range(len(node_list)-1):
-            edge_list.append((node_list[i].position, node_list[i+1].position))
-        edge_locs_list = [(e[0] + e[1]) / 2 for e in edge_list]
+
+        # edge_list = []
+        # for i in range(len(node_list)-1):
+        #     edge_list.append((node_list[i].position, node_list[i+1].position))
+        # edge_locs_list = [(e[0] + e[1]) / 2 for e in edge_list]
+
+        edge_locs_list = []
+        for i in range(len(node_list) - 1):
+            if self.node_representation == "locations":
+                vec_start_pos = node_list[i].position
+                vec_end_pos = node_list[i + 1].position
+                edge_pos = (vec_start_pos + vec_end_pos) / 2.0
+                edge_locs_list.append(edge_pos)
+            elif self.node_representation == "indices":
+                vec_start = node_list[i].index
+                vec_end = node_list[i + 1].index
+                edge_pos = self.edge_to_position[(vec_start, vec_end)]
+                edge_locs_list.append(edge_pos)
+        
         return np.array(edge_locs_list)

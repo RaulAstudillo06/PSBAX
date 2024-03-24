@@ -36,6 +36,7 @@ class EvolutionStrategies(Algorithm):
         self.params.n_dim = len(self.params.init_x)
         self.params.n_dim_es = self.params.n_dim if self.params.n_dim > 1 else 2
         self.params.crop = getattr(params, "crop", True)
+        self.cma_seed = None
 
     def initialize(self):
         """Initialize algorithm, reset execution path."""
@@ -48,6 +49,7 @@ class EvolutionStrategies(Algorithm):
                 popsize=self.params.n_population,
                 weight_decay=0.0,
                 sigma_init=0.2,
+                cma_seed=self.cma_seed,
             )
         elif self.params.samp_str == "mut":
             self.params.sampler = SimpleMutator(
@@ -84,6 +86,10 @@ class EvolutionStrategies(Algorithm):
                 return self.params.gen_list.pop(0)
             else:
                 return None
+    
+    def set_cma_seed(self, cma_seed):
+        """Set the seed for CMA-ES."""
+        self.cma_seed = cma_seed
 
     def convert_next_gen_list(self, next_gen_list):
         """Optionally convert format of next_gen_list."""

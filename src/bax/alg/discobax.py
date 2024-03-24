@@ -30,7 +30,12 @@ class SubsetSelect(Algorithm):
         self.initialize()
         if not isinstance(f, np.ndarray):
             x_torch = self.x_torch.unsqueeze(1)
-            fx = f(x_torch).detach().numpy() # (n,)
+            # fx = f(x_torch).detach().numpy() # (n,)
+            fx = torch.zeros(x_torch.shape[0])
+            for i in range(x_torch.shape[0]):
+                fx[i] = f(x_torch[i]).detach()
+            fx = fx.numpy()
+
         else:
             fx = f
         n = len(fx)
@@ -53,7 +58,7 @@ class SubsetSelect(Algorithm):
             idxes.append(idx_next)
             # self.exe_path.y.append(e_vals[idx_next])
 
-        indices = [self.obj_func.df.index[i] for i  in idxes] # list of string indices
+        indices = [self.obj_func.df.index[i] for i in idxes] # list of string indices
         self.exe_path.x = self.x_torch[idxes].numpy() # (k, d)
                                                       
         self.exe_path.values = values

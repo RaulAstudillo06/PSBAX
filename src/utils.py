@@ -20,8 +20,14 @@ def generate_initial_data(
     noise_type,
     noise_level,
     seed: int = None,
+    **kwargs,
 ):
-    inputs = generate_random_points(num_init_points, input_dim, seed)
+    edge_positions = kwargs.get("edge_positions", None)
+    if edge_positions is not None:
+        idx = np.random.choice(range(edge_positions.shape[0]), num_init_points, replace=False)
+        inputs = torch.tensor(edge_positions[idx])
+    else:
+        inputs = generate_random_points(num_init_points, input_dim, seed)
     outputs = get_obj_vals(obj_func, inputs, noise_type, noise_level)
     return inputs, outputs
 

@@ -27,7 +27,6 @@ debug._set_state(False)
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--problem_idx', type=int, default=0)
-parser.add_argument('--use_top', type=bool, default=True)
 parser.add_argument('--do_pca', type=bool, default=False)
 parser.add_argument('--pca_dim', type=int, default=20)
 parser.add_argument('--data_size', type=int, default=10000)
@@ -36,50 +35,62 @@ parser.add_argument('--last_trial', type=int, default=10)
 parser.add_argument('--num_iter', type=int, default=100)
 parser.add_argument('--n_init', type=int, default=100)
 parser.add_argument('--eta_budget', type=int, default=100)
-parser.add_argument('--model_type', type=str, default="gp")
+parser.add_argument('--model_type', type=str, default="dkgp")
 parser.add_argument('--check_GP_fit', type=bool, default=False)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
 
 # === To RUN === # 
-# python discobax_runner.py -s --problem_idx 0 --num_iter 100 --do_pca True --pca_dim 5 --data_size 1700 --eta_budget 100 --policy bax --first_trial 1 --last_trial 10
-# python discobax_runner.py -s --problem_idx 0 --num_iter 100 --do_pca True --pca_dim 5 --data_size 10000 --eta_budget 100 --policy OPT --first_trial 1 --last_trial 10
+# python discobax_dkl_runner.py -s --problem_idx 4 --policy ps --n_init 100 --last_trial 5 --data_size 1700
+# python discobax_dkl_runner.py -s --problem_idx 4 --policy ps --last_trial 5 --data_size 1700 --do_pca 1 --pca_dim 10 --model_type gp
+
+# check gp fit
+# python discobax_dkl_runner.py -s --problem_idx 4 --policy ps --last_trial 1 --data_size 1700 --check_GP_fit 1 --num_iter 100
 
 data_path = "./data/discobax"
 if "experiment" not in os.getcwd():
     data_path = "experiments/data/discobax"
 problem_lst = [
+    "test_schmidt_2021_ifng",
     "schmidt_2021_ifng",
     "schmidt_2021_il2",
     "zhuang_2019",
     "sanchez_2021_tau",
     "zhu_2021_sarscov2_host_factors",
 ]
-problem = problem_lst[args.problem_idx]
 
 # === Testing === #
 TEST = False
 if TEST:
-    # python discobax_runner.py -s --problem_idx 1 --num_iter 100 --do_pca True --pca_dim 5 --data_size 1700 --eta_budget 100 --policy bax -r
-    args.problem_idx = 1
-    args.num_iter = 100
+    args.first_trial = 1
+    args.last_trial = 1
+    args.num_iter = 20
     args.save = False
-    args.do_pca = True
-    args.pca_dim = 5
+    args.do_pca = False
+    # args.pca_dim = 5
     args.data_size = 1700
-    args.policy = "bax"
-    args.restart = True
+    args.policy = "ps"
+    args.model_type = "dkgp"
+    args.problem_idx = 4
+
+    # python discobax_dkl_runner.py -s --problem_idx 4 --num_iter 100 --eta_budget 100 --policy ps --n_init 100 --data_size 1700 --last_trial 5
+    # args.first_trial = 1
+    # args.last_trial = 5
+    # args.problem_idx = 4
+    # args.num_iter = 100
+    # args.do_pca = False
+    # args.eta_budget = 100
+    # args.policy = "ps"
+    # args.n_init = 500
+    # args.save = False
+
 else:
     args.save = True
 # =============== #
 problem = problem_lst[args.problem_idx]
 
-if args.use_top:
-    data_path = os.path.join(data_path, f"{problem}_top_{args.data_size}.csv")
-else:
-    data_path = os.path.join(data_path, f"{problem}_random_{args.data_size}.csv")
-df = pd.read_csv(data_path, index_col=0)
+df = pd.read_csv(os.path.join(data_path, problem + ".csv"), index_col=0)
 df_x = df.drop(columns=["y"])
 df_y = df["y"]
 
@@ -94,12 +105,17 @@ def topk_indices(y: pd.Series, k):
     elif isinstance(k, int):
         return list(y.sort_values(ascending=False).index[:k].values)
     
+if args.data_size != df_x.shape[0]:
+    keep_idx = topk_indices(df_y, args.data_size)
+    df = df.loc[keep_idx]
+    df_x = df.drop(columns=["y"])
+    df_y = df["y"]
 
 if args.do_pca or args.pca_dim != df_x.shape[1]:
-    print("===== Doing PCA =====")
+    print("Doing PCA")
     pca_x = torch.tensor(df_x.values)
     pca_x = StandardScaler().fit_transform(pca_x)
-    pca = PCA(n_components=args.pca_dim, random_state=0)
+    pca = PCA(n_components=args.pca_dim)
     pca_x = pca.fit_transform(pca_x)
     pca_df = pd.DataFrame(pca_x, index=df.index)
     pca_df["y"] = df_y
@@ -118,6 +134,7 @@ obj_func = DiscoBAXObjective(
     noise_type="additive",
     idx_type="str",
     nonneg=False, # NOTE: not taking np.maximum(0, fx) 
+    verbose=True,
 )
 
 
@@ -133,18 +150,17 @@ performance_metrics = [
 
 # == DO if not update_objective == #
 update_objective = False
-fn = f"./data/discobax/etas_seed0_size{args.data_size}.txt"
+fn = f"./etas_seed0_size{args.data_size}.txt"
 if os.path.exists(fn):
     etas = np.loadtxt(fn)
     if len(etas) == args.eta_budget:
         obj_func.etas_lst = etas
-obj_func.initialize(seed=0, verbose=True)
+obj_func.initialize(seed=0)
 eta_arr = np.array(obj_func.etas_lst) # (eta_budget, args.data_size)
 if not os.path.exists(fn):
     try:
-        np.savetxt(f"./data/discobax/etas_seed0_size{args.data_size}", eta_arr)
+        np.savetxt(f"./experiments/etas_seed0_size{args.data_size}", eta_arr)
     except:
-        print("Unable to save etas to data dir.")
         np.savetxt(f"./etas_seed0_size{args.data_size}.txt", eta_arr)
 
 algo.set_obj_func(obj_func)
@@ -153,7 +169,8 @@ for metric in performance_metrics:
 # == DO if not update_objective == #
 # update_objective = True
     
-problem = data_path.split("/")[-1].split(".")[0]
+problem = problem + f"_size{args.data_size}"
+
 
 # save stdin to file
 results_dir = f"./results/{problem}"
@@ -164,6 +181,8 @@ policy = args.policy + f"_model{args.model_type}" + f"_dim{args.pca_dim}"
 with open(os.path.join(results_dir, f"{policy}_stdin.txt"), "w") as f:
     f.write(str(sys.argv))
 
+model_architecture = [64, 32, 10] # Excluding input_dim and output_dim
+
 experiment_manager(
     problem="discobax" + "_" + problem,
     algorithm=algo,
@@ -172,7 +191,7 @@ experiment_manager(
     input_dim=args.pca_dim,
     noise_type="noiseless",
     noise_level=0.0,
-    policy=policy,
+    policy=args.policy + f"_model{args.model_type}" + f"_dim{args.pca_dim}",
     batch_size=1,
     num_init_points=args.n_init,
     num_iter=args.num_iter,
@@ -185,6 +204,6 @@ experiment_manager(
     check_GP_fit=args.check_GP_fit,
     update_objective=update_objective,
     model_type=args.model_type,
-    # architecture=model_architecture,
+    architecture=model_architecture,
 )
 

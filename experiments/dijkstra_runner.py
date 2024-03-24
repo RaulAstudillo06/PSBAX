@@ -50,7 +50,11 @@ policy = "ps"
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
-parser.add_argument('--save', type=bool, default=True)
+parser.add_argument('--save', '-s', action='store_true', default=False)
+
+# ====== To run ======
+# python dijkstra_runner.py -s --policy ps --trials 5
+
 args = parser.parse_args()
 first_trial = 1
 last_trial = args.trials

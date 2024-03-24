@@ -10,7 +10,7 @@ from torch import Tensor
 from src.models.deep_kernel_gp import DKGP
 
 
-def fit_model(inputs: Tensor, outputs: Tensor, model_type: str):
+def fit_model(inputs: Tensor, outputs: Tensor, model_type: str, **kwargs):
     if len(outputs.shape) == 1:
         outputs = outputs.view(torch.Size([outputs.shape[0], 1]))
     if model_type == "gp":
@@ -22,7 +22,11 @@ def fit_model(inputs: Tensor, outputs: Tensor, model_type: str):
         mll = ExactMarginalLogLikelihood(model.likelihood, model)
         fit_gpytorch_mll(mll)
     elif model_type == "dkgp":
+        architecture = kwargs.pop("architecture")
+        if architecture is None:
+            architecture =  [32, 32, inputs.shape[-1]]
+        architecture = [inputs.shape[-1]] + architecture + [outputs.shape[-1]]
         std_outputs = (outputs - outputs.mean())/outputs.std()
-        model = DKGP(train_X=inputs, train_Y=std_outputs, architecture=[inputs.shape[-1], 32, 32, inputs.shape[-1], 1])
+        model = DKGP(train_X=inputs, train_Y=std_outputs, architecture=architecture)
         model.train_model(X=inputs, Y=std_outputs.squeeze(-1), lr=1e-2, num_iter=10000)
     return model

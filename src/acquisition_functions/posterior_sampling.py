@@ -54,13 +54,36 @@ def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size, **kwargs
     if batch_size > 1:
         raise ValueError("Batch size > 1 currently not supported")
     else:
-        obj_func_sample = get_gp_samples(
-            model=model,
-            num_outputs=1,
-            n_samples=1,
-            num_rff_features=1000,
-        )
-        obj_func_sample = PosteriorMean(model=obj_func_sample)
+        # obj_func_sample = get_gp_samples(
+        #     model=model,
+        #     num_outputs=1,
+        #     n_samples=1,
+        #     num_rff_features=1000,
+        # )
+        # obj_func_sample = PosteriorMean(model=obj_func_sample)
+        if isinstance(model, DKGP):
+            aux_model = deepcopy(model)
+            inputs = aux_model.train_inputs[0]
+            aux_model.train_inputs = (aux_model.embedding(inputs),)
+            gp_layer_sample = get_gp_samples(
+                model=aux_model,
+                num_outputs=1,
+                n_samples=1,
+                num_rff_features=1000,
+            )
+    
+            def aux_obj_func_sample_callable(X):
+                return gp_layer_sample.posterior(aux_model.embedding(X)).mean
+            
+            obj_func_sample = GenericDeterministicModel(f=aux_obj_func_sample_callable)
+        elif isinstance(model, SingleTaskGP):
+            obj_func_sample = get_gp_samples(
+                model=model,
+                num_outputs=1,
+                n_samples=1,
+                num_rff_features=1000,
+            )
+            obj_func_sample = PosteriorMean(model=obj_func_sample)
         idx_output = algorithm.execute(obj_func_sample) # np.array(N, n_dim)
         if eval_all:
             return idx_output
