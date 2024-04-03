@@ -48,7 +48,7 @@ policy = "ps"
 
 # use argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 

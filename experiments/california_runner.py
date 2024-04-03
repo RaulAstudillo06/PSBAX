@@ -18,6 +18,7 @@ sys.path.append(script_dir[:-12])
 # == if using colab == 
 sys.path.append('../')
 
+
 from src.bax.alg.dijkstra import Dijkstra
 from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import make_grid, edges_of_path, positions_of_path, area_of_polygons
@@ -30,8 +31,8 @@ from src.performance_metrics import ShortestPathCost, ShortestPathArea, Dijkstra
 # print(os.listdir(os.getcwd()))
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
-parser.add_argument('--trials', type=int, default=5)
+parser.add_argument('--policy', type=str, default='bax')
+parser.add_argument('--trials', type=int, default=3)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 
@@ -74,6 +75,7 @@ def normalize(data, scale):
 x1_lims = (-123, -119)
 x2_lims = (36.8, 39.1)
 # TODO: rescale data x1,x2 and y
+total_area = (x1_lims[1] - x1_lims[0]) * (x2_lims[1] - x2_lims[0])
 
 
 # normalize both x and y by longitude
@@ -163,7 +165,8 @@ def obj_func(X):
         # y[i] = true_f(X[i])
         y[i] = edge_position_to_elevation[tuple(X[i])]
 
-    return torch.log(torch.exp(y) - 1)
+    # return torch.log(torch.exp(y) - 1)
+    return y + torch.log(-torch.expm1(-y))
 
     
 
@@ -197,17 +200,24 @@ algo = Dijkstra(
 #     ShortestPathCost(algo),
 #     ShortestPathArea(algo, obj_func),
 # ]
-
-performance_metrics = [
-    DijkstraBAXMetric(algo, obj_func, n_samples=20)
-]
-
 algo_copy = algo.get_copy()
 true_ep, true_output = algo_copy.run_algorithm_on_f(obj_func)
+# optimum_cost = true_output[0] = 72.80633717926638
+
+performance_metrics = [
+    DijkstraBAXMetric(
+        algo, 
+        obj_func, 
+        n_samples=20, 
+        total_area=total_area,
+        optimum_cost = true_output[0],
+    )
+]
+
 input_dim = 2
 # Nodes are indices
 experiment_manager(
-    problem="california_bax",
+    problem="california_bax1",
     algorithm=algo,
     obj_func=obj_func,
     performance_metrics=performance_metrics,
@@ -216,8 +226,8 @@ experiment_manager(
     noise_level=0.0,
     policy=args.policy,
     batch_size=1,
-    num_init_points=2 * (input_dim + 1),
-    num_iter=100,
+    num_init_points=20,
+    num_iter=70,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=args.restart,
@@ -225,6 +235,7 @@ experiment_manager(
     edge_positions=edge_positions,
     exe_paths=20,
     bax_num_cand=500,
+    model_verbose=False,
 )
 
 
