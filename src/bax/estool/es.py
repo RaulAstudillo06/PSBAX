@@ -103,13 +103,18 @@ class CMAES:
     self.solutions = None
 
     import cma
-    
-    self.es = cma.CMAEvolutionStrategy( self.num_params * [0],
+
+    if cma_seed is not None:
+      self.es = cma.CMAEvolutionStrategy( self.num_params * [0],
                                         self.sigma_init,
                                         {'popsize': self.popsize,
+                                         'seed': cma_seed
                                         })
-    if cma_seed is not None:
-      self.es.opts.set({'seed': cma_seed})
+    else:
+      self.es = cma.CMAEvolutionStrategy( self.num_params * [0],
+                                        self.sigma_init,
+                                        {'popsize': self.popsize
+                                        })
 
 
   def rms_stdev(self):

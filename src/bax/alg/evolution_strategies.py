@@ -90,6 +90,13 @@ class EvolutionStrategies(Algorithm):
     def set_cma_seed(self, cma_seed):
         """Set the seed for CMA-ES."""
         self.cma_seed = cma_seed
+    
+    # def update_init_x(self, data_x, data_y):
+    #     if self.params.opt_mode == "min":
+    #         opt_idx = np.argmin(data_y)
+    #     elif self.params.opt_mode == "max":
+    #         opt_idx = np.argmax(data_y)
+    #     self.params.init_x = data_x[opt_idx]
 
     def convert_next_gen_list(self, next_gen_list):
         """Optionally convert format of next_gen_list."""

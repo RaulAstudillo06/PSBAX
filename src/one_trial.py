@@ -9,6 +9,7 @@ import time
 import torch
 from botorch.models.model import Model
 from torch import Tensor
+import matplotlib.pyplot as plt
 
 from src.acquisition_functions.posterior_sampling import gen_posterior_sampling_batch
 from src.acquisition_functions.bax_acquisition import BAXAcquisitionFunction
@@ -46,6 +47,8 @@ def one_trial(
 ) -> None:
     seed_torch(trial)
     policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
+
+    check_GP_fit = kwargs.get("check_GP_fit", False)
 
     # Problem specific parameters / data / etc.
     architecture = kwargs.get("architecture", None)
@@ -131,6 +134,7 @@ def one_trial(
             # performance_metrics_vals = [
             #     compute_performance_metrics(obj_func, model, performance_metrics)
             # ]
+            kwargs["seed"] = trial - 1 # TODO: change to previous trial
             performance_metrics_vals = [
                 evaluate_performance(performance_metrics, model)
             ]
@@ -158,17 +162,24 @@ def one_trial(
             inputs,
             obj_vals,
             model_type=model_type,
-            architecture=architecture,
+            # architecture=architecture,
+            **kwargs,
         )
         t1 = time.time()
         model_training_time = t1 - t0
+
+        # check model hyperparameters
+        # print(model.covar_module.base_kernel.lengthscale)
+        # print(model.covar_module.outputscale)
+
 
         # Historical performance metrics
         # performance_metrics_vals = [
         #     compute_performance_metrics(obj_func, model, performance_metrics)
         # ]
+        kwargs["seed"] = 0
         performance_metrics_vals = [
-            evaluate_performance(performance_metrics, model)
+            evaluate_performance(performance_metrics, model, **kwargs)
         ]
 
         # Historical acquisition runtimes
@@ -177,6 +188,37 @@ def one_trial(
         iteration = 0
 
     while iteration < num_iter:
+
+        # Checking GP fit MSE
+        if check_GP_fit:
+            edge_positions = kwargs.get("edge_positions", None)
+            x_ = torch.tensor(np.array(edge_positions))
+            y_ = obj_func(x_)
+            post_ = model.posterior(x_)
+            mean_ = post_.mean.detach().numpy().flatten()
+            std_ = post_.variance.detach().sqrt().numpy().flatten()
+
+            RSS = np.sum((mean_ - y_.numpy()) ** 2)
+
+            fig, ax = plt.subplots()
+            ax.scatter(y_, mean_, color='b', marker='.', s=20, label='All')
+            
+            # plot y = x line
+            ax.plot([min(y_), max(y_)], [min(y_), max(y_)], color='r')
+            # ax.set_aspect('equal')
+            ax.set_xlabel('True')
+            ax.set_ylabel('GP Mean')
+            ax.set_title(f'Policy {policy}, Iter {iteration}, RSS: {RSS:.2f}')
+            
+            ax.legend()
+
+            plots_folder = results_folder + "plots/"
+            if not os.path.exists(plots_folder):
+                os.makedirs(plots_folder)
+            plt.savefig(plots_folder + "trial_" + str(trial) + "_" + str(iteration) + ".png")
+            
+
+
         iteration += 1
         print("Problem: " + problem)
         print("Sampling policy: " + policy_id)
@@ -212,7 +254,8 @@ def one_trial(
             inputs,
             obj_vals,
             model_type=model_type,
-            architecture=architecture,
+            # architecture=architecture,
+            **kwargs,
         )
         t1 = time.time()
         model_training_time = t1 - t0
@@ -222,7 +265,9 @@ def one_trial(
         #     obj_func, model, performance_metrics
         # )
         # TODO: is this necessary?
-        current_performance_metrics = evaluate_performance(performance_metrics, model)
+    
+        kwargs["seed"] = trial
+        current_performance_metrics = evaluate_performance(performance_metrics, model, **kwargs)
 
         # for i, performance_metric_id in enumerate(performance_metrics.keys()):
         #     print(performance_metric_id + ": " + str(current_performance_metrics[i]))
@@ -283,6 +328,15 @@ def get_new_suggested_batch(
     batch_initial_conditions = None
 
     edge_positions = kwargs.get("edge_positions", None) # California
+
+    if algorithm.params.name == "EvolutionStrategies":
+        data_x = model.train_inputs[0]
+        data_y = model.train_targets
+        if algorithm.params.opt_mode == "min":
+            opt_idx = np.argmin(data_y)
+        elif algorithm.params.opt_mode == "max":
+            opt_idx = np.argmax(data_y)
+        algorithm.params.init_x = data_x[opt_idx].tolist()
     
 
     if "random" in policy:

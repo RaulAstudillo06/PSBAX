@@ -183,7 +183,7 @@ class Dijkstra(Algorithm):
         for i in range(len(self.best_path) - 1):
             true_cost_of_shortest_path += self.params.true_cost(self.best_path[i], self.best_path[i + 1])[0]
 
-        self.true_cost_of_shortest_path = true_cost_of_shortest_path # torch.tensor
+        self.true_cost_of_shortest_path = true_cost_of_shortest_path.item() # torch.tensor
         # def print_true_cost_of_path(path):
         #     cost = 0
         #     for i in range(len(path) - 1):

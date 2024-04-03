@@ -63,7 +63,8 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
         N, d = X.shape
 
         posterior = self.model.posterior(X)
-        mu, std = posterior.mvn.mean.detach(), posterior.mvn.stddev.detach(),
+        mu, std = posterior.mvn.mean.detach(), posterior.mvn.stddev.detach()
+        # torch.mean(mu): tensor(-1.1588), torch.mean(std): tensor(0.9377)
 
         mu_list = []
         std_list = []

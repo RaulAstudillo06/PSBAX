@@ -67,17 +67,22 @@ class ObjValAtMaxPostMean(PosteriorMeanPerformanceMetric):
 
 
 class BestValue(PosteriorMeanPerformanceMetric):
-    def __init__(self, algo, obj_func):
+    def __init__(self, algo, obj_func, **kwargs):
         super().__init__("Best value")
         self.algo = algo
         self.obj_func = obj_func
+        self.optimum = kwargs.pop("optimum", None)
+        self.eval_mode = kwargs.pop("eval_mode", "best_value")
         
 
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         # _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
         output_mf = self.algo.execute(posterior_mean_func)
         f_output = self.obj_func(output_mf)
-        return torch.max(f_output).item()
+        if self.eval_mode == "regret":
+            return self.obj_func(self.optimum).item() - torch.max(f_output).item()
+        elif self.eval_mode == "best_value":
+            return torch.max(f_output).item()
 
 
 
@@ -144,11 +149,20 @@ class DijkstraBAXMetric(SamplePerformanceMetric):
         self.algo = algo
         self.obj_func = obj_func
         self.n_samples = kwargs.pop("n_samples", 1)
+        self.grid_area = kwargs.pop("total_area", 1)
+        self.optimum_cost = kwargs.pop("optimum_cost", 0)
         self.output_gt = None
         self.algo_list = None
         self.output_list = None
 
     def initialize(self, model):
+        data_x = model.train_inputs[0]
+        data_y = model.train_targets
+        if self.algo.params.opt_mode == "min":
+            opt_idx = np.argmin(data_y)
+        elif self.algo.params.opt_mode == "max":
+            opt_idx = np.argmax(data_y)
+        self.algo.params.init_x = data_x[opt_idx].tolist()
 
         if self.output_gt is None:
             _, self.output_gt = self.algo.run_algorithm_on_f(self.obj_func)
@@ -205,10 +219,23 @@ class DijkstraBAXMetric(SamplePerformanceMetric):
         #     self.initialize(model)
         
         assert self.output_list is not None and self.algo_list is not None
-        costs = [algo.true_cost_of_shortest_path.item() for algo in self.algo_list]
-        areas = [area_of_polygons(self.output_gt[1], output[1]) for output in self.output_list]
+        costs = []
+        areas = []
+        errors = []
+
+        for output, algo in zip(self.output_list, self.algo_list):
+            cost = algo.true_cost_of_shortest_path
+            area = area_of_polygons(self.output_gt[1], output[1]) / self.grid_area
+            error = (cost - self.optimum_cost) * area
+            costs.append(cost)
+            areas.append(area)
+            errors.append(error)
+            
+        # costs = [algo.true_cost_of_shortest_path.item() for algo in self.algo_list]
+        # areas = [area_of_polygons(self.output_gt[1], output[1]) for output in self.output_list]
         
-        return np.mean(costs), np.mean(areas)
+        
+        return np.mean(costs), np.mean(areas), np.mean(errors)
         
     
 
@@ -313,12 +340,14 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
 
 
 
-def evaluate_performance(metrics, model) -> Tensor:
+def evaluate_performance(metrics, model, **kwargs) -> Tensor:
     '''
     Args:
         metrics: list of PerformanceMetric
         model: GP model
     '''
+
+    seed = kwargs.pop("seed", None)
     
     performance_metrics = []
     for metric in metrics:
@@ -327,6 +356,8 @@ def evaluate_performance(metrics, model) -> Tensor:
             val = metric(model)
         elif isinstance(metric, PosteriorMeanPerformanceMetric):
             posterior_mean_func = PosteriorMean(model)
+            if metric.algo.params.name == "EvolutionStrategies":
+                metric.algo.set_cma_seed(seed)
             val = metric(posterior_mean_func)
         if isinstance(val, tuple):
             performance_metrics.extend(val)
