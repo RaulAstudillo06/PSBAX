@@ -73,16 +73,23 @@ class BestValue(PosteriorMeanPerformanceMetric):
         self.obj_func = obj_func
         self.optimum = kwargs.pop("optimum", None)
         self.eval_mode = kwargs.pop("eval_mode", "best_value")
+        self.opt_mode = algo.params.opt_mode
         
 
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         # _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
         output_mf = self.algo.execute(posterior_mean_func)
         f_output = self.obj_func(output_mf)
-        if self.eval_mode == "regret":
-            return self.obj_func(self.optimum).item() - torch.max(f_output).item()
-        elif self.eval_mode == "best_value":
-            return torch.max(f_output).item()
+        if self.opt_mode == "max":
+            if self.eval_mode == "regret":
+                return self.obj_func(self.optimum).item() - torch.max(f_output).item()
+            elif self.eval_mode == "best_value":
+                return torch.max(f_output).item()
+        elif self.opt_mode == "min":
+            if self.eval_mode == "regret":
+                return self.obj_func(self.optimum).item() - torch.min(f_output).item()
+            elif self.eval_mode == "best_value":
+                return torch.min(f_output).item()
 
 
 
@@ -357,7 +364,14 @@ def evaluate_performance(metrics, model, **kwargs) -> Tensor:
         elif isinstance(metric, PosteriorMeanPerformanceMetric):
             posterior_mean_func = PosteriorMean(model)
             if metric.algo.params.name == "EvolutionStrategies":
-                metric.algo.set_cma_seed(seed)
+                # metric.algo.set_cma_seed(seed)
+                data_x = model.train_inputs[0]
+                data_y = model.train_targets
+                if metric.algo.params.opt_mode == "min":
+                    opt_idx = np.argmin(data_y)
+                elif metric.algo.params.opt_mode == "max":
+                    opt_idx = np.argmax(data_y)
+                metric.algo.params.init_x = data_x[opt_idx].tolist()
             val = metric(posterior_mean_func)
         if isinstance(val, tuple):
             performance_metrics.extend(val)

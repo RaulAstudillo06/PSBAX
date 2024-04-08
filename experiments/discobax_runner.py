@@ -45,6 +45,7 @@ args = parser.parse_args()
 # === To RUN === # 
 # python discobax_runner.py -s --problem_idx 0 --num_iter 100 --do_pca True --pca_dim 5 --data_size 1700 --eta_budget 100 --policy bax --first_trial 1 --last_trial 10
 # python discobax_runner.py -s --problem_idx 0 --num_iter 100 --do_pca True --pca_dim 5 --data_size 10000 --eta_budget 100 --policy OPT --first_trial 1 --last_trial 10
+# python discobax_runner.py -s --problem_idx 3 --num_iter 200 --do_pca True --pca_dim 5 --data_size 1700 --eta_budget 100 --policy OPT200 --first_trial 1 --last_trial 5
 
 data_path = "./data/discobax"
 if "experiment" not in os.getcwd():

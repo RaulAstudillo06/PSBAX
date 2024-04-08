@@ -17,11 +17,15 @@ def generate_initial_data(
     num_init_points: int,
     input_dim: int,
     obj_func,
-    noise_type,
-    noise_level,
-    seed: int = None,
+    # noise_type,
+    # noise_level,
+    # seed: int = None,
     **kwargs,
-):
+):  
+    noise_type = kwargs.get("noise_type", "noiseless")
+    noise_level = kwargs.get("noise_level", 0.0)
+    seed = kwargs.get("seed", None)
+
     edge_positions = kwargs.get("edge_positions", None)
     if edge_positions is not None:
         idx = np.random.choice(range(edge_positions.shape[0]), num_init_points, replace=False)

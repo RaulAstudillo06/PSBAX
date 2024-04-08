@@ -14,19 +14,36 @@ from gpytorch.constraints import Interval
 from src.models.deep_kernel_gp import DKGP
 
 
+
+
 def fit_model(inputs: Tensor, outputs: Tensor, model_type: str, **kwargs):
     if len(outputs.shape) == 1:
         outputs = outputs.view(torch.Size([outputs.shape[0], 1]))
+    
     if model_type == "gp":
         # covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(lengthscale_constraint=Interval(1e-5, 1e0)))
-        covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+        kernel_type = kwargs.pop("kernel_type", "matern")
 
-        model = SingleTaskGP(
-            train_X=inputs,
-            train_Y=outputs,
-            covar_module=covar_module,
-            outcome_transform=Standardize(m=outputs.shape[-1]),
-        )
+        if kernel_type == "rbf":
+            covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
+
+            model = SingleTaskGP(
+                train_X=inputs,
+                train_Y=outputs,
+                covar_module=covar_module,
+                outcome_transform=Standardize(m=outputs.shape[-1]),
+            )
+        else:
+            model = SingleTaskGP(
+                train_X=inputs,
+                train_Y=outputs,
+                outcome_transform=Standardize(m=outputs.shape[-1]),
+            )
+        state_dict = kwargs.pop("state_dict", None)
+        if state_dict is not None:
+            model.load_state_dict(state_dict)
+            return model
+
 
         # == for dijkstra == 
         # model.likelihood.noise_covar.register_constraint("raw_noise", Interval(5e-5, 5e-4))

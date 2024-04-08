@@ -35,7 +35,7 @@ parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--trials', type=int, default=3)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
-
+parser.add_argument('--num_init_points', type=int, default=5)
 # ====== To run ======
 # python california_runner.py -s --policy bax --trials 5
 
@@ -226,7 +226,7 @@ experiment_manager(
     noise_level=0.0,
     policy=args.policy,
     batch_size=1,
-    num_init_points=20,
+    num_init_points=args.num_init_points,
     num_iter=70,
     first_trial=first_trial,
     last_trial=last_trial,

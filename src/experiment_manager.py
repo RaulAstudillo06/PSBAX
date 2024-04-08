@@ -12,8 +12,8 @@ def experiment_manager(
     algorithm,
     performance_metrics: Dict,
     input_dim: int,
-    noise_type: str,
-    noise_level: float,
+    # noise_type: str,
+    # noise_level: float,
     policy: str,
     batch_size: int,
     num_init_points: int,
@@ -45,9 +45,6 @@ def experiment_manager(
         restart: If true, it will try to restart the experiment from available data
         model_type: Type of model (see utils.py for options)
     """
-    discrete = kwargs.get("discrete", False)
-
-
 
     additional_params = {}
     for key, value in kwargs.items():
@@ -63,8 +60,6 @@ def experiment_manager(
                 algorithm=algorithm,
                 performance_metrics=performance_metrics,
                 # input_dim=input_dim,
-                noise_type=noise_type,
-                noise_level=noise_level,
                 policy=policy,
                 policy_params=policy_params,
                 batch_size=batch_size,
@@ -77,27 +72,6 @@ def experiment_manager(
                 save_data=save_data,
                 **additional_params,
             )
-        # elif "california" in problem:
-        #     california_trial(
-        #         problem=problem,
-        #         obj_func=obj_func,
-        #         algorithm=algorithm,
-        #         performance_metrics=performance_metrics,
-        #         input_dim=input_dim,
-        #         noise_type=noise_type,
-        #         noise_level=noise_level,
-        #         policy=policy,
-        #         policy_params=policy_params,
-        #         batch_size=batch_size,
-        #         num_init_points=num_init_points,
-        #         num_iter=num_iter,
-        #         trial=trial,
-        #         restart=restart,
-        #         model_type=model_type,
-        #         ignore_failures=ignore_failures,
-        #         save_data=save_data,
-        #         additional_params=additional_params,
-        #     )
         else:
             one_trial(
                 problem=problem,
@@ -105,8 +79,6 @@ def experiment_manager(
                 algorithm=algorithm,
                 performance_metrics=performance_metrics,
                 input_dim=input_dim,
-                noise_type=noise_type,
-                noise_level=noise_level,
                 policy=policy,
                 policy_params=policy_params,
                 batch_size=batch_size,

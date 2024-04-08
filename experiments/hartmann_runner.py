@@ -31,6 +31,8 @@ input_dim = 6 # FIXME: is this different from n_dim?
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
+parser.add_argument('--dim', type=int, default=6)
+parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--samp_str', type=str, default='cma')
 parser.add_argument('--model_type', type=str, default='gp')
 parser.add_argument('--save', '-s', action='store_true', default=False)
@@ -59,7 +61,7 @@ init_x = [[0.0] * n_dim]
 algo_params = {
     "n_generation": 50,
     "n_population": 10,
-    "samp_str": "cma",
+    "samp_str": args.samp_str,
     "init_x": init_x[0],
     "domain": domain,
     "normal_scale": 0.05,
@@ -70,10 +72,11 @@ algo_params = {
 }
 algo = EvolutionStrategies(algo_params)
 
+algo_metric = algo.get_copy()
 
 performance_metrics = [
     # ObjValAtMaxPostMean(obj_func, input_dim),
-    BestValue(algo, obj_func),
+    BestValue(algo_metric, obj_func),
 ]
 
 # # Run experiment
@@ -90,7 +93,7 @@ performance_metrics = [
 
 
 experiment_manager(
-    problem="hartmann",
+    problem=f"hartmann_{args.dim}d",
     obj_func=obj_func,
     algorithm=algo,
     performance_metrics=performance_metrics,
@@ -100,7 +103,7 @@ experiment_manager(
     policy=args.policy + f"_model{args.model_type}" + f"_{args.samp_str}",
     batch_size=1,
     num_init_points=2 * (input_dim + 1),
-    num_iter=100,
+    num_iter=args.max_iter,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,

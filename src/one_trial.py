@@ -31,8 +31,8 @@ def one_trial(
     algorithm,
     performance_metrics: List,
     input_dim: int,
-    noise_type: str,
-    noise_level: float,
+    # noise_type: str,
+    # noise_level: float,
     policy: str,
     batch_size: int,
     num_init_points: int,
@@ -47,12 +47,7 @@ def one_trial(
 ) -> None:
     seed_torch(trial)
     policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
-
     check_GP_fit = kwargs.get("check_GP_fit", False)
-
-    # Problem specific parameters / data / etc.
-    architecture = kwargs.get("architecture", None)
-    
 
     # Get script directory
     script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -99,7 +94,8 @@ def one_trial(
                 inputs,
                 obj_vals,
                 model_type=model_type,
-                architecture=architecture,
+                # architecture=architecture,
+                **kwargs
             )
             t1 = time.time()
             model_training_time = t1 - t0
@@ -113,8 +109,8 @@ def one_trial(
                 num_init_points=num_init_points,
                 input_dim=input_dim,
                 obj_func=obj_func,
-                noise_type=noise_type,
-                noise_level=noise_level,
+                # noise_type=noise_type,
+                # noise_level=noise_level,
                 seed=trial,
                 **kwargs,
             )
@@ -125,7 +121,8 @@ def one_trial(
                 inputs,
                 obj_vals,
                 model_type=model_type,
-                architecture=architecture,
+                # architecture=architecture,
+                **kwargs
             )
             t1 = time.time()
             model_training_time = t1 - t0
@@ -136,7 +133,7 @@ def one_trial(
             # ]
             kwargs["seed"] = trial - 1 # TODO: change to previous trial
             performance_metrics_vals = [
-                evaluate_performance(performance_metrics, model)
+                evaluate_performance(performance_metrics, model, **kwargs)
             ]
             
 
@@ -150,8 +147,8 @@ def one_trial(
             num_init_points=num_init_points,
             input_dim=input_dim,
             obj_func=obj_func,
-            noise_type=noise_type,
-            noise_level=noise_level,
+            # noise_type=noise_type,
+            # noise_level=noise_level,
             seed=trial,
             **kwargs,
         )
@@ -168,15 +165,6 @@ def one_trial(
         t1 = time.time()
         model_training_time = t1 - t0
 
-        # check model hyperparameters
-        # print(model.covar_module.base_kernel.lengthscale)
-        # print(model.covar_module.outputscale)
-
-
-        # Historical performance metrics
-        # performance_metrics_vals = [
-        #     compute_performance_metrics(obj_func, model, performance_metrics)
-        # ]
         kwargs["seed"] = 0
         performance_metrics_vals = [
             evaluate_performance(performance_metrics, model, **kwargs)
@@ -242,7 +230,12 @@ def one_trial(
         runtimes.append(acquisition_time + model_training_time)
 
         # Get obj vals at new batch
-        new_obj_vals = get_obj_vals(obj_func, new_batch, noise_type, noise_level)
+        new_obj_vals = get_obj_vals(
+            obj_func=obj_func, 
+            inputs=new_batch, 
+            noise_type=kwargs.get("noise_type", "noiseless"),
+            noise_level=kwargs.get("noise_level", 0.0),
+        )
 
         # Update training data
         inputs = torch.cat((inputs, new_batch))
