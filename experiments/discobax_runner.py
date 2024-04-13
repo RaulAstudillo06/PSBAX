@@ -60,19 +60,19 @@ problem_lst = [
 problem = problem_lst[args.problem_idx]
 
 # === Testing === #
-TEST = False
-if TEST:
-    # python discobax_runner.py -s --problem_idx 1 --num_iter 100 --do_pca True --pca_dim 5 --data_size 1700 --eta_budget 100 --policy bax -r
-    args.problem_idx = 1
-    args.num_iter = 100
-    args.save = False
-    args.do_pca = True
-    args.pca_dim = 5
-    args.data_size = 1700
-    args.policy = "bax"
-    args.restart = True
-else:
-    args.save = True
+# TEST = False
+# if TEST:
+#     # python discobax_runner.py -s --problem_idx 1 --num_iter 100 --do_pca True --pca_dim 5 --data_size 1700 --eta_budget 100 --policy bax -r
+#     args.problem_idx = 1
+#     args.num_iter = 100
+#     args.save = False
+#     args.do_pca = True
+#     args.pca_dim = 5
+#     args.data_size = 1700
+#     args.policy = "bax"
+#     args.restart = True
+# else:
+#     args.save = True
 # =============== #
 problem = problem_lst[args.problem_idx]
 
@@ -128,10 +128,6 @@ algo_params = {
 }
 algo = SubsetSelect(algo_params)
 
-performance_metrics = [
-    DiscreteDiscoBAXMetric("DiscoBAXMetric")
-]
-
 # == DO if not update_objective == #
 update_objective = False
 fn = f"./data/discobax/etas_seed0_size{args.data_size}.txt"
@@ -149,6 +145,15 @@ if not os.path.exists(fn):
         np.savetxt(f"./etas_seed0_size{args.data_size}.txt", eta_arr)
 
 algo.set_obj_func(obj_func)
+
+
+performance_metrics = [
+    DiscreteDiscoBAXMetric(
+        name="DiscoBAXMetric", 
+        obj_func=obj_func,
+    )
+]
+
 for metric in performance_metrics:
     metric.set_algo(algo)
 # == DO if not update_objective == #

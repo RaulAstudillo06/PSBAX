@@ -77,3 +77,6 @@ figures/
 *.png
 *.pdf
 *.eps
+
+# DiscoBAX specific
+discobax-scripts/

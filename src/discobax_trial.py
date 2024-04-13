@@ -90,7 +90,7 @@ def discobax_trial(
         if not os.path.exists(results_folder):
             os.makedirs(results_folder)
         for metric in performance_metrics:
-            OPT = metric.compute_OPT(obj_func)
+            OPT = metric.compute_OPT()
             fn = results_folder + "performance_metrics_" + str(trial) + ".txt"
             # create an array of OPT with size (iter + 1, 1)
             OPT_arr = np.array([OPT for i in range(num_iter + 1)]).reshape(-1, 1)

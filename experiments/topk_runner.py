@@ -26,12 +26,6 @@ from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import jaccard_similarity
 from src.utils import seed_torch
 
-input_dim = 2
-# domain = [[-10, 10]] * input_dim # NOTE: original domain
-domain = [[-6, 6]] * input_dim # NOTE: himmelblau domain
-rescaled_domain = [[0, 1]] * input_dim
-len_path = 150
-k = 10
 
 # if len(sys.argv) == 3:
 #     first_trial = int(sys.argv[1])
@@ -45,7 +39,10 @@ k = 10
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--function', type=str, default='original')
+parser.add_argument('--dim', type=int, default=2)
 parser.add_argument('--trials', type=int, default=5)
+parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
@@ -54,6 +51,18 @@ last_trial = args.trials
 
 # === To RUN === # 
 # python topk_runner.py -s --trials 30 --policy ps
+
+if args.function == 'himmelblau':
+    input_dim = 2
+    domain = [[-6, 6]] * input_dim # NOTE: himmelblau domain
+else:
+    input_dim = args.dim
+    domain = [[-10, 10]] * input_dim # NOTE: original domain
+
+rescaled_domain = [[0, 1]] * input_dim
+len_path = 150
+k = 10
+
 
 def himmelblau(X: Tensor, minimize=False) -> Tensor:
     a = X[:, 0]
@@ -77,25 +86,28 @@ def obj_func(X, domain=domain):
     X_rescaled = X.clone()
     X_rescaled = torch.mul(X, torch.tensor([domain[i][1] - domain[i][0] for i in range(len(domain))])) + torch.tensor([domain[i][0] for i in range(len(domain))])
     
-    # f_0 = lambda x:  2 * torch.abs(x) * torch.sin(x)
-    # return torch.sum(torch.stack([f_0(x) for x in X_rescaled]), dim=-1)
-    f_0 = himmelblau
-    return f_0(X_rescaled)
+    if args.function == 'original':
+        f_0 = lambda x:  2 * torch.abs(x) * torch.sin(x)
+        return torch.sum(torch.stack([f_0(x) for x in X_rescaled]), dim=-1)
+    elif args.function == 'himmelblau':
+        f_0 = himmelblau
+        return f_0(X_rescaled)
 
 seed_torch(1234) # NOTE: fix seed for generating x_path
 
 x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
 
-himmelblau_opt = np.array(
-    [
-        [3, 2],
-        [-2.805118, 3.283186],
-        [-3.779310, -3.283186],
-        [3.584458, -1.848126],
-    ]
-)
-himmelblau_opt = (himmelblau_opt - np.array(domain)[:, 0]) / (np.array(domain)[:, 1] - np.array(domain)[:, 0])
-x_path = np.concatenate([x_path, np.array(himmelblau_opt)], axis=0)
+if args.function == 'himmelblau':
+    himmelblau_opt = np.array(
+        [
+            [3, 2],
+            [-2.805118, 3.283186],
+            [-3.779310, -3.283186],
+            [3.584458, -1.848126],
+        ]
+    )
+    himmelblau_opt = (himmelblau_opt - np.array(domain)[:, 0]) / (np.array(domain)[:, 1] - np.array(domain)[:, 0])
+    x_path = np.concatenate([x_path, np.array(himmelblau_opt)], axis=0)
 
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 
@@ -149,7 +161,7 @@ performance_metrics = [
 ]
 
 experiment_manager(
-    problem="topk_himmelblau",
+    problem=f"topk_{args.function}_200",
     obj_func=obj_func,
     algorithm=algo,
     performance_metrics=performance_metrics,
@@ -159,7 +171,7 @@ experiment_manager(
     policy=args.policy,
     batch_size=1,
     num_init_points=2 * (input_dim + 1),
-    num_iter=100,
+    num_iter=args.max_iter,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=False,

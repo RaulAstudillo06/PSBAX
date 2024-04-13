@@ -312,11 +312,13 @@ class DiscreteTopKMetric(DiscretePerformanceMetric):
     
 
 class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, obj_func, **kwargs):
         super().__init__(name)
         self.algo = None
+        self.obj_func = obj_func
         for (k, v) in kwargs.items():
             setattr(self, k, v)
+        self.true_values = None
 
     # def set_obj_func(self, obj_func):
     #     self.obj_func = obj_func
@@ -329,13 +331,18 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
         return self.evaluate()
     
     def evaluate(self):
-        values, idxes = self.algo.get_values_and_selected_indices()
-        return np.mean(np.max(values[:, idxes], axis=-1))
+        if self.true_values is None:
+            x = self.obj_func.get_idx()
+            fx = self.obj_func(x).detach().numpy()
+            self.true_values = self.obj_func.get_noisy_f_lst(fx) # (n, budget)
+        _, idxes = self.algo.get_values_and_selected_indices()
+        
+        return np.mean(np.max(self.true_values[:, idxes], axis=-1))
 
 
     def compute_OPT(self, obj_func):
-        x = obj_func.get_idx()
-        fx = obj_func(x).detach().numpy()
+        x = self.obj_func.get_idx()
+        fx = self.obj_func(x).detach().numpy()
         _, output_mf = self.algo.run_algorithm_on_f(fx)
         # values = obj_func.get_noisy_f_lst(fx) # (n, budget)
         # max_values = np.max(values, axis=1) # (n,)
