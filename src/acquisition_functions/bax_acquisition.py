@@ -210,56 +210,10 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
 
         
     def initialize(self, **kwargs):
-        # name = self.algorithm.name
-
         batch_size = kwargs.pop("batch_size", 1)
-
         f_sample_list = []
-        for i in range(self.n_samples):
-            
-            if isinstance(self.model, DKGP):
-                aux_model = deepcopy(self.model)
-                inputs = aux_model.train_inputs[0]
-                aux_model.train_inputs = (aux_model.embedding(inputs),)
-                gp_layer_sample = get_gp_samples(
-                    model=aux_model,
-                    num_outputs=1,
-                    n_samples=1,
-                    num_rff_features=1000,
-                )
-        
-                def aux_obj_func_sample_callable(X):
-                    return gp_layer_sample.posterior(aux_model.embedding(X)).mean
-                
-                obj_func_sample = GenericDeterministicModel(f=aux_obj_func_sample_callable)
-            elif isinstance(self.model, SingleTaskGP):
-                obj_func_sample = get_gp_samples(
-                    model=self.model,
-                    num_outputs=1,
-                    n_samples=1,
-                    num_rff_features=1000,
-                )
-                obj_func_sample = PosteriorMean(model=obj_func_sample).to(**tkwargs)
-                
-            elif isinstance(self.model, ModelListGP):
-                
-                gp_samples = []
-                for m in self.model.models:
-                    gp_samples.append(
-                        get_gp_samples(
-                            model=m,
-                            num_outputs=1,
-                            n_samples=1,
-                            num_rff_features=512,
-                            )
-                    )
-                def aux_func(X):
-                    val = []
-                    for gp_sample in gp_samples:
-                        val.append(gp_sample.posterior(X).mean)
-                    return torch.cat(val, dim=-1)
-                obj_func_sample = GenericDeterministicModel(f=aux_func).to(**tkwargs)
-
+        for _ in range(self.n_samples):
+            obj_func_sample = get_function_samples(self.model)
             f_sample_list.append(obj_func_sample)
 
         exe_path_list, output_list = self.run_algorithm_on_f_list(f_sample_list)
