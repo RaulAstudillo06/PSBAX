@@ -10,11 +10,13 @@ from copy import deepcopy
 from torch import Tensor
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.acquisition.monte_carlo import MCAcquisitionFunction
+from botorch.models import ModelListGP
 from botorch.models.model import Model
+
 from botorch.models.deterministic import GenericDeterministicModel
 from botorch.models.gp_regression import SingleTaskGP
 from botorch.utils.gp_sampling import get_gp_samples
-
+from pymoo.indicators.hv import HV
 
 from src.models.deep_kernel_gp import DKGP
 from src.utils import optimize_acqf_and_get_suggested_batch
@@ -348,9 +350,21 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
         # max_values = np.max(values, axis=1) # (n,)
         return self.evaluate()
 
-    
-    
 
+class PymooHypervolume(PosteriorMeanPerformanceMetric):
+    def __init__(self, algo, obj_func, **kwargs):
+        super().__init__("Hypervolume")
+        self.algo = algo
+        self.obj_func = obj_func
+        self.ref_point = kwargs.pop("ref_point", None)
+    
+    def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
+        output_x = self.algo.execute(posterior_mean_func)
+        ind = HV(ref_point=self.ref_point)
+
+        x_torch = torch.tensor(output_x)
+        f_values = self.obj_func(x_torch).detach().numpy()
+        return ind(f_values)
 
 
 
@@ -369,7 +383,17 @@ def evaluate_performance(metrics, model, **kwargs) -> Tensor:
             metric.initialize(model)
             val = metric(model)
         elif isinstance(metric, PosteriorMeanPerformanceMetric):
-            posterior_mean_func = PosteriorMean(model)
+            if isinstance(model, SingleTaskGP) or isinstance(model, DKGP):
+                posterior_mean_func = PosteriorMean(model)
+            else:
+                # assert(isinstance(model, ModelListGP))
+                pms = []
+                for m in model.models:
+                    pms.append(PosteriorMean(m))
+                def aux_func(x):
+                    # FIXME
+                    return torch.cat([pm(x) for pm in pms], dim=-1)
+                posterior_mean_func = GenericDeterministicModel(f=aux_func)
             if metric.algo.params.name == "EvolutionStrategies":
                 # metric.algo.set_cma_seed(seed)
                 data_x = model.train_inputs[0]

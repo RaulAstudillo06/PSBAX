@@ -5,13 +5,25 @@ from typing import Callable, Dict, Optional
 import os
 import numpy as np
 import torch
+
+from torch import Tensor
+from copy import deepcopy
+from botorch.models.gp_regression import SingleTaskGP
+from botorch.models import ModelListGP
 from botorch.acquisition.acquisition import AcquisitionFunction
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.generation.gen import get_best_candidates
 from botorch.models.model import Model
+from botorch.utils.gp_sampling import get_gp_samples
+from botorch.models.deterministic import GenericDeterministicModel
 from botorch.optim.optimize import optimize_acqf
-from torch import Tensor
 
+from .models.deep_kernel_gp import DKGP
+
+tkwargs = {
+    "dtype": torch.float64,
+    "device": torch.device("cpu"),
+}
 
 def generate_initial_data(
     num_init_points: int,
@@ -88,6 +100,51 @@ def optimize_acqf_and_get_suggested_batch(
     return new_x
 
 
+def get_function_samples(model):
+    if isinstance(model, DKGP):
+        aux_model = deepcopy(model)
+        inputs = aux_model.train_inputs[0]
+        aux_model.train_inputs = (aux_model.embedding(inputs),)
+        gp_layer_sample = get_gp_samples(
+            model=aux_model,
+            num_outputs=1,
+            n_samples=1,
+            num_rff_features=1000,
+        )
+
+        def aux_obj_func_sample_callable(X):
+            return gp_layer_sample.posterior(aux_model.embedding(X)).mean
+        
+        obj_func_sample = GenericDeterministicModel(f=aux_obj_func_sample_callable)
+    elif isinstance(model, SingleTaskGP):
+        obj_func_sample = get_gp_samples(
+            model=model,
+            num_outputs=1,
+            n_samples=1,
+            num_rff_features=1000,
+        )
+        obj_func_sample = PosteriorMean(model=obj_func_sample).to(**tkwargs)
+        
+    elif isinstance(model, ModelListGP):
+        
+        gp_samples = []
+        for m in model.models:
+            gp_samples.append(
+                get_gp_samples(
+                    model=m,
+                    num_outputs=1,
+                    n_samples=1,
+                    num_rff_features=512,
+                    )
+            )
+        def aux_func(X):
+            val = []
+            for gp_sample in gp_samples:
+                val.append(gp_sample.posterior(X).mean)
+            return torch.cat(val, dim=-1)
+        obj_func_sample = GenericDeterministicModel(f=aux_func).to(**tkwargs)
+    
+    return obj_func_sample
 
 def seed_torch(seed, verbose=True):
     os.environ['PYTHONHASHSEED'] = str(seed)

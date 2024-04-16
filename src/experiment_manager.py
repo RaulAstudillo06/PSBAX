@@ -4,7 +4,7 @@ from typing import Callable, Dict, List, Optional
 
 from src.one_trial import one_trial
 from .discobax_trial import discobax_trial
-from .california_trial import california_trial
+# from .california_trial import california_trial
 
 
 def experiment_manager(

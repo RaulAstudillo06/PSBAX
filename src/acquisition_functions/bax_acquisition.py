@@ -2,16 +2,36 @@ import math
 import numpy as np
 import torch
 from botorch.acquisition.monte_carlo import MCAcquisitionFunction
+from botorch.acquisition.multi_objective.monte_carlo import MultiObjectiveMCAcquisitionFunction
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.utils.gp_sampling import get_gp_samples
+from botorch.models import ModelListGP
 from botorch.models.deterministic import GenericDeterministicModel
 from botorch.models.gp_regression import SingleTaskGP
+from botorch.acquisition.objective import (
+    ConstrainedMCObjective,
+    IdentityMCObjective,
+    MCAcquisitionObjective,
+    PosteriorTransform,
+    ScalarizedPosteriorTransform
+)
+from botorch.acquisition.multi_objective.objective import (
+    IdentityMCMultiOutputObjective,
+    MCMultiOutputObjective,
+)
 from copy import deepcopy
 
 from src.models.deep_kernel_gp import DKGP
+from src.utils import get_function_samples
 
 
-class BAXAcquisitionFunction(MCAcquisitionFunction):
+tkwargs = {
+    "dtype": torch.float64,
+    "device": torch.device("cpu"),
+}
+
+
+class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
     '''
     Args:
         - model
@@ -23,8 +43,12 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
             algo, 
             **kwargs
         ):
-        
-        super().__init__(model=model)
+        n_obj = len(model.train_targets)
+        super().__init__(
+            model=model, 
+            # posterior_transform=ScalarizedPosteriorTransform(weights=torch.ones(n_obj, **tkwargs)),
+            objective=IdentityMCMultiOutputObjective(),
+        )
         self.algorithm = algo
 
         default_params = {
@@ -39,6 +63,7 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
             "EvolutionStrategies": 50,
             "TopK": 100,
             "SubsetSelect": 20,
+            "NSGA2": 30,
         }
         for (k, v) in default_params.items():
             if k not in kwargs:
@@ -63,14 +88,14 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
         N, d = X.shape
 
         posterior = self.model.posterior(X)
-        mu, std = posterior.mvn.mean.detach(), posterior.mvn.stddev.detach()
+        mu, std = posterior.mean.detach(), posterior.stddev.detach()
         # torch.mean(mu): tensor(-1.1588), torch.mean(std): tensor(0.9377)
 
         mu_list = []
         std_list = []
 
-        data_x = self.model.train_inputs[0] # TODO: is this before or after normalization?  (N, n_dim)
-        data_y = self.model.train_targets # (N, )
+        # data_x = self.model.train_inputs[0] # TODO: is this before or after normalization?  (N, n_dim)
+        # data_y = self.model.train_targets # (N, )
 
         # TODO: check all dimensions
         for exe_path in self.exe_path_list:
@@ -106,8 +131,18 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
         '''
         Args:
             std: (N, )
+            std: (N, num_objectives)
         '''
-        return 0.5 * torch.log(torch.tensor(2 * math.pi)) + torch.log(std) + 0.5
+        # torch.product(std, dim=-1)
+        std = std.squeeze()
+        if len(std.shape) > 1:
+            # 1/2 log(det(Sigma)) = sum(log(std))
+            log_std = torch.sum(torch.log(std), dim=-1) # (N, )
+        else:
+            # log and sqrt are monotonic
+            log_std = torch.log(std)
+        
+        return 0.5 * torch.log(torch.tensor(2 * math.pi)) + log_std + 0.5
         
     def acq_exe_normal(self, std, std_list):
         '''
@@ -117,7 +152,7 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
         Returns:
             torch.tensor: (N, 1)
         '''
-        h_post = self.normal_entropy(std) # (N, )
+        h_post = self.normal_entropy(std) # (N, ) or (N, num_outputs)
 
         h_samp_list = []
         for std in std_list:
@@ -139,6 +174,19 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
             botorch.models.model.Model
         '''
         # model = self.model.clone()
+        
+
+        if isinstance(self.model, ModelListGP):
+            new_models = []
+            for i, m in enumerate(self.model.models):
+                m = m.condition_on_observations(
+                    X=data_x,
+                    Y=data_y[:, i].view(-1, 1),
+                )
+                new_models.append(m)
+            new_model = ModelListGP(*new_models)
+            return new_model
+
         model = self.model.condition_on_observations(
             X=data_x,
             Y=data_y,
@@ -168,14 +216,7 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
 
         f_sample_list = []
         for i in range(self.n_samples):
-            # f_sample = get_gp_samples(
-            #     model=self.model,
-            #     num_outputs=1,  
-            #     n_samples=1,
-            #     num_rff_features=1000,
-            # )
-            # f_sample = PosteriorMean(model=f_sample)
-
+            
             if isinstance(self.model, DKGP):
                 aux_model = deepcopy(self.model)
                 inputs = aux_model.train_inputs[0]
@@ -198,7 +239,27 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
                     n_samples=1,
                     num_rff_features=1000,
                 )
-                obj_func_sample = PosteriorMean(model=obj_func_sample)
+                obj_func_sample = PosteriorMean(model=obj_func_sample).to(**tkwargs)
+                
+            elif isinstance(self.model, ModelListGP):
+                
+                gp_samples = []
+                for m in self.model.models:
+                    gp_samples.append(
+                        get_gp_samples(
+                            model=m,
+                            num_outputs=1,
+                            n_samples=1,
+                            num_rff_features=512,
+                            )
+                    )
+                def aux_func(X):
+                    val = []
+                    for gp_sample in gp_samples:
+                        val.append(gp_sample.posterior(X).mean)
+                    return torch.cat(val, dim=-1)
+                obj_func_sample = GenericDeterministicModel(f=aux_func).to(**tkwargs)
+
             f_sample_list.append(obj_func_sample)
 
         exe_path_list, output_list = self.run_algorithm_on_f_list(f_sample_list)
@@ -267,11 +328,3 @@ class BAXAcquisitionFunction(MCAcquisitionFunction):
             exe_path_list = exe_path_list_crop
         
         return exe_path_list, output_list
-
-
-            
-
-
-
-    
-

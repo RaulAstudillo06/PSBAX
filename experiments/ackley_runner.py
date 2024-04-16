@@ -26,7 +26,7 @@ from src.experiment_manager import experiment_manager
 from src.performance_metrics import ObjValAtMaxPostMean, compute_obj_val_at_max_post_mean, BestValue
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--dim', type=int, default=5)
 parser.add_argument('--max_iter', type=int, default=100)
