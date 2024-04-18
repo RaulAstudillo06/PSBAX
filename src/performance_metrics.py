@@ -357,14 +357,19 @@ class PymooHypervolume(PosteriorMeanPerformanceMetric):
         self.algo = algo
         self.obj_func = obj_func
         self.ref_point = kwargs.pop("ref_point", None)
+        self.num_runs = kwargs.pop("num_runs", 1)
     
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
-        output_x = self.algo.execute(posterior_mean_func)
-        ind = HV(ref_point=self.ref_point)
+        hvs = []
+        for _ in range(self.num_runs):
+                
+            output_x = self.algo.execute(posterior_mean_func)
+            ind = HV(ref_point=self.ref_point)
 
-        x_torch = torch.tensor(output_x)
-        f_values = self.obj_func(x_torch).detach().numpy()
-        return ind(f_values)
+            x_torch = torch.tensor(output_x)
+            f_values = self.obj_func(x_torch).detach().numpy()
+            hvs.append(ind(f_values))
+        return tuple(hvs)
 
 
 

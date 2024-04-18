@@ -21,6 +21,7 @@ from src.utils import (
     generate_random_points,
     get_obj_vals,
     seed_torch,
+    rand_argmax,
 )
 
 

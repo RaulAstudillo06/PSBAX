@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import torch
+import numpy as np
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.utils.gp_sampling import get_gp_samples
 from botorch.models.deterministic import GenericDeterministicModel
@@ -9,7 +10,7 @@ from botorch.models import ModelListGP
 from copy import deepcopy
 
 from src.models.deep_kernel_gp import DKGP
-from src.utils import get_function_samples
+from src.utils import get_function_samples, rand_argmax
 
 tkwargs = {
     "dtype": torch.float64,
@@ -34,7 +35,8 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
         else:
             # log and sqrt are monotonic
             entropy = post_std
-        x_cand = x_output[torch.argmax(entropy)].unsqueeze(0)
+        max_idx = rand_argmax(entropy)
+        x_cand = x_output[max_idx].unsqueeze(0)
         batch.append(x_cand)
 
     return torch.cat(batch, dim=0)

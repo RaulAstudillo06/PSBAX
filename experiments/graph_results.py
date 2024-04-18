@@ -15,7 +15,12 @@ from src.performance_metrics import *
 results_dir = "./results/"
 
 # problem = "topk_original_200"
-problem = "ackley_10d"
+# problem = "ackley_10d"
+# problem = "dtlz1_6d"
+# problem = "dtlz2_3d"
+problem = "dtlz2_3d_2obj"
+# problem = "dtlz2_10d"
+# problem = "zdt1_30d"
 # problem = "hartmann"
 # problem = "hartmann_6d"
 # problem = "rastrigin_10d"
@@ -28,9 +33,9 @@ problem = "ackley_10d"
 # problem = "sanchez_2021_tau_top_1700"
 
 policies = [
-    # "ps", 
-    # "bax", 
-    # "random",
+    "ps", 
+    "bax", 
+    "random",
     # "OPT", 
     # "ps200",
     # "bax200",
@@ -39,13 +44,13 @@ policies = [
     # "bax_modelgp",
     # "ps_modelgp_cma",
     # "bax_modelgp_cma",
-    "ps_modelgp_mut",
-    "bax_modelgp_mut",
+    # "ps_modelgp_mut",
+    # "bax_modelgp_mut",
     # "ps_modelgp_dim5",
     # "bax_modelgp_dim5",
     # "OPT_modelgp_dim5"
 ]
-graph_trials = 10
+graph_trials = 5
 show_title = False
 save_fig = True
 path = os.path.join(results_dir, problem)
@@ -79,10 +84,12 @@ elif "california_bax" in problem:
     metrics = ['ShortestPathCost', 'ShortestPathArea', 'Error']
 elif "hartmann" in problem or "rastrigin" in problem or "ackley" in problem:
     metrics = ['best_value']
+elif "zdt" in problem or "dtlz":
+    metrics = ['Hypervolume']
 else:
     metrics = ['DiscoBAXMetric']
 
-bax_iters = 100
+# bax_iters = 100
 algo_performance_arrs = {}
 for policy in policies:
     iters = 0

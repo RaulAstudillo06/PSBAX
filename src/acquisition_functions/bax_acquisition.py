@@ -124,6 +124,7 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
             acq_vals = self.acq_exe_normal(std, std_list)
         elif self.acq_str == "out":
             acq_vals = self.acq_out_normal(mu, std, mu_list, std_list)
+        # print(f"acq_vals: {acq_vals}")
         return acq_vals
     
     @staticmethod

@@ -153,3 +153,7 @@ def seed_torch(seed, verbose=True):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+def rand_argmax(tens):
+    max_inds, = torch.where(tens == tens.max())
+    return np.random.choice(max_inds)

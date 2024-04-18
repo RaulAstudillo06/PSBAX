@@ -239,11 +239,14 @@ class GeneDiscoLoop(aba.AbstractBaseApplication):
         result_records = list()
         
         for cycle_index in range(self.num_active_learning_cycles):
-            current_cycle_directory = os.path.join(
-                self.output_directory, f"cycle_{cycle_index}"
-            )
 
-            PathTools.mkdir_if_not_exists(current_cycle_directory)
+            # == Uncomment if want a separate directory for each cycle ==
+            # current_cycle_directory = os.path.join(
+            #     self.output_directory, f"cycle_{cycle_index}"
+            # )
+            # PathTools.mkdir_if_not_exists(current_cycle_directory)
+
+            current_cycle_directory = self.output_directory
 
             cumulative_indices_file_path = os.path.join(
                 current_cycle_directory, "selected_indices.pkl"
@@ -300,6 +303,18 @@ class GeneDiscoLoop(aba.AbstractBaseApplication):
                 dataset_y=dataset_y,
                 temp_folder_name=self.temp_folder_name,
             )
+
+            etas_file_location = os.path.join(self.output_directory, f"etas_met_{cycle_index}.npy")
+            np.savetxt(etas_file_location, self.etas[:, :30])
+            values_file_location = os.path.join(self.output_directory, f"values_{cycle_index}.npy")
+            np.savetxt(values_file_location, self.true_values)\
+            
+            etas_acq = self.acquisition_function.etas
+            etas_file_location = os.path.join(self.output_directory, f"etas_acq_{cycle_index}.npy")
+            np.savetxt(etas_file_location, etas_acq[:, :30])
+
+            
+
             cumulative_indices.extend(last_selected_indices)
             cumulative_indices = sorted(list(set(cumulative_indices)))
             assert len(last_selected_indices) == self.acquisition_batch_size
@@ -307,27 +322,37 @@ class GeneDiscoLoop(aba.AbstractBaseApplication):
             performance_file_exists = os.path.exists(self.performance_file_location)
             with open(self.performance_file_location, "a") as performance_record:
                 if not performance_file_exists:
-                    header = "dataset_name,feature_set_name,model_name,acquisition_function_name,acquisition_batch_size,num_active_learning_cycles,seed,num_total_items"
+                    # header = "dataset_name,feature_set_name,model_name,acquisition_function_name,acquisition_batch_size,num_active_learning_cycles,seed,num_total_items"
+                    header = "Obj_val_at_output,OPT_val"
                     performance_record.write(header + "\n")
+                # record = ",".join(
+                #     [
+                #         str(x)
+                #         for x in [
+                #             self.dataset_name,
+                #             self.feature_set_name,
+                #             self.model_name,
+                #             self.acquisition_function_name,
+                #             self.acquisition_batch_size,
+                #             self.num_active_learning_cycles,
+                #             self.seed,
+                #             len(dataset_y),
+                #         ]
+                #     ]
+                # )
                 record = ",".join(
                     [
                         str(x)
                         for x in [
-                            self.dataset_name,
-                            self.feature_set_name,
-                            self.model_name,
-                            self.acquisition_function_name,
-                            self.acquisition_batch_size,
-                            self.num_active_learning_cycles,
-                            self.seed,
-                            len(dataset_y),
+                            discobax_metric[0],
+                            discobax_metric[1],
                         ]
                     ]
                 )
                 performance_record.write(record + "\n")
             
-            save_metric = np.atleast_1d(discobax_metrics)
-            np.savetxt(self.discobax_metric_file_location, save_metric)
+            # save_metric = np.atleast_1d(discobax_metrics)
+            # np.savetxt(self.discobax_metric_file_location, save_metric)
 
         results_path = os.path.join(self.output_directory, "results.pkl")
         with open(results_path, "wb") as fp:
@@ -354,33 +379,54 @@ class GeneDiscoLoop(aba.AbstractBaseApplication):
 
         posterior_mean = model.predict(dataset_x, return_std_and_margin=True)[0]
         y = dataset_y.get_data()[0].squeeze() # (17176,)
+        # change the dtype of y 
+        y = y.astype(np.float64)
         fout_lst = []
         if self.bax_noise_type == "additive":
-            etas = self.mvn.rsample(torch.Size([budget])).detach().numpy()
-            for eta in etas:
-                if nonneg:
-                    fout_lst.append(
-                        lambda fx: np.maximum(0, fx + eta)
-                    )
-                else:
-                    fout_lst.append(
-                        lambda fx: fx + eta
-                    )
+            etas = self.mvn.rsample(torch.Size([budget])).detach().numpy() # (budget, 17176)
+            # for eta in etas:
+            #     if nonneg:
+            #         fout_lst.append(
+            #             lambda fx: np.maximum(0, fx + eta)
+            #         )
+            #     else:
+            #         fout_lst.append(
+            #             lambda fx: fx + eta
+            #         )
+            post_values = etas + posterior_mean  # (budget, 17176)
+            true_values = etas + y # (budget, 17176)
+
         elif self.bax_noise_type == "multiplicative":
             ls = self.mvn.rsample(torch.Size([budget])).detach().numpy()
-            for l in ls:
-                p = 1 / (1 + np.exp(-l))
-                eta = np.random.binomial(1, p)
-                if nonneg:
-                    fout_lst.append(
-                        lambda fx: np.maximum(0, fx + eta)
+            # for l in ls:
+            #     p = 1 / (1 + np.exp(-l)) # function name is sigmoid
+            #     eta = np.random.binomial(1, p)
+            #     if nonneg:
+            #         fout_lst.append(
+            #             lambda fx: np.maximum(0, fx + eta)
+            #         )
+            #     else:
+            #         fout_lst.append(
+            #             lambda fx: fx + eta
+            #         )
+            def stable_sigmoid(x):
+                return np.piecewise(
+                        x,
+                        [x > 0],
+                        [lambda i: 1 / (1 + np.exp(-i)), lambda i: np.exp(i) / (1 + np.exp(i))],
                     )
-                else:
-                    fout_lst.append(
-                        lambda fx: fx + eta
-                    )
+            p = stable_sigmoid(ls) # (budget, 17176)
+            etas = np.random.binomial(1, p) # (budget, 17176)
+            post_values = np.multiply(etas, posterior_mean) # (budget, 17176)
+            true_values = np.multiply(etas, y)
+        if nonneg:
+            post_values = np.maximum(0, post_values)
+            true_values = np.maximum(0, true_values)
+            
         # Run algorithm on posterior values and obtain selected indices
-        post_values = np.asarray([fout(posterior_mean) for fout in fout_lst]) # (20, 17176)
+        self.etas = etas
+
+        # post_values = np.asarray([fout(posterior_mean) for fout in fout_lst]) # (20, 17176)
         post_mean_values = np.mean(post_values, axis=0)
         post_mx = random_argmax(post_mean_values)
         post_idxes = [post_mx]
@@ -397,7 +443,7 @@ class GeneDiscoLoop(aba.AbstractBaseApplication):
             post_idxes.append(idx_next)
         
         # Run algorithm on true values and obtain selected indices
-        true_values = np.asarray([fout(y) for fout in fout_lst]) # (20, 17176)
+        # true_values = np.asarray([fout(y) for fout in fout_lst]) # (20, 17176)
         true_mean_values = np.mean(true_values, axis=0)
         true_mx = random_argmax(true_mean_values)
         true_idxes = [true_mx]
@@ -414,6 +460,8 @@ class GeneDiscoLoop(aba.AbstractBaseApplication):
             true_idxes.append(idx_next)
         
         # Return true value of selected indices
+        
+        self.true_values = np.max(true_values[:, post_idxes], axis=-1)
         return [np.mean(np.max(true_values[:, post_idxes], axis=-1)), np.mean(np.max(true_values[:, true_idxes], axis=-1))]
 
 

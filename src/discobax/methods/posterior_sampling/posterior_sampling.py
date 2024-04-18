@@ -80,36 +80,32 @@ class PSAcquisition(BaseBatchAcquisitionFunction):
             # f, _ = model.predict(dataset_x.get_data()[0])
             # x = dataset_x.get_data()[0]
 
-            etas_lst = []
             if self.noise_type == "additive":
-                etas = self.mvn.rsample(torch.Size([self.noise_budget])).detach().numpy()
-                for eta in etas:
-                    etas_lst.append(eta)
+                etas = self.mvn.rsample(torch.Size([self.noise_budget])).detach().numpy() # (budget, 17176)
+                values = etas + f  # (budget, 17176)
+
             elif self.noise_type == "multiplicative":
                 ls = self.mvn.rsample(torch.Size([self.noise_budget])).detach().numpy()
-                for l in ls:
-                    p = 1 / (1 + np.exp(-l))
-                    eta = np.random.binomial(1, p)
-                    etas_lst.append(eta)
-            self.etas_lst = etas_lst
-            fout_lst = []
-            for eta in self.etas_lst:
-                if self.nonneg:
-                    fout_lst.append(
-                        lambda fx: np.maximum(0, fx + eta)
-                    )
-                else:
-                    fout_lst.append(
-                        lambda fx: fx + eta
-                    )
-            
-            self.fout_lst = fout_lst
+                def stable_sigmoid(x):
+                    return np.piecewise(
+                            x,
+                            [x > 0],
+                            [lambda i: 1 / (1 + np.exp(-i)), lambda i: np.exp(i) / (1 + np.exp(i))],
+                        )
+                p = stable_sigmoid(ls) # (budget, 17176)
+                etas = np.random.binomial(1, p) # (budget, 17176)
+                values = np.multiply(etas, f)
+
+            self.etas = etas
+            if self.nonneg:
+                values = np.maximum(0, values)
 
             out = new_subset_select(
                 f,
-                fout_lst,
+                values,
                 self.subset_size,
             )
+
             outputs.append(out)
             dataset_x_indices = dataset_x.get_row_names()
             output_indices = [dataset_x_indices[i] for i in out]
@@ -125,14 +121,14 @@ class PSAcquisition(BaseBatchAcquisitionFunction):
         return best_indices 
 
 
-def new_subset_select(v, fouts, subset_size):
+def new_subset_select(v, values, subset_size):
     '''
     v : a single sample of f from the model (GP / MLP)
     '''
     # for moment, just do monte carlo estimate
     # h_sampler : v -> h(v, eta), with eta sampled from some distribution
     # out_fn = either gaussian additive noise or multiplicative bernoulli sampled from GP classifier
-    values = np.asarray([fout(v) for fout in fouts]) # sampled budget # of etas (budget, len(v))
+    # values = np.asarray([fout(v) for fout in fouts]) # sampled budget # of etas (budget, len(v))
     mx = random_argmax(np.mean(values, axis=0))
     idxes = [mx]
     n = len(v)

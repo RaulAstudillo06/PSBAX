@@ -31,14 +31,24 @@ class PymooAlgorithm(Algorithm):
     def initialize(self):
         # If need full exe_path, refer to https://pymoo.org/getting_started/part_4.html
         self.exe_path = Namespace() # Not the full execution path, just output + function (sample) values
+        # self.pymoo_algorithm = NSGA2(
+        #     pop_size=self.params.pop_size,
+        #     n_offsprings=self.params.n_offsprings,
+        #     sampling=FloatRandomSampling(),
+        #     crossover=SBX(prob=0.9, eta=15),
+        #     mutation=PM(eta=20),
+        #     eliminate_duplicates=True
+        # )
         self.pymoo_algorithm = NSGA2(
             pop_size=self.params.pop_size,
             n_offsprings=self.params.n_offsprings,
             sampling=FloatRandomSampling(),
             crossover=SBX(prob=0.9, eta=15),
             mutation=PM(eta=20),
-            eliminate_duplicates=True
+            eliminate_duplicates=True,
+            seed=np.random.randint(0, 1000000),
         )
+
 
     def pymoo_problem_functor(self, f):
         class MyProblem(ElementwiseProblem):

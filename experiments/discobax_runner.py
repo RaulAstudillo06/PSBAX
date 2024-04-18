@@ -134,9 +134,11 @@ fn = f"./data/discobax/etas_seed0_size{args.data_size}.txt"
 if os.path.exists(fn):
     etas = np.loadtxt(fn)
     if len(etas) == args.eta_budget:
-        obj_func.etas_lst = etas
+        # obj_func.etas_lst = etas
+        obj_func.etas = etas
 obj_func.initialize(seed=0, verbose=True)
-eta_arr = np.array(obj_func.etas_lst) # (eta_budget, args.data_size)
+# eta_arr = np.array(obj_func.etas_lst) # (eta_budget, args.data_size)
+eta_arr = np.array(obj_func.etas) # (eta_budget, args.data_size)
 if not os.path.exists(fn):
     try:
         np.savetxt(f"./data/discobax/etas_seed0_size{args.data_size}", eta_arr)

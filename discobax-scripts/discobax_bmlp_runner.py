@@ -25,7 +25,7 @@ parser.add_argument('--save', '-s', action='store_true', default=False)
 args = parser.parse_args()
 
 # === To RUN === # 
-# python discobax_bmlp_runner.py -s --seed 1 --acq_func ps --max_iter 100 --batch_size 1 --bax_noise additive
+# python discobax_bmlp_runner.py -s --seed 1 --acq_func ps --max_iter 30 --batch_size 1 --bax_noise additive
 
 DATASET_NAMES = [
     "schmidt_2021_ifng",

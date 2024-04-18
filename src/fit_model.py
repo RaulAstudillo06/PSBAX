@@ -36,7 +36,7 @@ def fit_model(inputs: Tensor, outputs: Tensor, model_type: str, **kwargs):
                 train_y = outputs[:, f_i].view(-1, 1)
                 model = SingleTaskGP(
                     train_X=inputs,
-                    train_Y=outputs[:, f_i].view(-1, 1),
+                    train_Y=train_y,
                     covar_module=covar_module,
                     outcome_transform=Standardize(m=train_y.shape[-1]),
                 )
