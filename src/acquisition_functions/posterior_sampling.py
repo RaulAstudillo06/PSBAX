@@ -55,29 +55,7 @@ def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size, **kwargs
         #     num_rff_features=1000,
         # )
         # obj_func_sample = PosteriorMean(model=obj_func_sample)
-        if isinstance(model, DKGP):
-            aux_model = deepcopy(model)
-            inputs = aux_model.train_inputs[0]
-            aux_model.train_inputs = (aux_model.embedding(inputs),)
-            gp_layer_sample = get_gp_samples(
-                model=aux_model,
-                num_outputs=1,
-                n_samples=1,
-                num_rff_features=1000,
-            )
-    
-            def aux_obj_func_sample_callable(X):
-                return gp_layer_sample.posterior(aux_model.embedding(X)).mean
-            
-            obj_func_sample = GenericDeterministicModel(f=aux_obj_func_sample_callable)
-        elif isinstance(model, SingleTaskGP):
-            obj_func_sample = get_gp_samples(
-                model=model,
-                num_outputs=1,
-                n_samples=1,
-                num_rff_features=1000,
-            )
-            obj_func_sample = PosteriorMean(model=obj_func_sample)
+        obj_func_sample = get_function_samples(model)
         idx_output = algorithm.execute(obj_func_sample) # np.array(N, n_dim)
         if eval_all:
             return idx_output
@@ -85,8 +63,10 @@ def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size, **kwargs
             x_output = algorithm.index_to_x(idx_output)
             if len(x_output.shape) == 1:
                 x_output = x_output.view(torch.Size([1, x_output.shape[0]]))
-            post_obj_x_output = model(x_output)
-            selected_idx = torch.argmax(post_obj_x_output.variance)
+            post_obj_x_output = model.posterior(x_output)
+            selected_idx = rand_argmax(post_obj_x_output.variance.detach().squeeze())
+            # FIXME: the variance is really low.
+
         return [idx_output[selected_idx]]
 
 

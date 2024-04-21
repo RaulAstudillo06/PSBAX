@@ -334,7 +334,7 @@ def get_new_suggested_batch(
     
 
     if "random" in policy:
-        return generate_random_points(num_points=1, input_dim=input_dim)
+        return generate_random_points(num_points=batch_size, input_dim=input_dim)
     elif "ps" in policy:
         return gen_posterior_sampling_batch(model, algorithm, batch_size)
     elif "bax" in policy:
@@ -344,7 +344,7 @@ def get_new_suggested_batch(
         else:
             num_points=kwargs.get("bax_num_cand", 500)
             x_batch = generate_random_points(
-                num_points=num_points, input_dim=input_dim
+                num_points=num_points, batch_size=batch_size, input_dim=input_dim
             )
         # TODO: change number of points 
         acq_func = BAXAcquisitionFunction(
@@ -354,7 +354,8 @@ def get_new_suggested_batch(
         )
         acq_func.initialize()
         acq_vals = acq_func(x_batch)
-        x_next = x_batch[torch.argsort(acq_vals)[-batch_size:]]
+        x_next = x_batch[rand_argmax(acq_vals)]
+        # x_next = x_batch[torch.argmax(acq_vals)] 
 
         return x_next
 

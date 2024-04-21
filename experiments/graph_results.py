@@ -17,8 +17,9 @@ results_dir = "./results/"
 # problem = "topk_original_200"
 # problem = "ackley_10d"
 # problem = "dtlz1_6d"
+problem = "dtlz1_6d_2obj"
 # problem = "dtlz2_3d"
-problem = "dtlz2_3d_2obj"
+# problem = "dtlz2_3d_2obj"
 # problem = "dtlz2_10d"
 # problem = "zdt1_30d"
 # problem = "hartmann"
@@ -50,8 +51,8 @@ policies = [
     # "bax_modelgp_dim5",
     # "OPT_modelgp_dim5"
 ]
-graph_trials = 5
-show_title = False
+graph_trials = 4
+show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
 batch_size = 1
@@ -167,19 +168,21 @@ for metrics_name in metrics:
             ax.plot(x_range, np.mean(arr, axis=0), label=label, color=color)
             ax.fill_between(
                 x_range,
-                np.mean(arr, axis=0) - np.std(arr, axis=0),
-                np.mean(arr, axis=0) + np.std(arr, axis=0),
+                np.mean(arr, axis=0) - 2 * np.std(arr, axis=0, ddof=1),
+                np.mean(arr, axis=0) + 2 * np.std(arr, axis=0, ddof=1),
                 alpha=0.2,
                 color=color,
             )
         
         else:
             ax.plot(x_range, np.mean(arr, axis=0), label=policy)
+            # plot +-2 standard err
             ax.fill_between(
                 x_range,
-                np.mean(arr, axis=0) - np.std(arr, axis=0),
-                np.mean(arr, axis=0) + np.std(arr, axis=0),
+                np.mean(arr, axis=0) - 2 * np.std(arr, axis=0, ddof=1),
+                np.mean(arr, axis=0) + 2 * np.std(arr, axis=0, ddof=1),
                 alpha=0.2,
+                color=color,
             )
 
     ax.set_xlabel("Iteration")

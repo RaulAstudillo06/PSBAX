@@ -62,11 +62,14 @@ class DiscoBAXObjective(DiscreteObjective):
         super().__init__(name, df, idx_type)
         self.noise_budget = noise_budget
         self.noise_type = noise_type
-        self.etas_lst = None
-        self.fout_lst = None
+        # self.etas_lst = None
+        # self.fout_lst = None
+        self.etas = None
         self.verbose = False
+        # self.nonneg = False
         for key, value in kwargs.items():
             setattr(self, key, value)
+            # sets self.nonneg
 
     def get_etas(self, lengthscale=1.0, outputscale=1.0):
         x = self.get_x()
@@ -160,10 +163,10 @@ class DiscoBAXObjective(DiscreteObjective):
         # assert self.fout_lst is not None, "Noisy functions hasn't been generated."
         # return np.asarray([fout(fx) for fout in self.fout_lst])
         assert self.etas is not None, "Noise (etas) hasn't been generated."
-        fx = fx.detach().numpy().squeeze()
-        if self.bax_noise_type == "additive":
+        fx = fx.squeeze()
+        if self.noise_type == "additive":
             values = fx + self.etas
-        elif self.bax_noise_type == "multiplicative":
+        elif self.noise_type == "multiplicative":
             def stable_sigmoid(x):
                 return np.piecewise(
                         x,
@@ -173,7 +176,7 @@ class DiscoBAXObjective(DiscreteObjective):
             p = stable_sigmoid(self.etas)
             etas = np.random.binomial(1, p)
             values = np.multiply(fx, etas)
-        if self.non_neg:
+        if self.nonneg:
             values = np.maximum(0, values)
         return values
 

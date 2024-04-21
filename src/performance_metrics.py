@@ -342,7 +342,7 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
         return np.mean(np.max(self.true_values[:, idxes], axis=-1))
 
 
-    def compute_OPT(self, obj_func):
+    def compute_OPT(self):
         x = self.obj_func.get_idx()
         fx = self.obj_func(x).detach().numpy()
         _, output_mf = self.algo.run_algorithm_on_f(fx)
@@ -369,7 +369,7 @@ class PymooHypervolume(PosteriorMeanPerformanceMetric):
             x_torch = torch.tensor(output_x)
             f_values = self.obj_func(x_torch).detach().numpy()
             hvs.append(ind(f_values))
-        return tuple(hvs)
+        return np.mean(hvs)
 
 
 

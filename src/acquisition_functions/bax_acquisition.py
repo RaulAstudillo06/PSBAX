@@ -19,6 +19,11 @@ from botorch.acquisition.multi_objective.objective import (
     IdentityMCMultiOutputObjective,
     MCMultiOutputObjective,
 )
+from botorch.utils.transforms import (
+    concatenate_pending_points,
+    match_batch_shape,
+    t_batch_mode_transform,
+)
 from copy import deepcopy
 
 from src.models.deep_kernel_gp import DKGP
@@ -75,24 +80,26 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         for (k, v) in kwargs.items():
             setattr(self, k, v)
     
+    @concatenate_pending_points
+    @t_batch_mode_transform()
     def forward(self, X):
         '''
         Args:
-            X: (N, dim)
+            X: (N, q, dim)
         Returns:
             torch.tensor: (N, 1)
         '''
         # if len(X.shape) == 2:
-        #     X = X.unsqueeze(0)
+        #     X = X.unsqueeze(1)
         
-        N, d = X.shape
+        N, q, d = X.shape
 
         posterior = self.model.posterior(X)
-        mu, std = posterior.mean.detach(), posterior.stddev.detach()
-        # torch.mean(mu): tensor(-1.1588), torch.mean(std): tensor(0.9377)
+        mu, cov = posterior.mean.detach(), posterior.covariance_matrix.detach()
+        # mu: (N, q, num_objectives), cov: (N, num_objectives x q, num_objectives x q)
 
-        mu_list = []
-        std_list = []
+        mu_list = [] # (n_samples, n)
+        cov_list = [] # (n_samples, n)
 
         # data_x = self.model.train_inputs[0] # TODO: is this before or after normalization?  (N, n_dim)
         # data_y = self.model.train_targets # (N, )
@@ -115,49 +122,63 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
                 new_data_x,
                 new_data_y,
             ) # FIXME: check if its doing the right thing
-            # get posterior mean and std
+            # get posterior mean and cov
             comb_posterior = comb_model.posterior(X)
-            comb_mu, comb_std = comb_posterior.mvn.mean.detach(), comb_posterior.mvn.stddev.detach()
+            comb_mu, comb_cov = comb_posterior.mvn.mean.detach(), comb_posterior.mvn.covariance_matrix.detach()
             mu_list.append(comb_mu)
-            std_list.append(comb_std)
+            cov_list.append(comb_cov)
         if self.acq_str == "exe":
-            acq_vals = self.acq_exe_normal(std, std_list)
-        elif self.acq_str == "out":
-            acq_vals = self.acq_out_normal(mu, std, mu_list, std_list)
+            acq_vals = self.acq_exe_normal(cov, cov_list)
+        elif self.acq_str == "out": # Not implemented
+            acq_vals = self.acq_out_normal(mu, cov, mu_list, cov_list)
         # print(f"acq_vals: {acq_vals}")
         return acq_vals
     
+    # @staticmethod
+    # def normal_entropy(std):
+    #     '''
+    #     Args:
+    #         std: (N, )
+    #         std: (N, num_objectives)
+    #     '''
+    #     # torch.product(std, dim=-1)
+    #     std = std.squeeze()
+    #     if len(std.shape) > 1:
+    #         # 1/2 log(det(Sigma)) = sum(log(std))
+    #         log_std = torch.sum(torch.log(std), dim=-1) # (N, )
+    #     else:
+    #         # log and sqrt are monotonic
+    #         log_std = torch.log(std)
+        
+    #     return 0.5 * torch.log(torch.tensor(2 * math.pi)) + log_std 
+    
     @staticmethod
-    def normal_entropy(std):
+    def entropy(Sigma):
         '''
         Args:
-            std: (N, )
-            std: (N, num_objectives)
+            Sigma: (N, num_objectives x q, num_objectives x q)
         '''
-        # torch.product(std, dim=-1)
-        std = std.squeeze()
-        if len(std.shape) > 1:
-            # 1/2 log(det(Sigma)) = sum(log(std))
-            log_std = torch.sum(torch.log(std), dim=-1) # (N, )
-        else:
-            # log and sqrt are monotonic
-            log_std = torch.log(std)
+        # H(x) = 1/2 log(det(Sigma)) 
+
         
-        return 0.5 * torch.log(torch.tensor(2 * math.pi)) + log_std + 0.5
+        log_det = torch.logdet(Sigma) # (N, )
+        return 0.5 * torch.log(torch.tensor(2 * math.pi)) + 0.5 * log_det
+
+
         
-    def acq_exe_normal(self, std, std_list):
+    def acq_exe_normal(self, cov, cov_list):
         '''
         Args:
-            std: (N, 1)
-            std_list: (n_samples, N, 1)
+            cov: (N, 1)
+            cov_list: (n_samples, N, 1)
         Returns:
             torch.tensor: (N, 1)
         '''
-        h_post = self.normal_entropy(std) # (N, ) or (N, num_outputs)
+        h_post = self.entropy(cov) # (N, ) or (N, num_outputs)
 
         h_samp_list = []
-        for std in std_list:
-            h_samp = self.normal_entropy(std).squeeze() # (N, )
+        for cov in cov_list: # TODO: change name
+            h_samp = self.entropy(cov).squeeze() # (N, )
             h_samp_list.append(h_samp)
         
         h_samp = torch.stack(h_samp_list) # (n_samples, N)

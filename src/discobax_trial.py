@@ -27,6 +27,7 @@ from src.utils import (
     generate_random_points,
     get_obj_vals,
     seed_torch,
+    rand_argmax,
 )
 
 
@@ -207,8 +208,14 @@ def discobax_trial(
             acq_func.initialize()
             x_cand = obj_func.get_x()
             acq_vals = acq_func(x_cand)
-            top_acq_vals = torch.argsort(acq_vals)[-batch_size:]
-            last_selected_indices = [obj_func.get_idx()[top_acq_vals]] # this should be a list
+            if batch_size == 1:
+                top_acq_vals = rand_argmax(acq_vals)
+                last_selected_indices = [obj_func.get_idx()[top_acq_vals]]
+            else:
+                top_acq_vals = torch.argsort(acq_vals)[-batch_size:]
+                last_selected_indices = [obj_func.get_idx()[top_acq_vals]] # this should be a list
+            
+
         else:
             raise ValueError("Policy not recognized")
         

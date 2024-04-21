@@ -43,20 +43,27 @@ def generate_initial_data(
         idx = np.random.choice(range(edge_positions.shape[0]), num_init_points, replace=False)
         inputs = torch.tensor(edge_positions[idx])
     else:
-        inputs = generate_random_points(num_init_points, input_dim, seed)
+        inputs = generate_random_points(num_points=num_init_points, input_dim=input_dim, seed=seed)
     outputs = get_obj_vals(obj_func, inputs, noise_type, noise_level)
     return inputs, outputs
 
 
-def generate_random_points(num_points: int, input_dim: int, seed: int = None):
+def generate_random_points(num_points: int, input_dim: int, seed: int = None, batch_size: int = None):
     # Generate `num_batches` inputs each constituted by `batch_size` points chosen uniformly at random
+    
     if seed is not None:
         old_state = torch.random.get_rng_state()
         torch.manual_seed(seed)
-        inputs = torch.rand([num_points, input_dim])
+        if batch_size is not None:
+            inputs = torch.rand([num_points, batch_size, input_dim])
+        else:
+            inputs = torch.rand([num_points, input_dim])
         torch.random.set_rng_state(old_state)
     else:
-        inputs = torch.rand([num_points, input_dim])
+        if batch_size is not None:
+            inputs = torch.rand([num_points, batch_size, input_dim])
+        else:
+            inputs = torch.rand([num_points, input_dim])
     return inputs
 
 

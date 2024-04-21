@@ -1,6 +1,7 @@
 import os
 import sys
 import torch
+import json
 import pandas as pd
 import numpy as np
 import argparse
@@ -27,8 +28,8 @@ debug._set_state(False)
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--problem_idx', type=int, default=0)
-parser.add_argument('--use_top', type=bool, default=True)
-parser.add_argument('--do_pca', type=bool, default=False)
+parser.add_argument('--use_top', default=False, action='store_true')
+parser.add_argument('--do_pca', default=False, action='store_true')
 parser.add_argument('--pca_dim', type=int, default=20)
 parser.add_argument('--data_size', type=int, default=10000)
 parser.add_argument('--first_trial', type=int, default=1)
@@ -59,21 +60,22 @@ problem_lst = [
 ]
 problem = problem_lst[args.problem_idx]
 
+# python discobax_runner.py -s --problem_idx 3 --num_iter 150 --do_pca --pca_dim 10 --data_size 1700 --use_top --n_init 10 --eta_budget 100 --policy OPT --first_trial 1 --last_trial 5
+
+
 # === Testing === #
-# TEST = False
-# if TEST:
-#     # python discobax_runner.py -s --problem_idx 1 --num_iter 100 --do_pca True --pca_dim 5 --data_size 1700 --eta_budget 100 --policy bax -r
-#     args.problem_idx = 1
-#     args.num_iter = 100
-#     args.save = False
-#     args.do_pca = True
-#     args.pca_dim = 5
-#     args.data_size = 1700
-#     args.policy = "bax"
-#     args.restart = True
-# else:
-#     args.save = True
+TEST = False
+if TEST:
+    # python discobax_runner.py -s --problem_idx 1 --num_iter 100 --do_pca True --pca_dim 5 --data_size 1700 --eta_budget 100 --policy bax -r
+    args.problem_idx = 3
+    args.num_iter = 100
+    args.do_pca = True
+    args.pca_dim = 5
+    args.data_size = 1700
+    args.policy = "ps"
 # =============== #
+
+
 problem = problem_lst[args.problem_idx]
 
 if args.use_top:
@@ -148,7 +150,6 @@ if not os.path.exists(fn):
 
 algo.set_obj_func(obj_func)
 
-
 performance_metrics = [
     DiscreteDiscoBAXMetric(
         name="DiscoBAXMetric", 
@@ -162,18 +163,25 @@ for metric in performance_metrics:
 # update_objective = True
     
 problem = data_path.split("/")[-1].split(".")[0]
-
-# save stdin to file
-results_dir = f"./results/{problem}"
-os.makedirs(results_dir, exist_ok=True)
-
+problem = "discobax" + "_" + problem
 policy = args.policy + f"_model{args.model_type}" + f"_dim{args.pca_dim}"
 
-with open(os.path.join(results_dir, f"{policy}_stdin.txt"), "w") as f:
-    f.write(str(sys.argv))
+# with open(os.path.join(results_dir, f"{policy}_stdin.txt"), "w") as f:
+#     f.write(str(sys.argv))
+
+if args.save:
+    results_dir = f"./results/{problem}"
+    os.makedirs(results_dir, exist_ok=True)
+    params_dict = vars(args)
+    for k,v in algo_params.items():
+        if k not in params_dict:
+            params_dict[k] = v
+
+    with open(os.path.join(results_dir, f"{policy}_params.json"), "w") as file:
+        json.dump(params_dict, file)
 
 experiment_manager(
-    problem="discobax" + "_" + problem,
+    problem=problem,
     algorithm=algo,
     obj_func=obj_func,
     performance_metrics=performance_metrics,

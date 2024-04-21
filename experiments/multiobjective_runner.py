@@ -22,14 +22,15 @@ from src.experiment_manager import experiment_manager
 from src.performance_metrics import PymooHypervolume
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--problem', type=str, default='dtlz2')
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--problem', type=str, default='dtlz1')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--trials', type=int, default=5)
-parser.add_argument('--n_dim', type=int, default=10)
-parser.add_argument('--n_obj', type=int, default=3)
-parser.add_argument('--n_gen', type=int, default=500)
-parser.add_argument('--pop_size', type=int, default=40)
+parser.add_argument('--n_dim', type=int, default=6)
+parser.add_argument('--n_obj', type=int, default=2)
+parser.add_argument('--n_gen', type=int, default=50)
+parser.add_argument('--pop_size', type=int, default=10)
 parser.add_argument('--n_init', type=int, default=10)
+parser.add_argument('--batch_size', type=int, default=3)
 parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--algo_name', type=str, default='NSGA2')
 parser.add_argument('--save', '-s', action='store_true', default=False)
@@ -92,7 +93,7 @@ performance_metrics = [
 
 n_dim = args.n_dim 
 n_obj = args.n_obj
-problem = args.problem + f"_{n_dim}d_{n_obj}obj" + "_test"
+problem = args.problem + f"_{n_dim}d_{n_obj}obj"
 
 if args.save:
     results_dir = f"./results/{problem}"
@@ -103,7 +104,7 @@ if args.save:
         if k not in params_dict:
             params_dict[k] = v
 
-    with open(os.path.join(results_dir, f"{policy}_params.json"), "w") as file:
+    with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
         json.dump(params_dict, file)
 
 experiment_manager(
@@ -113,7 +114,7 @@ experiment_manager(
     performance_metrics=performance_metrics,
     input_dim=n_dim,
     policy=args.policy,
-    batch_size=1,
+    batch_size=args.batch_size,
     num_init_points=10,
     num_iter=args.max_iter,
     first_trial=first_trial,
