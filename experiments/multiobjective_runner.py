@@ -7,7 +7,7 @@ import json
 
 
 from botorch.settings import debug
-from botorch.test_functions.multi_objective import DTLZ1, ZDT1, DTLZ2
+from botorch.test_functions.multi_objective import DTLZ1, ZDT1, ZDT2, DTLZ2
 
 torch.set_default_dtype(torch.float64)
 torch.autograd.set_detect_anomaly(False)
@@ -45,18 +45,31 @@ if args.problem == 'dtlz1':
         num_objectives=args.n_obj,
         negate=False, # minimize
     )
+    ref_val = f._ref_val
+    ref_point = np.array([ref_val] * args.n_obj)
 elif args.problem == 'dtlz2':
     f = DTLZ2(
         dim=args.n_dim,
         num_objectives=args.n_obj,
         negate=False, # minimize
     )
+    ref_val = f._ref_val
+    ref_point = np.array([ref_val] * args.n_obj)
 elif args.problem == 'zdt1':
     f = ZDT1(
         dim=args.n_dim,
         num_objectives=args.n_obj,
         negate=False, # minimize
     )
+    ref_val = f._ref_val
+    ref_point = np.array([ref_val] * args.n_obj)
+elif args.problem == "zdt2":
+    f = ZDT2(
+        dim=args.n_dim,
+        num_objectives=2,
+        negate=False, # minimize
+    )
+    ref_point = f.ref_point.numpy()
 
 def obj_func(X):
     return f(X)
@@ -74,7 +87,7 @@ algo_params = {
 }
 algo = PymooAlgorithm(algo_params)
 
-ref_val = f._ref_val
+
 # ref_points = {
 #     "zdt1": np.array([1.2] * args.n_obj),
 #     "dtlz1": np.array([400.0] * args.n_obj),
@@ -85,7 +98,7 @@ performance_metrics = [
     PymooHypervolume(
         algo=algo.get_copy(),
         obj_func=obj_func,
-        ref_point=np.array([ref_val] * args.n_obj),
+        ref_point=ref_point,
         num_runs=5,
     )
 ]
