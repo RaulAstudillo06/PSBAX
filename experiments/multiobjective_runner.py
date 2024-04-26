@@ -29,6 +29,7 @@ parser.add_argument('--opt_mode', type=str, default='maximize')
 parser.add_argument('--noise', type=float, default=0.1)
 parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
+parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--n_dim', type=int, default=6)
 parser.add_argument('--n_obj', type=int, default=2)
 parser.add_argument('--n_gen', type=int, default=500)
@@ -46,7 +47,6 @@ args = parser.parse_args()
 n_dim = args.n_dim 
 n_obj = args.n_obj
 problem = args.problem + f"_{n_dim}d_{n_obj}obj"
-
 
 if args.opt_mode == 'maximize':
     negate = True 
@@ -97,8 +97,6 @@ elif args.problem == "zdt2":
 def obj_func(X):
     return f(X)
 
-first_trial = 1
-last_trial = args.trials
 
 algo_params = {
     "n_dim": args.n_dim,
@@ -111,15 +109,8 @@ algo_params = {
     "output_size": 50,
     "num_runs": 1,
 }
-# algo = PymooAlgorithm(algo_params)
 algo = HypervolumeAlgorithm(algo_params)
 
-
-# ref_points = {
-#     "zdt1": np.array([1.2] * args.n_obj),
-#     "dtlz1": np.array([400.0] * args.n_obj),
-#     "dtlz2": np.array([1.1] * args.n_obj),
-# }
 
 performance_metrics = [
     PymooHypervolume(
@@ -152,7 +143,8 @@ if args.save:
     with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
         json.dump(params_dict, file)
 
-
+first_trial = args.first_trial
+last_trial = args.first_trial + args.trials - 1
 
 experiment_manager(
     problem=f"{problem}",
