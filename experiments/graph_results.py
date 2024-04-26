@@ -17,11 +17,13 @@ results_dir = "./results/"
 # problem = "topk_original_200"
 # problem = "ackley_10d"
 # problem = "dtlz1_6d"
-problem = "dtlz1_6d_2obj"
+# problem = "dtlz1_6d_2obj"
 # problem = "dtlz2_3d"
 # problem = "dtlz2_3d_2obj"
 # problem = "dtlz2_10d"
 # problem = "zdt1_30d"
+problem = "zdt2_6d_2obj"
+problem = "zdt2_6d_2obj_noise0.1"
 # problem = "hartmann"
 # problem = "hartmann_6d"
 # problem = "rastrigin_10d"
@@ -36,7 +38,7 @@ problem = "dtlz1_6d_2obj"
 policies = [
     "ps", 
     "bax", 
-    "random",
+    # "random",
     # "OPT", 
     # "ps200",
     # "bax200",
@@ -56,6 +58,7 @@ show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
 batch_size = 1
+log = True
 
 policy_to_hex = {
     "ps": "#1f77b4",
@@ -85,8 +88,10 @@ elif "california_bax" in problem:
     metrics = ['ShortestPathCost', 'ShortestPathArea', 'Error']
 elif "hartmann" in problem or "rastrigin" in problem or "ackley" in problem:
     metrics = ['best_value']
-elif "zdt" in problem or "dtlz":
+elif "dtlz" in problem:
     metrics = ['Hypervolume']
+elif "zdt" in problem:
+    metrics = ['Hypervolume Difference']
 else:
     metrics = ['DiscoBAXMetric']
 
@@ -115,6 +120,8 @@ for policy in policies:
             
     for (metrics_name, arr) in arrs.items():
         arrs[metrics_name] = np.vstack(arr) # (n_trials, n_iter)
+        if log:
+            arrs[metrics_name] = np.log(arrs[metrics_name])
 
     algo_performance_arrs[policy] = arrs
 
@@ -185,13 +192,18 @@ for metrics_name in metrics:
                 color=color,
             )
 
+            # plot log scale
+    # ax.set_yscale("log")
+
     ax.set_xlabel("Iteration")
     # ax.set_ylabel(metrics_name)
     # ax.legend()
     if show_title:
-        ax.set_title(metrics_name)
+        # ax.set_title(metrics_name)
+        ax.set_title(f"{problem} - {metrics_name}")
     else:
-        print(f"{metrics_name}")
+        # print(f"{metrics_name}")
+        print(f"{problem} - {metrics_name}")
 
     # set legend to below the plot
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=len(policies))

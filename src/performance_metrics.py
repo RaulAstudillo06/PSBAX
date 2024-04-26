@@ -17,6 +17,7 @@ from botorch.models.deterministic import GenericDeterministicModel
 from botorch.models.gp_regression import SingleTaskGP
 from botorch.utils.gp_sampling import get_gp_samples
 from pymoo.indicators.hv import HV
+from botorch.utils.multi_objective import Hypervolume
 
 from src.models.deep_kernel_gp import DKGP
 from src.utils import optimize_acqf_and_get_suggested_batch
@@ -352,24 +353,32 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
 
 
 class PymooHypervolume(PosteriorMeanPerformanceMetric):
-    def __init__(self, algo, obj_func, **kwargs):
+    def __init__(self, algo, obj_func, ref_point, **kwargs):
         super().__init__("Hypervolume")
         self.algo = algo
         self.obj_func = obj_func
-        self.ref_point = kwargs.pop("ref_point", None)
+        self.ref_point = ref_point
         self.num_runs = kwargs.pop("num_runs", 1)
+        self.weight = -1 if self.algo.params.opt_mode == "maximize" else 1
+        self.hv = Hypervolume(ref_point=torch.from_numpy(ref_point))
+        # self.hv = HV(ref_point=self.weight * self.ref_point)
+        self.opt_value = kwargs.pop("opt_value", None)
     
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         hvs = []
+        ind = HV(ref_point=self.weight * self.ref_point)
         for _ in range(self.num_runs):
-                
             output_x = self.algo.execute(posterior_mean_func)
-            ind = HV(ref_point=self.ref_point)
-
             x_torch = torch.tensor(output_x)
-            f_values = self.obj_func(x_torch).detach().numpy()
-            hvs.append(ind(f_values))
-        return np.mean(hvs)
+            # f_values = self.obj_func(x_torch).detach().numpy()
+            # hvs.append(ind(self.weight * f_values))
+
+            f_values = self.obj_func(x_torch).detach()
+            hvs.append(self.hv.compute(f_values))
+        if self.opt_value is not None:
+            return self.weight * (np.mean(hvs) - self.opt_value)
+        else:
+            return np.mean(hvs)
 
 
 
@@ -388,17 +397,18 @@ def evaluate_performance(metrics, model, **kwargs) -> Tensor:
             metric.initialize(model)
             val = metric(model)
         elif isinstance(metric, PosteriorMeanPerformanceMetric):
-            if isinstance(model, SingleTaskGP) or isinstance(model, DKGP):
-                posterior_mean_func = PosteriorMean(model)
-            else:
-                # assert(isinstance(model, ModelListGP))
-                pms = []
-                for m in model.models:
-                    pms.append(PosteriorMean(m))
-                def aux_func(x):
-                    # FIXME
-                    return torch.cat([pm(x) for pm in pms], dim=-1)
-                posterior_mean_func = GenericDeterministicModel(f=aux_func)
+            # if isinstance(model, SingleTaskGP) or isinstance(model, DKGP):
+            #     posterior_mean_func = PosteriorMean(model)
+            # else:
+            #     # assert(isinstance(model, ModelListGP))
+            #     pms = []
+            #     for m in model.models:
+            #         pms.append(PosteriorMean(m))
+            #     def aux_func(x):
+            #         # FIXME
+            #         return torch.cat([pm(x) for pm in pms], dim=-1)
+            #     posterior_mean_func = GenericDeterministicModel(f=aux_func)
+            posterior_mean_func = lambda x : model.posterior(x).mean
             if metric.algo.params.name == "EvolutionStrategies":
                 # metric.algo.set_cma_seed(seed)
                 data_x = model.train_inputs[0]

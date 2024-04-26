@@ -17,6 +17,7 @@ from botorch.models.model import Model
 from botorch.utils.gp_sampling import get_gp_samples
 from botorch.models.deterministic import GenericDeterministicModel
 from botorch.optim.optimize import optimize_acqf
+from botorch.utils.sampling import draw_sobol_samples
 
 from .models.deep_kernel_gp import DKGP
 
@@ -29,13 +30,10 @@ def generate_initial_data(
     num_init_points: int,
     input_dim: int,
     obj_func,
-    # noise_type,
-    # noise_level,
-    # seed: int = None,
     **kwargs,
 ):  
     noise_type = kwargs.get("noise_type", "noiseless")
-    noise_level = kwargs.get("noise_level", 0.0)
+    noise_level = kwargs.get("noise_level", None) # a tensor of noise levels as shape (num_obj,)
     seed = kwargs.get("seed", None)
 
     edge_positions = kwargs.get("edge_positions", None)
@@ -68,10 +66,39 @@ def generate_random_points(num_points: int, input_dim: int, seed: int = None, ba
 
 
 def get_obj_vals(obj_func, inputs, noise_type, noise_level):
+    '''
+    Args:
+        obj_func: callable
+        inputs: torch tensor, shape (num_points, input_dim)
+        noise_type: str, "noiseless" or "noisy"
+        noise_level: tensor, shape (1, num_obj)  
+    '''
+
     obj_vals = obj_func(inputs)
-    if noise_type == "noiseless":
+    input_dim = inputs.shape[-1]
+    if noise_type == "noiseless" or noise_level is None:
         corrupted_obj_vals = obj_vals
+    else:
+        noise = torch.multiply(noise_level, torch.randn_like(obj_vals))
+        corrupted_obj_vals = obj_vals + noise
     return corrupted_obj_vals
+
+
+def compute_noise_std(obj_func, percent_noise, bounds, num_points=1000, seed=None):
+    '''
+    Args:
+        obj_func: callable
+        percent_noise: float, percentage of max and min obj_func value
+        bounds: torch tensor, shape (2, input_dim)
+        num_points: int, number of function evaluations to estimate the noise level
+    '''
+    inputs = draw_sobol_samples(bounds=bounds, n=num_points, q=1, seed=seed).squeeze(0)
+    obj_vals = obj_func(inputs)
+    max_vals = torch.max(obj_vals, dim=0).values # shape (num_obj,)
+    min_val = torch.min(obj_vals, dim=0).values # shape (num_obj,)
+    noise_stds = (max_vals - min_val) * percent_noise
+    return noise_stds
+    
 
 
 def optimize_acqf_and_get_suggested_batch(

@@ -34,30 +34,34 @@ from pymoo.operators.sampling.rnd import FloatRandomSampling
 #%%
 
 x_dim = 6
-num_objectives = 3
+num_objectives = 2
 
 problem = get_problem(
     # "zdt1", 
-    "dtlz1",
+    "zdt2",
+    # "dtlz1",
     # "dtlz2",
     n_var=x_dim,
-    n_obj=num_objectives,
+    # n_obj=num_objectives,
     # xl=np.array([0] * 5),
     # xu=np.array([1] * 5),
 )
 
-obj_func = botorch.test_functions.multi_objective.DTLZ1(
+obj_func = botorch.test_functions.multi_objective.ZDT2(
     dim=x_dim,
     num_objectives=num_objectives,
+    negate=True,
 )
 
-ref_point = np.array([obj_func._ref_val] * num_objectives)
+# ref_point = np.array([obj_func._ref_val] * num_objectives)
+# ref_point = np.array([1.1] * num_objectives)
+ref_point = obj_func.ref_point.numpy()
 
 # The pareto front of a scaled zdt1 problem
 pf = problem.pareto_front()
 
 algorithm = NSGA2(
-    pop_size=10,
+    pop_size=20,
     n_offsprings=10,
     sampling=FloatRandomSampling(),
     crossover=SBX(prob=0.9, eta=15),
@@ -68,7 +72,7 @@ algorithm = NSGA2(
 result = minimize(
     problem,
     algorithm,
-    ("n_gen", 50),
+    ("n_gen", 100),
     save_history=True,
     verbose=False,
 )

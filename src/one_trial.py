@@ -32,8 +32,6 @@ def one_trial(
     algorithm,
     performance_metrics: List,
     input_dim: int,
-    # noise_type: str,
-    # noise_level: float,
     policy: str,
     batch_size: int,
     num_init_points: int,
@@ -110,8 +108,6 @@ def one_trial(
                 num_init_points=num_init_points,
                 input_dim=input_dim,
                 obj_func=obj_func,
-                # noise_type=noise_type,
-                # noise_level=noise_level,
                 seed=trial,
                 **kwargs,
             )
@@ -148,8 +144,6 @@ def one_trial(
             num_init_points=num_init_points,
             input_dim=input_dim,
             obj_func=obj_func,
-            # noise_type=noise_type,
-            # noise_level=noise_level,
             seed=trial,
             **kwargs,
         )
