@@ -20,12 +20,12 @@ results_dir = "./results/"
 # problem = "dtlz1_6d_2obj"
 # problem = "dtlz2_3d"
 # problem = "dtlz2_3d_2obj"
+# problem = "dtlz2_6d_2obj"
 # problem = "dtlz2_10d"
 # problem = "zdt1_30d"
-problem = "zdt2_6d_2obj"
-problem = "zdt2_6d_2obj_noise0.1"
-# problem = "hartmann"
-# problem = "hartmann_6d"
+# problem = "zdt2_6d_2obj"
+# problem = "zdt2_6d_2obj_noise0.1"
+problem = "hartmann_6d"
 # problem = "rastrigin_10d"
 # problem = "dijkstra"
 # problem = "california"
@@ -36,8 +36,8 @@ problem = "zdt2_6d_2obj_noise0.1"
 # problem = "sanchez_2021_tau_top_1700"
 
 policies = [
-    "ps", 
-    "bax", 
+    # "ps", 
+    # "bax", 
     # "random",
     # "OPT", 
     # "ps200",
@@ -47,18 +47,29 @@ policies = [
     # "bax_modelgp",
     # "ps_modelgp_cma",
     # "bax_modelgp_cma",
-    # "ps_modelgp_mut",
-    # "bax_modelgp_mut",
+    "ps_modelgp_mut",
+    "bax_modelgp_mut",
     # "ps_modelgp_dim5",
     # "bax_modelgp_dim5",
     # "OPT_modelgp_dim5"
 ]
-graph_trials = 4
+graph_trials = [
+    1, 
+    2, 
+    3, 
+    4, 
+    # 5, 
+    6, 
+    7, 
+    8, 
+    9, 
+    # 10
+]
 show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 1
-log = True
+batch_size = 5
+log = False
 
 policy_to_hex = {
     "ps": "#1f77b4",
@@ -88,9 +99,9 @@ elif "california_bax" in problem:
     metrics = ['ShortestPathCost', 'ShortestPathArea', 'Error']
 elif "hartmann" in problem or "rastrigin" in problem or "ackley" in problem:
     metrics = ['best_value']
-elif "dtlz" in problem:
+elif "dtlz1" in problem:
     metrics = ['Hypervolume']
-elif "zdt" in problem:
+elif "zdt" in problem or "dtlz2" in problem:
     metrics = ['Hypervolume Difference']
 else:
     metrics = ['DiscoBAXMetric']
@@ -105,7 +116,8 @@ for policy in policies:
     
     for f in os.listdir(files_dir):
         if f.endswith(".txt") and "performance_metric" in f:
-            if int(f.split(".")[0].split("_")[-1]) > graph_trials:
+            # if int(f.split(".")[0].split("_")[-1]) > graph_trials:
+            if int(f.split(".")[0].split("_")[-1]) not in graph_trials:
                 continue
             arr = np.loadtxt(os.path.join(files_dir, f))
             if len(arr.shape) == 1:
@@ -197,13 +209,17 @@ for metrics_name in metrics:
 
     ax.set_xlabel("Iteration")
     # ax.set_ylabel(metrics_name)
+    if log:
+        ax.set_ylabel("Log Value")
+    else:
+        ax.set_ylabel("Value")
     # ax.legend()
     if show_title:
         # ax.set_title(metrics_name)
-        ax.set_title(f"{problem} - {metrics_name}")
+        ax.set_title(f"{problem} q={batch_size} {metrics_name}")
     else:
         # print(f"{metrics_name}")
-        print(f"{problem} - {metrics_name}")
+        print(f"{problem} q={batch_size} {metrics_name}")
 
     # set legend to below the plot
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=len(policies))
@@ -213,7 +229,7 @@ for metrics_name in metrics:
         if not os.path.exists(fig_dir):
             os.makedirs(fig_dir, exist_ok=True)
         # add strategy to file name
-        fig_name = "_".join(policies) + "_" + metrics_name + "_" + str(arr.shape[0])
+        fig_name = "_".join(policies) + "_" + metrics_name.strip(" ") + "_batch" + str(batch_size) + "_trials" + str(arr.shape[0])
         fig.savefig(
             os.path.join(
                 fig_dir, fig_name + ".png"

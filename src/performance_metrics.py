@@ -77,22 +77,32 @@ class BestValue(PosteriorMeanPerformanceMetric):
         self.optimum = kwargs.pop("optimum", None)
         self.eval_mode = kwargs.pop("eval_mode", "best_value")
         self.opt_mode = algo.params.opt_mode
+        self.num_runs = kwargs.pop("num_runs", 1)
         
 
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         # _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
-        output_mf = self.algo.execute(posterior_mean_func)
-        f_output = self.obj_func(output_mf)
-        if self.opt_mode == "max":
-            if self.eval_mode == "regret":
-                return self.obj_func(self.optimum).item() - torch.max(f_output).item()
-            elif self.eval_mode == "best_value":
-                return torch.max(f_output).item()
-        elif self.opt_mode == "min":
-            if self.eval_mode == "regret":
-                return self.obj_func(self.optimum).item() - torch.min(f_output).item()
-            elif self.eval_mode == "best_value":
-                return torch.min(f_output).item()
+        values = []
+        for _ in range(self.num_runs):
+            
+            output_mf = self.algo.execute(posterior_mean_func)
+            f_output = self.obj_func(output_mf)
+            if self.opt_mode == "max":
+                if self.eval_mode == "regret":
+                    # return self.obj_func(self.optimum).item() - torch.max(f_output).item()
+                    value = self.obj_func(self.optimum).item() - torch.max(f_output).item()
+                elif self.eval_mode == "best_value":
+                    # return torch.max(f_output).item()
+                    value = torch.max(f_output).item()
+            elif self.opt_mode == "min":
+                if self.eval_mode == "regret":
+                    # return self.obj_func(self.optimum).item() - torch.min(f_output).item()
+                    value = self.obj_func(self.optimum).item() - torch.min(f_output).item()
+                elif self.eval_mode == "best_value":
+                    # return torch.min(f_output).item()
+                    value = torch.min(f_output).item()
+            values.append(value)
+        return np.mean(values)
 
 
 
@@ -366,7 +376,7 @@ class PymooHypervolume(PosteriorMeanPerformanceMetric):
     
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         hvs = []
-        ind = HV(ref_point=self.weight * self.ref_point)
+        # ind = HV(ref_point=self.weight * self.ref_point)
         for _ in range(self.num_runs):
             output_x = self.algo.execute(posterior_mean_func)
             x_torch = torch.tensor(output_x)

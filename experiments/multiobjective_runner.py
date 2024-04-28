@@ -24,17 +24,17 @@ from src.performance_metrics import PymooHypervolume
 from src.utils import compute_noise_std
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--problem', type=str, default='zdt2')
+parser.add_argument('--problem', type=str, default='dtlz2')
 parser.add_argument('--opt_mode', type=str, default='maximize')
-parser.add_argument('--noise', type=float, default=0.1)
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--noise', type=float, default=0.0)
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--n_dim', type=int, default=6)
 parser.add_argument('--n_obj', type=int, default=2)
 parser.add_argument('--n_gen', type=int, default=500)
 parser.add_argument('--pop_size', type=int, default=100)
-parser.add_argument('--n_init', type=int, default=10)
+# parser.add_argument('--n_init', type=int, default=10)
 parser.add_argument('--batch_size', type=int, default=3)
 parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--algo_name', type=str, default='NSGA2')
@@ -65,9 +65,17 @@ elif args.problem == 'dtlz2':
         num_objectives=args.n_obj,
         negate=negate, 
     )
-    ref_val = f._ref_val
+    ref_val = -f._ref_val if negate else f._ref_val
     ref_point = np.array([ref_val] * args.n_obj)
-    opt_value = None
+    pymoo_problem = get_problem(
+        "dtlz2",
+        n_var=n_dim,
+        n_obj=n_obj,
+    )
+    pymoo_pf = pymoo_problem.pareto_front()
+    pymoo_ref_point = np.array([1.1] * args.n_obj)
+    ind_pymoo = HV(ref_point=pymoo_ref_point)
+    opt_value = ind_pymoo(pymoo_pf)
 elif args.problem == 'zdt1':
     f = ZDT1(
         dim=args.n_dim,
@@ -126,7 +134,7 @@ if args.noise > 0:
     problem += f"_noise{args.noise}"
     noise_type = "noisy"
     bounds = torch.vstack([torch.zeros(args.n_dim), torch.ones(args.n_dim)])
-    noise_levels = compute_noise_std(obj_func, 0.1, bounds=bounds)
+    noise_levels = compute_noise_std(obj_func, args.noise, bounds=bounds)
 else:
     noise_type = "noiseless"
     noise_levels = None
