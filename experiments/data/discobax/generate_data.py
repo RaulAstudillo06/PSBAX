@@ -15,21 +15,25 @@ def seed_torch(seed, verbose=True):
     torch.backends.cudnn.benchmark = False
 
 seed_torch(0)
+#%%
 
 problem_lst = [
-    "schmidt_2021_ifng",
-    "schmidt_2021_il2",
-    "zhuang_2019",
-    "sanchez_2021_tau",
-    "zhu_2021_sarscov2_host_factors",
+    "schmidt_2021_ifng", # 17465
+    "schmidt_2021_il2", # 17465
+    "zhuang_2019", # 17528
+    "sanchez_2021_tau", # 17176
+    "zhu_2021_sarscov2_host_factors", # 16670
 ]
 
-problem = problem_lst[0]
+problem = problem_lst[3]
 random = False
-data_size = 10000
+data_size = 5000
+
 
 data_path = f"./{problem}.csv"
 df = pd.read_csv(data_path, index_col=0)
+print(df.shape)
+#%%
 df_y = df["y"]
 def topk_indices(y: pd.Series, k):
     if isinstance(k, float):
