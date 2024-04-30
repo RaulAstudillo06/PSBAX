@@ -8,6 +8,7 @@ import sys
 import time
 import torch
 from botorch.models.model import Model
+from botorch.optim import optimize_acqf_discrete
 from torch import Tensor
 import matplotlib.pyplot as plt
 
@@ -347,9 +348,7 @@ def get_new_suggested_batch(
             **kwargs, 
         )
         acq_func.initialize()
-        acq_vals = acq_func(x_batch)
-        x_next = x_batch[rand_argmax(acq_vals)]
-        # x_next = x_batch[torch.argmax(acq_vals)] 
-
+        x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
+        
         return x_next
 
