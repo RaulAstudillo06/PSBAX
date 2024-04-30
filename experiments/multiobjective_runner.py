@@ -125,7 +125,7 @@ performance_metrics = [
         algo=algo.get_copy(),
         obj_func=obj_func,
         ref_point=ref_point,
-        num_runs=1,
+        num_runs=5,
         opt_value=opt_value,
     )
 ]

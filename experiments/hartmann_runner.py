@@ -98,7 +98,7 @@ performance_metrics = [
 #     first_trial = 1
 #     last_trial = 5
 
-problem = "ackley" + f"_{n_dim}d"
+problem = "hartmann" + f"_{n_dim}d"
 if args.noise > 0:
     problem += f"_noise{args.noise}"
     noise_type = "noisy"
