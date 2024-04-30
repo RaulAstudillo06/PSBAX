@@ -16,6 +16,7 @@ results_dir = "./results/"
 
 # problem = "topk_original_200"
 # problem = "ackley_10d"
+# problem = "ackley_5d"
 # problem = "dtlz1_6d"
 # problem = "dtlz1_6d_2obj"
 # problem = "dtlz2_3d"
@@ -45,10 +46,10 @@ policies = [
     # "OPT200",
     # "ps_modelgp",
     # "bax_modelgp",
-    # "ps_modelgp_cma",
-    # "bax_modelgp_cma",
-    "ps_modelgp_mut",
-    "bax_modelgp_mut",
+    "ps_modelgp_cma",
+    "bax_modelgp_cma",
+    # "ps_modelgp_mut",
+    # "bax_modelgp_mut",
     # "ps_modelgp_dim5",
     # "bax_modelgp_dim5",
     # "OPT_modelgp_dim5"
