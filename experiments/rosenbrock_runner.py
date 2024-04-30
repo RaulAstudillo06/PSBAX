@@ -40,7 +40,7 @@ def obj_func(X: Tensor) -> Tensor:
     if isinstance(X, np.ndarray):
         X = torch.tensor(X)
     f = Rosenbrock(negate=True, dim=args.dim) # negate=True is for maximization
-    objective_X = f(X)
+    objective_X = f(15.0 * X - 5.0)
     return objective_X
 
 
