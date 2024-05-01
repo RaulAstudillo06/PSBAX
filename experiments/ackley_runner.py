@@ -20,13 +20,14 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.bax.alg.evolution_strategies import EvolutionStrategies
+from src.bax.alg.lbfgsb import LBFGSB
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import BestValue
 from src.utils import compute_noise_std
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dim', type=int, default=10)
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--policy', type=str, default='random')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--noise', type=float, default=0.0)

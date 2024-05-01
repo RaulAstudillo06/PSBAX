@@ -25,16 +25,16 @@ from src.performance_metrics import BestValue
 
 # use argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='bax')
+parser.add_argument('--policy', type=str, default='random')
 parser.add_argument('--samp_str', type=str, default='cma')
 parser.add_argument('--model_type', type=str, default='gp')
 parser.add_argument('--dim', type=int, default=5)
 parser.add_argument('--trials', type=int, default=5)
+parser.add_argument('--first_trial', type=int, default=1)
 args = parser.parse_args()
 
-first_trial = args.trials
-last_trial = args.trials
-
+first_trial = args.first_trial
+last_trial = args.first_trial + args.trials - 1
 
 # Objective function
 def obj_func(X: Tensor) -> Tensor:
@@ -46,11 +46,11 @@ def obj_func(X: Tensor) -> Tensor:
 
 
 # Algorithm
-algo = "lbfgsb"
+algo_id = "lbfgsb"
 
 n_dim = args.dim
 
-if algo == "cmaes":
+if algo_id == "cma":
     domain = [[0, 1]] * n_dim
     init_x = [[0.0] * n_dim]
 
@@ -64,7 +64,7 @@ if algo == "cmaes":
         "opt_mode": "max",
     }
     algo = EvolutionStrategies(algo_params)
-elif algo == "lbfgsb":
+elif algo_id == "lbfgsb":
     num_restarts = 5 * n_dim
     raw_samples = 100 * n_dim
 
@@ -93,13 +93,13 @@ experiment_manager(
     input_dim=n_dim,
     noise_type="noiseless",
     noise_level=0.0,
-    policy=args.policy + f"_model{args.model_type}" + f"_{args.samp_str}",
+    policy=args.policy + f"_{args.model_type}" + f"_{algo_id}",
     batch_size=1,
     num_init_points=2 * (n_dim + 1),
     num_iter=200,
     first_trial=first_trial,
     last_trial=last_trial,
-    restart=True,
+    restart=False,
     model_type=args.model_type,
     save_data=True,
     bax_num_cand=1000 * n_dim,

@@ -28,7 +28,7 @@ from src.utils import compute_noise_std
 # Use argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--dim', type=int, default=6)
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--noise', type=float, default=0.0)
@@ -47,7 +47,7 @@ args = parser.parse_args()
 def obj_func(X: Tensor) -> Tensor:
     if isinstance(X, np.ndarray):
         X = torch.tensor(X)
-    hartmann = Hartmann(dim=args.n_dim, negate=True)
+    hartmann = Hartmann(dim=args.dim, negate=True)
     objective_X = hartmann(X)
     return objective_X
 
