@@ -27,7 +27,7 @@ from src.utils import compute_noise_std
 
 # Use argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--n_dim', type=int, default=6)
+parser.add_argument('--dim', type=int, default=6)
 parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)

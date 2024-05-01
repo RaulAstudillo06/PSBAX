@@ -20,7 +20,6 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.bax.alg.evolution_strategies import EvolutionStrategies
-from src.bax.util.domain_util import unif_random_sample_domain
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import BestValue
 from src.utils import compute_noise_std
