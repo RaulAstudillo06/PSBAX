@@ -339,7 +339,7 @@ def get_new_suggested_batch(
         else:
             num_points=kwargs.get("bax_num_cand", 500)
             x_batch = generate_random_points(
-                num_points=num_points, batch_size=batch_size, input_dim=input_dim
+                num_points=num_points, input_dim=input_dim
             )
         # TODO: change number of points 
         acq_func = BAXAcquisitionFunction(
