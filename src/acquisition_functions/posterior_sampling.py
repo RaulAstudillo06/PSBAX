@@ -45,9 +45,8 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
 
 def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size, **kwargs):
     eval_all = kwargs.get("eval_all", False)
-    if batch_size > 1:
-        raise ValueError("Batch size > 1 currently not supported")
-    else:
+    batch = []
+    for _ in range(batch_size):
         # obj_func_sample = get_gp_samples(
         #     model=model,
         #     num_outputs=1,
@@ -67,7 +66,8 @@ def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size, **kwargs
             selected_idx = rand_argmax(post_obj_x_output.variance.detach().squeeze())
             # FIXME: the variance is really low.
 
-        return [idx_output[selected_idx]]
+        batch.append(idx_output[selected_idx])
+    return batch
 
 
 
