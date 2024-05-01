@@ -18,6 +18,7 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.bax.alg.evolution_strategies import EvolutionStrategies
+from src.bax.alg.lbfgsb import LBFGSB
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import BestValue
 
@@ -34,9 +35,8 @@ args = parser.parse_args()
 first_trial = args.trials
 last_trial = args.trials
 
-# === To RUN === # 
-# python rastrigin_runner.py -s --dim 10 --trials 10 --policy bax
 
+# Objective function
 def obj_func(X: Tensor) -> Tensor:
     if isinstance(X, np.ndarray):
         X = torch.tensor(X)
@@ -45,25 +45,43 @@ def obj_func(X: Tensor) -> Tensor:
     return objective_X
 
 
-# Set algorithm details
+# Algorithm
+algo = "lbfgsb"
+
 n_dim = args.dim
-domain = [[0, 1]] * n_dim
-init_x = [[0.0] * n_dim]
 
-algo_params = {
-    "n_generation": 100 * n_dim,
-    "n_population": 10,
-    "samp_str": args.samp_str,
-    "init_x": init_x[0],
-    "domain": domain,
-    "crop": True,
-    "opt_mode": "max",
-}
-algo = EvolutionStrategies(algo_params)
+if algo == "cmaes":
+    domain = [[0, 1]] * n_dim
+    init_x = [[0.0] * n_dim]
 
+    algo_params = {
+        "n_generation": 100 * n_dim,
+        "n_population": 10,
+        "samp_str": args.samp_str,
+        "init_x": init_x[0],
+        "domain": domain,
+        "crop": True,
+        "opt_mode": "max",
+    }
+    algo = EvolutionStrategies(algo_params)
+elif algo == "lbfgsb":
+    num_restarts = 5 * n_dim
+    raw_samples = 100 * n_dim
+
+    algo_params = {
+        "name" : "LBFGSB",
+        "opt_mode" : "max",
+        "n_dim" : n_dim,
+        "num_restarts" : num_restarts,
+        "raw_samples" : raw_samples,
+    }
+    algo = LBFGSB(algo_params)
+
+
+# Performance metric
+algo_metric = algo.get_copy()
 performance_metrics = [
-    # ObjValAtMaxPostMean(obj_func, input_dim),
-    BestValue(algo, obj_func),
+    BestValue(algo_metric, obj_func),
 ]
 
 
@@ -85,4 +103,5 @@ experiment_manager(
     model_type=args.model_type,
     save_data=True,
     bax_num_cand=1000 * n_dim,
+    exe_paths=30,
 )
