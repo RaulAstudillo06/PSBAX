@@ -24,10 +24,11 @@ from src.performance_metrics import BestValue
 
 # use argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--samp_str', type=str, default='cma')
 parser.add_argument('--model_type', type=str, default='gp')
 parser.add_argument('--dim', type=int, default=5)
+parser.add_argument('--trials', type=int, default=5)
 args = parser.parse_args()
 
 first_trial = args.trials
@@ -40,7 +41,7 @@ def obj_func(X: Tensor) -> Tensor:
     if isinstance(X, np.ndarray):
         X = torch.tensor(X)
     f = Rosenbrock(negate=True, dim=args.dim) # negate=True is for maximization
-    objective_X = f(15.0 * X - 5.0)
+    objective_X = f(4.0 * X - 2.0)
     return objective_X
 
 
@@ -55,7 +56,7 @@ algo_params = {
     "samp_str": args.samp_str,
     "init_x": init_x[0],
     "domain": domain,
-    "crop": False,
+    "crop": True,
     "opt_mode": "max",
 }
 algo = EvolutionStrategies(algo_params)
@@ -67,7 +68,7 @@ performance_metrics = [
 
 
 experiment_manager(
-    problem=f"rastrigin_{n_dim}d",
+    problem=f"rosenbrock_{n_dim}d",
     obj_func=obj_func,
     algorithm=algo,
     performance_metrics=performance_metrics,
