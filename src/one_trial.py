@@ -22,9 +22,8 @@ from src.utils import (
     generate_random_points,
     get_obj_vals,
     seed_torch,
-    rand_argmax,
+    optimize_acqf_and_get_suggested_batch,
 )
-
 
 # See experiment_manager.py for parameters
 def one_trial(
@@ -309,13 +308,6 @@ def get_new_suggested_batch(
     policy_params: Optional[Dict] = None,
     **kwargs,
 ) -> Tensor:
-    standard_bounds = torch.tensor(
-        [[0.0] * input_dim, [1.0] * input_dim]
-    )  # This assumes the input domain has been normalized beforehand
-    num_restarts = input_dim * batch_size
-    raw_samples = 30 * input_dim * batch_size
-    batch_initial_conditions = None
-
     edge_positions = kwargs.get("edge_positions", None) # California
 
     if algorithm.params.name == "EvolutionStrategies":
@@ -333,25 +325,36 @@ def get_new_suggested_batch(
     elif "ps" in policy:
         return gen_posterior_sampling_batch(model, algorithm, batch_size)
     elif "bax" in policy:
-
-        if edge_positions is not None:
-            x_batch = torch.tensor(edge_positions) # In BAX, they query all the edge locs as well.
-        else:
-            num_points=kwargs.get("bax_num_cand", 500)
-            x_batch = generate_random_points(
-                num_points=num_points, 
-                input_dim=input_dim,
-            ) # (N, d)
-        # TODO: change number of points 
         acq_func = BAXAcquisitionFunction(
             model=model, 
             algo=algorithm,
             **kwargs, 
         )
         acq_func.initialize()
-        x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
-
-        # randomize maximizer
+        continuos_bax_opt = kwargs.get("continuos_bax_opt", False)
+        if continuos_bax_opt:
+            if edge_positions is not None:
+                x_batch = torch.tensor(edge_positions) # In BAX, they query all the edge locs as well.
+            else:
+                num_points=kwargs.get("bax_num_cand", 500)
+                x_batch = generate_random_points(
+                    num_points=num_points, 
+                    input_dim=input_dim,
+                ) # (N, d)
+            x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
+        else:
+            standard_bounds = torch.tensor(
+                [[0.0] * input_dim, [1.0] * input_dim]
+            )  # This assumes the input domain has been normalized beforehand
+            x_next = optimize_acqf_and_get_suggested_batch(
+                acq_func=acq_func,
+                bounds=standard_bounds,
+                batch_size=1,
+                num_restarts=5 * input_dim,
+                raw_samples=100 * input_dim,
+                batch_limit=5,
+                init_batch_limit=100,
+            )
         
         return x_next
 
