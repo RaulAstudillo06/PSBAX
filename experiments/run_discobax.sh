@@ -1,5 +1,15 @@
 #!/bin/bash
-for acq_func in "ps" "bax" "OPT"
+pidfile="run_discobax_pids.txt"  # File where PIDs will be stored
+
+# Clean the file at the start of the script
+> "$pidfile"
+
+for acq_func in "ps"
 do
-    python discobax_runner.py -s --problem_idx 3 --num_iter 150 --do_pca --pca_dim 10 --data_size 1700 --use_top --n_init 10 --eta_budget 100 --policy $acq_func --first_trial 1 --last_trial 5 
+    for first_trial in 1 3 5 7 9
+    do
+        python discobax_runner.py -s --problem_idx 3 --max_iter 200 --do_pca --pca_dim 5 --eta_budget 100 --batch_size 1 --policy $acq_func --first_trial $first_trial --trials 2 &
+        echo $! >> "$pidfile"  # Store the PID of the last background job
+    done
 done
+wait

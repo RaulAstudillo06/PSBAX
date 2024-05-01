@@ -54,6 +54,8 @@ def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size, **kwargs
         #     num_rff_features=1000,
         # )
         # obj_func_sample = PosteriorMean(model=obj_func_sample)
+
+        # Original
         obj_func_sample = get_function_samples(model)
         idx_output = algorithm.execute(obj_func_sample) # np.array(N, n_dim)
         if eval_all:
@@ -67,7 +69,14 @@ def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size, **kwargs
             # FIXME: the variance is really low.
 
         batch.append(idx_output[selected_idx])
+    
     return batch
+    #     # New
+    # x_cand = []
+    # for index in batch:
+    #     x_cand.append(algorithm.index_to_x(index))
+
+    # return torch.cat(x_cand, dim=0)
 
 
 

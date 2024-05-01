@@ -41,7 +41,7 @@ parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
 
 # === To RUN === # 
-# python rastrigin_runner.py -s --dim 10 --trials 10 --policy bax
+# python lbfgsb_runner.py -s --policy ps --first_trial 1 --trials 5 --batch_size 5 --max_iter 50
 
 
 bounds = [-5.12, 5.12]
@@ -80,7 +80,7 @@ performance_metrics = [
     ),
 ]
 
-problem = "rastrigin" + f"_{n_dim}d"
+problem = "lbfgsb_rastrigin" + f"_{n_dim}d"
 if args.noise > 0:
     problem += f"_noise{args.noise}"
     noise_type = "noisy"

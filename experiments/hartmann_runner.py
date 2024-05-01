@@ -70,7 +70,7 @@ algo_params = {
     "keep_frac": 0.3,
     "crop": False,
     "opt_mode": "max",
-    #'crop': True,
+    'crop': True,
 }
 algo = EvolutionStrategies(algo_params)
 

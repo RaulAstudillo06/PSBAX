@@ -16,6 +16,7 @@ import pandas as pd
 import pickle as pkl
 from collections import defaultdict
 
+from botorch.optim import optimize_acqf_discrete
 
 from src.acquisition_functions.posterior_sampling import gen_posterior_sampling_batch, gen_posterior_sampling_batch_discrete
 from src.acquisition_functions.bax_acquisition import BAXAcquisitionFunction
@@ -55,6 +56,7 @@ def discobax_trial(
     eval_all = kwargs.get("eval_all", False)
     check_GP_fit = kwargs.get("check_GP_fit", False)
     update_objective = kwargs.get("update_objective", False)
+    allow_reselect = kwargs.get("allow_reselect", False)
     seed_torch(seed)
 
     policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
@@ -93,6 +95,8 @@ def discobax_trial(
             np.savetxt(fn, OPT_arr)
         return 
 
+    x_torch = obj_func.get_x()
+
     if restart:
         try: 
             inputs = torch.tensor(np.loadtxt(
@@ -127,15 +131,14 @@ def discobax_trial(
                 inputs,
                 obj_vals,
                 model_type=model_type,
-                # architecture=architecture,
                 **kwargs,
             )
             t1 = time.time()
             model_training_time = t1 - t0
             
-            available_indices = obj_func.get_idx()
-            cumulative_indices = [] # only used for graphing
-            last_selected_indices = []
+            # available_indices = obj_func.get_idx()
+            # cumulative_indices = [] # only used for graphing
+            # last_selected_indices = []
 
             # check if inputs @ inputs.T is positive definite
             try:
@@ -145,8 +148,6 @@ def discobax_trial(
 
         except:
             pass
-            
-            
     else:
 
         available_indices = obj_func.get_idx()
@@ -159,26 +160,29 @@ def discobax_trial(
         last_selected_indices = list(np.random.choice(available_indices, num_init_points))
         cumulative_indices += last_selected_indices
 
-        # result_records = list()
-        # cumulative_recall_topk = list()
-        # cumulative_precision_topk = list()
-        # cumulative_proportion_top_clusters_recovered = list()
-
         inputs = obj_func.get_x(last_selected_indices)
-        obj_vals = obj_func(last_selected_indices)
+
+
+        # randomly choose initial points from x_torch
+
+        # init_idx = np.random.choice(np.arange(x_torch.shape[0]), num_init_points, replace=False)
+        # inputs = x_torch[init_idx]
+        # if len(inputs.shape) == 1:
+        #     inputs = inputs.unsqueeze(0)
+        # obj_vals = obj_func(last_selected_indices)
+        obj_vals = obj_func.get_y_from_x(inputs)
         t0 = time.time()
         model = fit_model(
             inputs,
             obj_vals,
             model_type=model_type,
-            # architecture=architecture,
             **kwargs,
         )
         t1 = time.time()
         model_training_time = t1 - t0
 
         performance_metrics_vals = [
-            evaluate_performance(performance_metrics, model)
+            evaluate_performance(performance_metrics, model, **kwargs)
         ]
         runtimes = []
         iteration = 0
@@ -190,33 +194,48 @@ def discobax_trial(
         print("Trial: " + str(trial))
         print("Iteration: " + str(iteration))
 
+        # Update obj_func, algo
+        if not allow_reselect:
+            available_indices = sorted(list(set(available_indices) - set(cumulative_indices)))
+            obj_func.update_df(obj_func.df.loc[available_indices])
+            obj_func.set_dict()
+            algorithm.set_obj_func(obj_func)
+
         # New suggested batch
         t0 = time.time()
         if "random" in policy:
             if eval_all:
                 last_selected_indices = list(np.random.choice(obj_func.get_idx(), algorithm.params.k))
             last_selected_indices = list(np.random.choice(obj_func.get_idx(), batch_size))
+            # x_next = obj_func.get_x(last_selected_indices)
         elif "ps" in policy:
             last_selected_indices = gen_posterior_sampling_batch_discrete(
                 model, algorithm, batch_size, eval_all=eval_all,
             ) # a list
-        elif "bax" in policy:
-            acq_func = BAXAcquisitionFunction(model=model, algo=algorithm, **kwargs)
-            acq_func.initialize()
-            x_cand = obj_func.get_x()
-            x_cand = x_cand.unsqueeze(1) # (N, q, d)
-            acq_vals = acq_func(x_cand)
-            if batch_size == 1:
-                top_acq_vals = rand_argmax(acq_vals)
-                last_selected_indices = [obj_func.get_idx()[top_acq_vals]]
-            else:
-                top_acq_vals = torch.argsort(acq_vals)[-batch_size:]
-                indices = obj_func.get_idx()
-                last_selected_indices = [indices[i] for i in top_acq_vals] # this should be a list
-            
 
+        elif "bax" in policy:
+            x_batch = obj_func.get_x()
+            # x_batch = obj_func.x_to_idx.keys()
+            # x_batch = list(x_batch)
+            # x_batch = torch.tensor(x_batch)
+            acq_func = BAXAcquisitionFunction(
+                model=model, 
+                algo=algorithm,
+                **kwargs, 
+            )
+            acq_func.initialize()
+            x_next, _ = optimize_acqf_discrete(
+                acq_function=acq_func, 
+                q=batch_size, 
+                choices=x_batch, 
+                max_batch_size=100, 
+            )
+            last_selected_indices = obj_func.get_idx_from_x(x_next)
+        
         else:
             raise ValueError("Policy not recognized")
+
+        # x_new = x_next
         
         t1 = time.time()
         acquisition_time = t1 - t0
@@ -227,6 +246,7 @@ def discobax_trial(
         new_obj_vals = obj_func(last_selected_indices)
         x_new = obj_func.get_x(last_selected_indices)
         inputs = torch.cat([inputs, x_new])   
+        # new_obj_vals = obj_func.get_y_from_x(x_new)
         obj_vals = torch.cat([obj_vals, new_obj_vals])
 
         # Fit GP model
@@ -248,10 +268,10 @@ def discobax_trial(
             post_ = model.posterior(x_)
             mean_ = post_.mean.detach().numpy().flatten()
             std_ = post_.variance.detach().sqrt().numpy().flatten()
-            if len(cumulative_indices) > 1:
-                sampled_int_idx = obj_func.index_to_int_index(cumulative_indices)
-                sampled_mean_ = mean_[sampled_int_idx]
-                sampled_y_ = y_[sampled_int_idx]
+            # if len(cumulative_indices) > 1:
+            #     sampled_int_idx = obj_func.index_to_int_index(cumulative_indices)
+            #     sampled_mean_ = mean_[sampled_int_idx]
+            #     sampled_y_ = y_[sampled_int_idx]
 
             # calculate RSS 
             RSS = np.sum((mean_ - y_.numpy()) ** 2)
@@ -260,8 +280,8 @@ def discobax_trial(
             # plot scatter of true vs predicted mean
             fig, ax = plt.subplots()
             ax.scatter(y_, mean_, color='b', marker='.', s=20, label='All')
-            if len(cumulative_indices) > 1:
-                ax.scatter(sampled_y_, sampled_mean_, color='g', marker='.', s=10, label='Sampled')
+            # if len(cumulative_indices) > 1:
+            #     ax.scatter(sampled_y_, sampled_mean_, color='g', marker='.', s=10, label='Sampled')
             # plot y = x line
             ax.plot([min(y_), max(y_)], [min(y_), max(y_)], color='r')
             # ax.set_aspect('equal')

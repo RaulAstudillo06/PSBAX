@@ -71,6 +71,43 @@ class DiscoBAXObjective(DiscreteObjective):
             setattr(self, key, value)
             # sets self.nonneg
 
+    def get_y_from_x(self, X):
+        if len(X.shape) == 1:
+            X = X.reshape(1, -1)
+        y_values = []
+        for x in X:
+            x_tuple = tuple(x.tolist())
+            y_values.append(self.x_to_y[x_tuple])
+        return torch.tensor(y_values)
+
+    # def __call__(self, X):
+    #     if len(X.shape) == 1:
+    #         X = X.reshape(1, -1)
+    #     y_values = []
+    #     for x in X:
+    #         x_tuple = tuple(x.tolist())
+    #         y_values.append(self.x_to_y[x_tuple])
+    #     return torch.tensor(y_values)
+
+
+    def set_dict(self):
+        x_tuples = [tuple(x.tolist()) for x in self.get_x()]
+        y_values = self.get_y().tolist()
+        indices = self.get_idx()
+        self.x_to_idx = dict(zip(x_tuples, indices))
+        self.idx_to_x = dict(zip(indices, x_tuples))
+        self.x_to_y = dict(zip(x_tuples, y_values))
+    
+    def get_idx_from_x(self, X):
+        indices = []
+        for x in X:
+            x_tuple = tuple(x.tolist())
+            idx = self.x_to_idx[x_tuple]
+            indices.append(idx)
+        return indices
+                
+
+
     def get_etas(self, lengthscale=1.0, outputscale=1.0):
         x = self.get_x()
         n = x.shape[0]

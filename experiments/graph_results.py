@@ -26,7 +26,7 @@ results_dir = "./results/"
 # problem = "dtlz2_10d"
 # problem = "zdt1_30d"
 # problem = "zdt2_6d_2obj"
-problem = "zdt2_6d_2obj_noise0.1"
+# problem = "zdt2_6d_2obj_noise0.1"
 # problem = "hartmann_6d"
 # problem = "rastrigin_10d"
 # problem = "dijkstra"
@@ -63,12 +63,12 @@ graph_trials = [
     1, 
     2, 
     3, 
-    # 4, 
+    4, 
     # 5, 
     6, 
     7, 
     8, 
-    # 9, 
+    9, 
     # 10,
 ]
 # graph_trials = [i for i in range(1, 31)]

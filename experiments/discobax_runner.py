@@ -26,7 +26,7 @@ torch.autograd.set_detect_anomaly(False)
 debug._set_state(False)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='bax')
+parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--problem_idx', type=int, default=3)
 parser.add_argument('--use_random', default=False, action='store_true')
 parser.add_argument('--do_pca', default=False, action='store_true')
@@ -72,7 +72,7 @@ if TEST:
     args.num_iter = 100
     args.do_pca = True
     args.pca_dim = 5
-    args.data_size = 5000
+    args.data_size = 500
     # args.policy = "ps"
 # =============== #
 
@@ -111,9 +111,17 @@ if args.do_pca or args.pca_dim != df_x.shape[1]:
     df_x = df.drop(columns=["y"])
     df_y = df["y"]
 
+
+
 df_x = (df_x - df_x.min()) / (df_x.max() - df_x.min())
+
+# mean of df_x 
+
+
 df = df_x
 df["y"] = df_y
+
+
 
 obj_func = DiscoBAXObjective(
     problem, 
@@ -123,7 +131,7 @@ obj_func = DiscoBAXObjective(
     idx_type="str",
     nonneg=False, # NOTE: not taking np.maximum(0, fx) 
 )
-
+obj_func.set_dict()
 
 algo_params = {
     "name": "SubsetSelect",
@@ -182,6 +190,8 @@ if args.save:
     with open(os.path.join(results_dir, f"{policy}_params.json"), "w") as file:
         json.dump(params_dict, file)
 
+
+
 first_trial = args.first_trial
 last_trial = args.first_trial + args.trials - 1
 experiment_manager(
@@ -206,5 +216,6 @@ experiment_manager(
     update_objective=update_objective,
     model_type=args.model_type,
     # architecture=model_architecture,
+    allow_reselect=True, 
 )
 

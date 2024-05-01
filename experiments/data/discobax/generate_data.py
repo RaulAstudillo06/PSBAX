@@ -27,7 +27,7 @@ problem_lst = [
 
 problem = problem_lst[3]
 random = False
-data_size = 5000
+data_size = 500
 
 
 data_path = f"./{problem}.csv"
