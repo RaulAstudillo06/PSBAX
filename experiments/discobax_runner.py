@@ -26,15 +26,16 @@ torch.autograd.set_detect_anomaly(False)
 debug._set_state(False)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
-parser.add_argument('--problem_idx', type=int, default=0)
-parser.add_argument('--use_top', default=False, action='store_true')
+parser.add_argument('--policy', type=str, default='bax')
+parser.add_argument('--problem_idx', type=int, default=3)
+parser.add_argument('--use_random', default=False, action='store_true')
 parser.add_argument('--do_pca', default=False, action='store_true')
 parser.add_argument('--pca_dim', type=int, default=20)
-parser.add_argument('--data_size', type=int, default=10000)
+parser.add_argument('--data_size', type=int, default=5000)
+parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
-parser.add_argument('--last_trial', type=int, default=10)
-parser.add_argument('--num_iter', type=int, default=100)
+parser.add_argument('--batch_size', type=int, default=5)
+parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--n_init', type=int, default=100)
 parser.add_argument('--eta_budget', type=int, default=100)
 parser.add_argument('--model_type', type=str, default="gp")
@@ -71,17 +72,17 @@ if TEST:
     args.num_iter = 100
     args.do_pca = True
     args.pca_dim = 5
-    args.data_size = 1700
-    args.policy = "ps"
+    args.data_size = 5000
+    # args.policy = "ps"
 # =============== #
 
 
 problem = problem_lst[args.problem_idx]
 
-if args.use_top:
-    data_path = os.path.join(data_path, f"{problem}_top_{args.data_size}.csv")
-else:
+if args.use_random:
     data_path = os.path.join(data_path, f"{problem}_random_{args.data_size}.csv")
+else:
+    data_path = os.path.join(data_path, f"{problem}_top_{args.data_size}.csv")
 df = pd.read_csv(data_path, index_col=0)
 df_x = df.drop(columns=["y"])
 df_y = df["y"]
@@ -138,6 +139,7 @@ if os.path.exists(fn):
     if len(etas) == args.eta_budget:
         # obj_func.etas_lst = etas
         obj_func.etas = etas
+        print("Loaded etas from file.")
 obj_func.initialize(seed=0, verbose=True)
 # eta_arr = np.array(obj_func.etas_lst) # (eta_budget, args.data_size)
 eta_arr = np.array(obj_func.etas) # (eta_budget, args.data_size)
@@ -146,7 +148,7 @@ if not os.path.exists(fn):
         np.savetxt(f"./data/discobax/etas_seed0_size{args.data_size}", eta_arr)
     except:
         print("Unable to save etas to data dir.")
-        np.savetxt(f"./etas_seed0_size{args.data_size}.txt", eta_arr)
+        np.savetxt(f"experiments/data/discobax/etas_seed0_size{args.data_size}.txt", eta_arr)
 
 algo.set_obj_func(obj_func)
 
@@ -180,6 +182,8 @@ if args.save:
     with open(os.path.join(results_dir, f"{policy}_params.json"), "w") as file:
         json.dump(params_dict, file)
 
+first_trial = args.first_trial
+last_trial = args.first_trial + args.trials - 1
 experiment_manager(
     problem=problem,
     algorithm=algo,
@@ -189,11 +193,11 @@ experiment_manager(
     noise_type="noiseless",
     noise_level=0.0,
     policy=policy,
-    batch_size=1,
+    batch_size=args.batch_size,
     num_init_points=args.n_init,
-    num_iter=args.num_iter,
-    first_trial=args.first_trial,
-    last_trial=args.last_trial,
+    num_iter=args.max_iter,
+    first_trial=first_trial,
+    last_trial=last_trial,
     restart=args.restart,
     data_df=df,
     save_data=args.save,

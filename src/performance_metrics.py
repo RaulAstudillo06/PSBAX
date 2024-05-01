@@ -418,7 +418,10 @@ def evaluate_performance(metrics, model, **kwargs) -> Tensor:
             #         # FIXME
             #         return torch.cat([pm(x) for pm in pms], dim=-1)
             #     posterior_mean_func = GenericDeterministicModel(f=aux_func)
-            posterior_mean_func = lambda x : model.posterior(x).mean
+            if metric.algo.params.name == "LBFGSB":
+                posterior_mean_func = PosteriorMean(model)
+            else:
+                posterior_mean_func = lambda x : model.posterior(x).mean
             if metric.algo.params.name == "EvolutionStrategies":
                 # metric.algo.set_cma_seed(seed)
                 data_x = model.train_inputs[0]

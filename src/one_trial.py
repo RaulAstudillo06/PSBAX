@@ -339,8 +339,9 @@ def get_new_suggested_batch(
         else:
             num_points=kwargs.get("bax_num_cand", 500)
             x_batch = generate_random_points(
-                num_points=num_points, batch_size=batch_size, input_dim=input_dim
-            )
+                num_points=num_points, 
+                input_dim=input_dim,
+            ) # (N, d)
         # TODO: change number of points 
         acq_func = BAXAcquisitionFunction(
             model=model, 
@@ -349,6 +350,8 @@ def get_new_suggested_batch(
         )
         acq_func.initialize()
         x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
+
+        # randomize maximizer
         
         return x_next
 

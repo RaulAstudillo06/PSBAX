@@ -64,18 +64,22 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         }
 
         n_paths_dict = {
-            "Dijkstras": 30,
-            "EvolutionStrategies": 50,
-            "TopK": 100,
-            "SubsetSelect": 20,
-            "NSGA2": 30,
+            # "Dijkstras": 30,
+            # "EvolutionStrategies": 50,
+            # "TopK": 100,
+            # "SubsetSelect": 20,
+            # "NSGA2": 30, 
+            # "LBFGSB": 30,
         }
         for (k, v) in default_params.items():
             if k not in kwargs:
                 kwargs[k] = v
         # TODO: where is batch_size supposed to be used?
         
-        self.n_samples = kwargs.get("exe_paths", n_paths_dict[self.algorithm.params.name])
+        if self.algorithm.params.name in n_paths_dict:
+            self.n_samples = kwargs.get("exe_paths", n_paths_dict[self.algorithm.params.name])
+        else:
+            self.n_samples = kwargs.get("exe_paths", 30)
 
         for (k, v) in kwargs.items():
             setattr(self, k, v)
