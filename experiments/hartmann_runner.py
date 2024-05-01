@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from typing import Callable
 
 import os
 import sys
@@ -7,7 +6,6 @@ import torch
 import numpy as np
 import argparse
 import json
-from botorch.acquisition.analytic import PosteriorMean
 from botorch.settings import debug
 from botorch.test_functions.synthetic import Hartmann
 from torch import Tensor
@@ -21,16 +19,13 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.bax.alg.evolution_strategies import EvolutionStrategies
-from src.bax.util.domain_util import unif_random_sample_domain
+from src.bax.alg.lbfgsb import LBFGSB
 from src.experiment_manager import experiment_manager
-from src.performance_metrics import ObjValAtMaxPostMean, BestValue
+from src.performance_metrics import BestValue
 from src.utils import compute_noise_std
 
 
-# Objective function
-input_dim = 6 # FIXME: is this different from n_dim?
-
-# use argparse
+# Use argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--n_dim', type=int, default=6)
 parser.add_argument('--policy', type=str, default='ps')
@@ -48,44 +43,51 @@ args = parser.parse_args()
 # === To RUN === # 
 # python hartmann_runner.py -s --trials 10 --policy ps
 
+# Objective function
 def obj_func(X: Tensor) -> Tensor:
     if isinstance(X, np.ndarray):
         X = torch.tensor(X)
-    hartmann = Hartmann(dim=args.n_dim)
-    objective_X = -hartmann.evaluate_true(X)
+    hartmann = Hartmann(dim=args.n_dim, negate=True)
+    objective_X = hartmann(X)
     return objective_X
 
-# Set algorithm details
-n_dim = input_dim
-domain = [[0, 1]] * n_dim
-init_x = unif_random_sample_domain(domain, n=1)
+# Algorithm
+algo = "lbfgsb"
 
-algo_params = {
-    "n_generation": 50,
-    "n_population": 10,
-    "samp_str": args.samp_str,
-    "init_x": init_x[0],
-    "domain": domain,
-    "normal_scale": 0.05,
-    "keep_frac": 0.3,
-    "crop": False,
-    "opt_mode": "max",
-    #'crop': True,
-}
-algo = EvolutionStrategies(algo_params)
+n_dim = args.dim
 
+if algo == "cma":
+    domain = [[0, 1]] * n_dim
+    init_x = [[0.0] * n_dim]
+
+    algo_params = {
+        "n_generation": 100 * n_dim,
+        "n_population": 10,
+        "samp_str": args.samp_str,
+        "init_x": init_x[0],
+        "domain": domain,
+        "crop": True,
+        "opt_mode": "max",
+    }
+    algo = EvolutionStrategies(algo_params)
+elif algo == "lbfgsb":
+    num_restarts = 5 * n_dim
+    raw_samples = 100 * n_dim
+
+    algo_params = {
+        "name" : "LBFGSB",
+        "opt_mode" : "max",
+        "n_dim" : n_dim,
+        "num_restarts" : num_restarts,
+        "raw_samples" : raw_samples,
+    }
+    algo = LBFGSB(algo_params)
+
+
+# Performance metric
 algo_metric = algo.get_copy()
-
-# hartmann6d_optimum = 
-
 performance_metrics = [
-    # ObjValAtMaxPostMean(obj_func, input_dim),
-    BestValue(
-        algo_metric, 
-        obj_func,
-        eval_mode="best_value",
-        num_runs=5,
-    ),
+    BestValue(algo_metric, obj_func),
 ]
 
 # # Run experiment
@@ -131,10 +133,10 @@ experiment_manager(
     obj_func=obj_func,
     algorithm=algo,
     performance_metrics=performance_metrics,
-    input_dim=input_dim,
+    input_dim=n_dim,
     noise_type=noise_type,
     noise_level=noise_levels,
-    policy=args.policy + f"_model{args.model_type}" + f"_{args.samp_str}",
+    policy=args.policy + f"_{args.model_type}" + f"_{args.samp_str}",
     batch_size=args.batch_size,
     num_init_points=2 * (n_dim + 1),
     num_iter=args.max_iter,
@@ -142,6 +144,7 @@ experiment_manager(
     last_trial=last_trial,
     restart=False,
     model_type=args.model_type,
-    save_data=args.save,
-    bax_num_cand=5000,
+    save_data=True,
+    bax_num_cand=1000 * n_dim,
+    exe_paths=30,
 )
