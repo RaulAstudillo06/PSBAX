@@ -15,8 +15,8 @@ class LBFGSB(Algorithm):
         self.params.opt_mode = getattr(params, "opt_mode", "max")
         self.params.n_dim = getattr(params, "n_dim", None)
         self.params.bounds = getattr(params, "bounds", None)
-        self.params.num_restarts = getattr(params, "num_restarts", self.params.n_dim * 6)
-        self.params.raw_samples = getattr(params, "raw_samples", self.params.n_dim * 180)
+        self.params.num_restarts = getattr(params, "num_restarts", self.params.n_dim * 5)
+        self.params.raw_samples = getattr(params, "raw_samples", self.params.n_dim * 100)
 
 
     def initialize(self):
@@ -34,6 +34,8 @@ class LBFGSB(Algorithm):
             batch_size=1,
             num_restarts=self.params.num_restarts,
             raw_samples=self.params.raw_samples,
+            batch_limit=5,
+            init_batch_limit=100,
         )
         self.exe_path.x = max_post_mean_func.numpy() # torch.tensor(1, d)
         self.exe_path.y = f(max_post_mean_func).item()
