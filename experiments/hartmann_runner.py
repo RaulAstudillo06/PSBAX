@@ -21,6 +21,7 @@ print(script_dir[:-12])
 sys.path.append(script_dir[:-12])
 
 from src.bax.alg.evolution_strategies import EvolutionStrategies
+from src.bax.util.domain_util import unif_random_sample_domain
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import ObjValAtMaxPostMean, BestValue
 from src.utils import compute_noise_std
@@ -57,7 +58,7 @@ def obj_func(X: Tensor) -> Tensor:
 # Set algorithm details
 n_dim = input_dim
 domain = [[0, 1]] * n_dim
-init_x = [[0.0] * n_dim]
+init_x = unif_random_sample_domain(domain, n=1)
 
 algo_params = {
     "n_generation": 50,
