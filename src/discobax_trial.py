@@ -39,8 +39,6 @@ def discobax_trial(
     obj_func,
     algorithm,
     performance_metrics: List,
-    noise_type: str,
-    noise_level: float,
     policy: str,
     batch_size: int,
     num_init_points: int,
@@ -53,13 +51,10 @@ def discobax_trial(
     save_data: bool = False,
     **kwargs,
 ) -> None:
-    test_ratio = kwargs.get("test_ratio", 0)
-    topk_percent = kwargs.get("topk_percent", 0.1)
     seed = kwargs.get("seed", trial)
     eval_all = kwargs.get("eval_all", False)
     check_GP_fit = kwargs.get("check_GP_fit", False)
     update_objective = kwargs.get("update_objective", False)
-    architecture = kwargs.get("architecture", None)
     seed_torch(seed)
 
     policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
@@ -132,7 +127,8 @@ def discobax_trial(
                 inputs,
                 obj_vals,
                 model_type=model_type,
-                architecture=architecture,
+                # architecture=architecture,
+                **kwargs,
             )
             t1 = time.time()
             model_training_time = t1 - t0
@@ -163,10 +159,10 @@ def discobax_trial(
         last_selected_indices = list(np.random.choice(available_indices, num_init_points))
         cumulative_indices += last_selected_indices
 
-        result_records = list()
-        cumulative_recall_topk = list()
-        cumulative_precision_topk = list()
-        cumulative_proportion_top_clusters_recovered = list()
+        # result_records = list()
+        # cumulative_recall_topk = list()
+        # cumulative_precision_topk = list()
+        # cumulative_proportion_top_clusters_recovered = list()
 
         inputs = obj_func.get_x(last_selected_indices)
         obj_vals = obj_func(last_selected_indices)
@@ -175,7 +171,8 @@ def discobax_trial(
             inputs,
             obj_vals,
             model_type=model_type,
-            architecture=architecture,
+            # architecture=architecture,
+            **kwargs,
         )
         t1 = time.time()
         model_training_time = t1 - t0
@@ -204,16 +201,18 @@ def discobax_trial(
                 model, algorithm, batch_size, eval_all=eval_all,
             ) # a list
         elif "bax" in policy:
-            acq_func = BAXAcquisitionFunction(model=model, algo=algorithm, )
+            acq_func = BAXAcquisitionFunction(model=model, algo=algorithm, **kwargs)
             acq_func.initialize()
             x_cand = obj_func.get_x()
+            x_cand = x_cand.unsqueeze(1) # (N, q, d)
             acq_vals = acq_func(x_cand)
             if batch_size == 1:
                 top_acq_vals = rand_argmax(acq_vals)
                 last_selected_indices = [obj_func.get_idx()[top_acq_vals]]
             else:
                 top_acq_vals = torch.argsort(acq_vals)[-batch_size:]
-                last_selected_indices = [obj_func.get_idx()[top_acq_vals]] # this should be a list
+                indices = obj_func.get_idx()
+                last_selected_indices = [indices[i] for i in top_acq_vals] # this should be a list
             
 
         else:
@@ -236,7 +235,8 @@ def discobax_trial(
             inputs,
             obj_vals,
             model_type=model_type,
-            architecture=architecture,
+            # architecture=architecture,
+            **kwargs,
         )
         t1 = time.time()
         model_training_time = t1 - t0

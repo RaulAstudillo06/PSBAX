@@ -15,6 +15,7 @@ from src.performance_metrics import *
 results_dir = "./results/"
 
 # problem = "topk_original_200"
+# problem = "topk_himmelblau"
 # problem = "ackley_10d"
 # problem = "ackley_5d"
 # problem = "dtlz1_6d"
@@ -26,50 +27,55 @@ results_dir = "./results/"
 # problem = "zdt1_30d"
 # problem = "zdt2_6d_2obj"
 # problem = "zdt2_6d_2obj_noise0.1"
-problem = "hartmann_6d"
+# problem = "hartmann_6d"
 # problem = "rastrigin_10d"
 # problem = "dijkstra"
 # problem = "california"
 # problem = "california_bax"
-# problem = "sanchez_2021_tau_dim5_size1700"
+problem = "sanchez_2021_tau_dim5_size1700"
 # problem = "schmidt_2021_ifng_top_10000"
 # problem = "schmidt_2021_ifng_top_1700"
 # problem = "sanchez_2021_tau_top_1700"
+# problem = "dijkstra"
 
 policies = [
     # "ps", 
     # "bax", 
     # "random",
     # "OPT", 
-    # "ps200",
-    # "bax200",
-    # "OPT200",
+    "ps200",
+    "bax200",
+    "OPT200",
     # "ps_modelgp",
     # "bax_modelgp",
-    "ps_modelgp_cma",
-    "bax_modelgp_cma",
+    # "ps_modelgp_cma",
+    # "bax_modelgp_cma",
     # "ps_modelgp_mut",
     # "bax_modelgp_mut",
     # "ps_modelgp_dim5",
     # "bax_modelgp_dim5",
-    # "OPT_modelgp_dim5"
+    # "OPT_modelgp_dim5",
+    # "ps_modelgp_dim20",
+    # "bax_modelgp_dim20",
+    # "OPT_modelgp_dim20"
 ]
 graph_trials = [
     1, 
     2, 
     3, 
     4, 
-    # 5, 
+    5, 
     6, 
     7, 
     8, 
     9, 
-    # 10
+    10,
 ]
+# graph_trials = [i for i in range(1, 31)]
 show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 5
+batch_size = 1
 log = False
 
 policy_to_hex = {
