@@ -168,7 +168,7 @@ def get_function_samples(model):
                     model=m,
                     num_outputs=1,
                     n_samples=1,
-                    num_rff_features=512,
+                    num_rff_features=1000,
                     )
             )
         def aux_func(X):
