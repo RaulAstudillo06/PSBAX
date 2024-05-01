@@ -32,8 +32,8 @@ parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--noise', type=float, default=0.0)
-parser.add_argument('--batch_size', type=int, default=3)
-parser.add_argument('--max_iter', type=int, default=100)
+parser.add_argument('--batch_size', type=int, default=1)
+parser.add_argument('--max_iter', type=int, default=200)
 parser.add_argument('--samp_str', type=str, default='mut')
 parser.add_argument('--model_type', type=str, default='gp')
 parser.add_argument('--save', '-s', action='store_true', default=False)
@@ -52,11 +52,11 @@ def obj_func(X: Tensor) -> Tensor:
     return objective_X
 
 # Algorithm
-algo = "lbfgsb"
+algo_id = "lbfgsb"
 
 n_dim = args.dim
 
-if algo == "cma":
+if algo_id == "cma":
     domain = [[0, 1]] * n_dim
     init_x = [[0.0] * n_dim]
 
@@ -70,7 +70,7 @@ if algo == "cma":
         "opt_mode": "max",
     }
     algo = EvolutionStrategies(algo_params)
-elif algo == "lbfgsb":
+elif algo_id == "lbfgsb":
     num_restarts = 5 * n_dim
     raw_samples = 100 * n_dim
 
@@ -136,7 +136,7 @@ experiment_manager(
     input_dim=n_dim,
     noise_type=noise_type,
     noise_level=noise_levels,
-    policy=args.policy + f"_{args.model_type}" + f"_{args.samp_str}",
+    policy=args.policy + f"_{args.model_type}" + f"_{algo_id}",
     batch_size=args.batch_size,
     num_init_points=2 * (n_dim + 1),
     num_iter=args.max_iter,
