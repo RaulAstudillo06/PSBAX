@@ -27,11 +27,11 @@ from src.utils import compute_noise_std
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dim', type=int, default=10)
-parser.add_argument('--policy', type=str, default='random')
+parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--noise', type=float, default=0.0)
-parser.add_argument('--batch_size', type=int, default=1)
+parser.add_argument('--batch_size', type=int, default=5)
 parser.add_argument('--max_iter', type=int, default=200)
 parser.add_argument('--samp_str', type=str, default='mut')
 parser.add_argument('--model_type', type=str, default='gp')
