@@ -99,7 +99,7 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         N, q, d = X.shape
 
         posterior = self.model.posterior(X)
-        mu, cov = posterior.mean.detach(), posterior.covariance_matrix.detach()
+        mu, cov = posterior.mean, posterior.covariance_matrix
         # mu: (N, q, num_objectives), cov: (N, num_objectives x q, num_objectives x q)
 
         mu_list = [] # (n_samples, n)
@@ -128,7 +128,7 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
             ) # FIXME: check if its doing the right thing
             # get posterior mean and cov
             comb_posterior = comb_model.posterior(X)
-            comb_mu, comb_cov = comb_posterior.mvn.mean.detach(), comb_posterior.mvn.covariance_matrix.detach()
+            comb_mu, comb_cov = comb_posterior.mvn.mean, comb_posterior.mvn.covariance_matrix
             mu_list.append(comb_mu)
             cov_list.append(comb_cov)
         if self.acq_str == "exe":
