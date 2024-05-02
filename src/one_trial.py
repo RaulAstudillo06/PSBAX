@@ -333,16 +333,6 @@ def get_new_suggested_batch(
         acq_func.initialize()
         continuos_bax_opt = kwargs.get("continuos_bax_opt", False)
         if continuos_bax_opt:
-            if edge_positions is not None:
-                x_batch = torch.tensor(edge_positions) # In BAX, they query all the edge locs as well.
-            else:
-                num_points=kwargs.get("bax_num_cand", 500)
-                x_batch = generate_random_points(
-                    num_points=num_points, 
-                    input_dim=input_dim,
-                ) # (N, d)
-            x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
-        else:
             standard_bounds = torch.tensor(
                 [[0.0] * input_dim, [1.0] * input_dim]
             )  # This assumes the input domain has been normalized beforehand
@@ -355,6 +345,16 @@ def get_new_suggested_batch(
                 batch_limit=5,
                 init_batch_limit=100,
             )
+        else:
+            if edge_positions is not None:
+                x_batch = torch.tensor(edge_positions) # In BAX, they query all the edge locs as well.
+            else:
+                num_points=kwargs.get("bax_num_cand", 500)
+                x_batch = generate_random_points(
+                    num_points=num_points, 
+                    input_dim=input_dim,
+                ) # (N, d)
+            x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
         
         return x_next
 
