@@ -210,9 +210,12 @@ def discobax_trial(
             last_selected_indices = list(np.random.choice(obj_func.get_idx(), batch_size, replace=allow_reselect))
             # x_next = obj_func.get_x(last_selected_indices)
         elif "ps" in policy:
-            last_selected_indices = gen_posterior_sampling_batch_discrete(
-                model, algorithm, batch_size, eval_all=eval_all,
-            ) # a list
+            # last_selected_indices = gen_posterior_sampling_batch_discrete(
+            #     model, algorithm, batch_size, eval_all=eval_all
+            # ) # a list
+            last_selected_indices = gen_posterior_sampling_batch(
+                model, algorithm, batch_size, eval_all=eval_all
+            )
 
         elif "bax" in policy:
             x_batch = obj_func.get_x()
