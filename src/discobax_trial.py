@@ -56,7 +56,7 @@ def discobax_trial(
     eval_all = kwargs.get("eval_all", False)
     check_GP_fit = kwargs.get("check_GP_fit", False)
     update_objective = kwargs.get("update_objective", False)
-    allow_reselect = kwargs.get("allow_reselect", False)
+    allow_reselect = kwargs.get("allow_reselect", True)
     seed_torch(seed)
 
     policy_id = policy + "_" + str(batch_size)  # Append q to policy ID
@@ -157,7 +157,7 @@ def discobax_trial(
 
         cumulative_indices = []
         last_selected_indices = []
-        last_selected_indices = list(np.random.choice(available_indices, num_init_points))
+        last_selected_indices = list(np.random.choice(available_indices, num_init_points, replace=allow_reselect))
         cumulative_indices += last_selected_indices
 
         inputs = obj_func.get_x(last_selected_indices)
@@ -188,6 +188,7 @@ def discobax_trial(
         iteration = 0
 
     while iteration < num_iter:
+        assert(len(available_indices) > 0 and not allow_reselect)
         iteration += 1
         print("Problem: " + problem)
         print("Sampling policy: " + policy_id)
@@ -197,16 +198,16 @@ def discobax_trial(
         # Update obj_func, algo
         if not allow_reselect:
             available_indices = sorted(list(set(available_indices) - set(cumulative_indices)))
-            obj_func.update_df(obj_func.df.loc[available_indices])
-            obj_func.set_dict()
+            obj_func.update(available_indices)
             algorithm.set_obj_func(obj_func)
+
 
         # New suggested batch
         t0 = time.time()
         if "random" in policy:
             if eval_all:
-                last_selected_indices = list(np.random.choice(obj_func.get_idx(), algorithm.params.k))
-            last_selected_indices = list(np.random.choice(obj_func.get_idx(), batch_size))
+                last_selected_indices = list(np.random.choice(obj_func.get_idx(), algorithm.params.k, replace=allow_reselect))
+            last_selected_indices = list(np.random.choice(obj_func.get_idx(), batch_size, replace=allow_reselect))
             # x_next = obj_func.get_x(last_selected_indices)
         elif "ps" in policy:
             last_selected_indices = gen_posterior_sampling_batch_discrete(
@@ -268,20 +269,19 @@ def discobax_trial(
             post_ = model.posterior(x_)
             mean_ = post_.mean.detach().numpy().flatten()
             std_ = post_.variance.detach().sqrt().numpy().flatten()
-            # if len(cumulative_indices) > 1:
-            #     sampled_int_idx = obj_func.index_to_int_index(cumulative_indices)
-            #     sampled_mean_ = mean_[sampled_int_idx]
-            #     sampled_y_ = y_[sampled_int_idx]
+            if len(cumulative_indices) > 1:
+                sampled_int_idx = obj_func.index_to_int_index(cumulative_indices)
+                sampled_mean_ = mean_[sampled_int_idx]
+                sampled_y_ = y_[sampled_int_idx]
 
             # calculate RSS 
             RSS = np.sum((mean_ - y_.numpy()) ** 2)
 
-
             # plot scatter of true vs predicted mean
             fig, ax = plt.subplots()
             ax.scatter(y_, mean_, color='b', marker='.', s=20, label='All')
-            # if len(cumulative_indices) > 1:
-            #     ax.scatter(sampled_y_, sampled_mean_, color='g', marker='.', s=10, label='Sampled')
+            if len(cumulative_indices) > 1:
+                ax.scatter(sampled_y_, sampled_mean_, color='g', marker='.', s=10, label='Sampled')
             # plot y = x line
             ax.plot([min(y_), max(y_)], [min(y_), max(y_)], color='r')
             # ax.set_aspect('equal')
@@ -298,13 +298,9 @@ def discobax_trial(
 
         current_performance_metrics = evaluate_performance(performance_metrics, model)
 
-        # for i, performance_metric_id in enumerate(performance_metrics.keys()):
-        #     print(performance_metric_id + ": " + str(current_performance_metrics[i]))
-        
         for i, metric in enumerate(performance_metrics):
             print(metric.name + ": " + str(current_performance_metrics[i]))
 
-        
         performance_metrics_vals.append(current_performance_metrics)
 
         if save_data:
