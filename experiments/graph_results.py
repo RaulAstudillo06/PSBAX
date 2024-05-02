@@ -194,8 +194,8 @@ for metrics_name in metrics:
             ax.plot(x_range, np.mean(arr, axis=0), label=label, color=color)
             ax.fill_between(
                 x_range,
-                np.mean(arr, axis=0) - 2 * np.std(arr, axis=0, ddof=1),
-                np.mean(arr, axis=0) + 2 * np.std(arr, axis=0, ddof=1),
+                np.mean(arr, axis=0) - 2 * np.std(arr, axis=0)/np.sqrt(arr.shape[0]),
+                np.mean(arr, axis=0) + 2 * np.std(arr, axis=0)/np.sqrt(arr.shape[0]),
                 alpha=0.2,
                 color=color,
             )
@@ -205,8 +205,8 @@ for metrics_name in metrics:
             # plot +-2 standard err
             ax.fill_between(
                 x_range,
-                np.mean(arr, axis=0) - 2 * np.std(arr, axis=0, ddof=1),
-                np.mean(arr, axis=0) + 2 * np.std(arr, axis=0, ddof=1),
+                np.mean(arr, axis=0) - 2 * np.std(arr, axis=0)/np.sqrt(arr.shape[0]),
+                np.mean(arr, axis=0) + 2 * np.std(arr, axis=0)/np.sqrt(arr.shape[0]),
                 alpha=0.2,
                 color=color,
             )

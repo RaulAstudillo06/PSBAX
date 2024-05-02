@@ -173,6 +173,7 @@ policy = args.policy + f"_model{args.model_type}" + f"_dim{args.pca_dim}"
 # with open(os.path.join(results_dir, f"{policy}_stdin.txt"), "w") as f:
 #     f.write(str(sys.argv))
 
+n_init = 2 * (args.pca_dim + 1)
 if args.save:
     results_dir = f"./results/{problem}"
     os.makedirs(results_dir, exist_ok=True)
@@ -181,6 +182,7 @@ if args.save:
         if k not in params_dict:
             params_dict[k] = v
 
+    params_dict["n_init"] = n_init
     with open(os.path.join(results_dir, f"{policy}_params.json"), "w") as file:
         json.dump(params_dict, file)
 
