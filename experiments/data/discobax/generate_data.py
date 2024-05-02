@@ -25,9 +25,9 @@ problem_lst = [
     "zhu_2021_sarscov2_host_factors", # 16670
 ]
 
-problem = problem_lst[3]
+problem = problem_lst[1]
 random = False
-data_size = 500
+data_size = 5000
 
 
 data_path = f"./{problem}.csv"

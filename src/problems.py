@@ -70,6 +70,7 @@ class DiscoBAXObjective(DiscreteObjective):
         for key, value in kwargs.items():
             setattr(self, key, value)
             # sets self.nonneg
+        
 
     def get_y_from_x(self, X):
         if len(X.shape) == 1:
@@ -106,6 +107,14 @@ class DiscoBAXObjective(DiscreteObjective):
             indices.append(idx)
         return indices
                 
+    def update(self, available_idx):
+        # Keep the fraction of etas to use
+        int_idx = self.index_to_int_index(available_idx)
+        self.etas = self.etas[:, int_idx]
+        # set new df
+        new_df = self.df.loc[available_idx]
+        self.update_df(new_df)
+        self.set_dict()
 
 
     def get_etas(self, lengthscale=1.0, outputscale=1.0):

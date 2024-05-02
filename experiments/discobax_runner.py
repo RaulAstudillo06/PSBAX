@@ -40,6 +40,7 @@ parser.add_argument('--n_init', type=int, default=100)
 parser.add_argument('--eta_budget', type=int, default=100)
 parser.add_argument('--model_type', type=str, default="gp")
 parser.add_argument('--check_GP_fit', type=bool, default=False)
+parser.add_argument('--allow_reselect', type=bool, default=False) # CHANGE
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
@@ -72,8 +73,8 @@ if TEST:
     args.num_iter = 100
     args.do_pca = True
     args.pca_dim = 5
-    args.data_size = 500
-    # args.policy = "ps"
+    args.data_size = 1700
+    args.policy = "ps"
 # =============== #
 
 
@@ -111,16 +112,9 @@ if args.do_pca or args.pca_dim != df_x.shape[1]:
     df_x = df.drop(columns=["y"])
     df_y = df["y"]
 
-
-
 df_x = (df_x - df_x.min()) / (df_x.max() - df_x.min())
-
-# mean of df_x 
-
-
 df = df_x
 df["y"] = df_y
-
 
 
 obj_func = DiscoBAXObjective(
@@ -216,6 +210,6 @@ experiment_manager(
     update_objective=update_objective,
     model_type=args.model_type,
     # architecture=model_architecture,
-    allow_reselect=True, 
+    allow_reselect=False, 
 )
 
