@@ -1,6 +1,5 @@
 
 
-
 # Multiobjective
 - DTLZ2 with noise
 - ZDT2 with batch size = 5, 10

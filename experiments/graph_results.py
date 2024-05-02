@@ -35,13 +35,14 @@ results_dir = "./results/"
 # problem = "sanchez_2021_tau_dim5_size1700"
 # problem = "schmidt_2021_ifng_top_10000"
 # problem = "schmidt_2021_ifng_top_1700"
-# problem = "sanchez_2021_tau_top_1700"
+problem = "discobax_sanchez_2021_tau_top_5000"
 # problem = "dijkstra"
+# problem = "lbfgsb_rastrigin_10d"
 
 policies = [
-    "ps", 
-    "bax", 
-    "random",
+    # "ps", 
+    # "bax", 
+    # "random",
     # "OPT", 
     # "ps200",
     # "bax200",
@@ -52,22 +53,22 @@ policies = [
     # "bax_modelgp_cma",
     # "ps_modelgp_mut",
     # "bax_modelgp_mut",
-    # "ps_modelgp_dim5",
-    # "bax_modelgp_dim5",
-    # "OPT_modelgp_dim5",
+    "ps_modelgp_dim5",
+    "bax_modelgp_dim5",
+    "OPT_modelgp_dim5",
     # "ps_modelgp_dim20",
     # "bax_modelgp_dim20",
     # "OPT_modelgp_dim20"
 ]
 graph_trials = [
     1, 
-    2, 
+    # 2, 
     3, 
-    4, 
-    # 5, 
-    6, 
+    # 4, 
+    5, 
+    # 6, 
     7, 
-    8, 
+    # 8, 
     9, 
     # 10,
 ]
@@ -75,8 +76,10 @@ graph_trials = [
 show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 5
+batch_size = 1
 log = False
+bax_iters = 70
+# bax_iters = None
 
 policy_to_hex = {
     "ps": "#1f77b4",
@@ -119,8 +122,6 @@ for policy in policies:
     iters = 0
     files_dir = os.path.join(path, policy + "_" + str(batch_size))
     arrs = {}
-
-    
     for f in os.listdir(files_dir):
         if f.endswith(".txt") and "performance_metric" in f:
             # if int(f.split(".")[0].split("_")[-1]) > graph_trials:
@@ -130,8 +131,8 @@ for policy in policies:
             if len(arr.shape) == 1:
                 arr = arr[:, None]
             
-            # if "bax" in policy:
-            #     arr = arr[:bax_iters, :]    
+            if "bax" in policy:
+                arr = arr[:bax_iters, :]    
 
             for i, metrics_name in enumerate(metrics):
                 vals = arr[:, i]
@@ -182,7 +183,10 @@ for metrics_name in metrics:
         # if "bax" in policy:
         #     iters = bax_iters
         # else:
-        iters = max_iters
+        # iters = max_iters
+
+        if bax_iters is not None:
+            iters = bax_iters
 
         arr = arrs[metrics_name][:, :iters]
         
@@ -208,7 +212,6 @@ for metrics_name in metrics:
                 np.mean(arr, axis=0) - 2 * np.std(arr, axis=0)/np.sqrt(arr.shape[0]),
                 np.mean(arr, axis=0) + 2 * np.std(arr, axis=0)/np.sqrt(arr.shape[0]),
                 alpha=0.2,
-                color=color,
             )
 
             # plot log scale
