@@ -36,7 +36,7 @@ parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--batch_size', type=int, default=5)
 parser.add_argument('--max_iter', type=int, default=100)
-parser.add_argument('--n_init', type=int, default=100)
+# parser.add_argument('--n_init', type=int, default=100)
 parser.add_argument('--eta_budget', type=int, default=100)
 parser.add_argument('--model_type', type=str, default="gp")
 parser.add_argument('--check_GP_fit', type=bool, default=False)
@@ -198,7 +198,7 @@ experiment_manager(
     noise_level=0.0,
     policy=policy,
     batch_size=args.batch_size,
-    num_init_points=args.n_init,
+    num_init_points=n_init,
     num_iter=args.max_iter,
     first_trial=first_trial,
     last_trial=last_trial,
@@ -210,6 +210,6 @@ experiment_manager(
     update_objective=update_objective,
     model_type=args.model_type,
     # architecture=model_architecture,
-    allow_reselect=False, 
+    allow_reselect=args.allow_reselect, 
 )
 
