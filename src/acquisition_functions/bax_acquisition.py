@@ -58,7 +58,7 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
 
         default_params = {
             "batch_size": 1,
-            "num_rff_features": 500,
+            "num_rff_features": 1000,
             "crop": True,
             "acq_str": "exe",
         }
