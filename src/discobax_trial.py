@@ -188,7 +188,7 @@ def discobax_trial(
         iteration = 0
 
     while iteration < num_iter:
-        assert(len(available_indices) > 0 and not allow_reselect)
+        assert(len(available_indices) > 0 or not allow_reselect)
         iteration += 1
         print("Problem: " + problem)
         print("Sampling policy: " + policy_id)
