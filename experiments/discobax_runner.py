@@ -36,7 +36,7 @@ parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--batch_size', type=int, default=5)
 parser.add_argument('--max_iter', type=int, default=100)
-parser.add_argument('--n_init', type=int, default=100)
+# parser.add_argument('--n_init', type=int, default=100)
 parser.add_argument('--eta_budget', type=int, default=100)
 parser.add_argument('--model_type', type=str, default="gp")
 parser.add_argument('--check_GP_fit', type=bool, default=False)
@@ -173,6 +173,7 @@ policy = args.policy + f"_model{args.model_type}" + f"_dim{args.pca_dim}"
 # with open(os.path.join(results_dir, f"{policy}_stdin.txt"), "w") as f:
 #     f.write(str(sys.argv))
 
+n_init = 2 * (args.pca_dim + 1)
 if args.save:
     results_dir = f"./results/{problem}"
     os.makedirs(results_dir, exist_ok=True)
@@ -181,6 +182,7 @@ if args.save:
         if k not in params_dict:
             params_dict[k] = v
 
+    params_dict["n_init"] = n_init
     with open(os.path.join(results_dir, f"{policy}_params.json"), "w") as file:
         json.dump(params_dict, file)
 
@@ -198,7 +200,7 @@ experiment_manager(
     noise_level=0.0,
     policy=policy,
     batch_size=args.batch_size,
-    num_init_points=args.n_init,
+    num_init_points=n_init,
     num_iter=args.max_iter,
     first_trial=first_trial,
     last_trial=last_trial,
@@ -210,6 +212,6 @@ experiment_manager(
     update_objective=update_objective,
     model_type=args.model_type,
     # architecture=model_architecture,
-    allow_reselect=False, 
+    allow_reselect=args.allow_reselect, 
 )
 
