@@ -50,7 +50,7 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
         while len(batch) < batch_size:
             obj_func_sample = get_function_samples(model)
             idx_output = algorithm.execute(obj_func_sample)
-            batch.append(idx_output)
+            batch.extend(idx_output)
         x_batch = algorithm.index_to_x(batch)
         acq_func = EntropyAcquisitionFunction(model=model)
         x_next, _ = optimize_acqf_discrete(

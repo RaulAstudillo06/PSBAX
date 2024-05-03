@@ -66,7 +66,7 @@ problem = problem_lst[args.problem_idx]
 
 
 # === Testing === #
-TEST = False
+TEST = True
 if TEST:
     # python discobax_runner.py -s --problem_idx 1 --num_iter 100 --do_pca True --pca_dim 5 --data_size 1700 --eta_budget 100 --policy bax -r
     args.problem_idx = 3
