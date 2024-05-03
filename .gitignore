@@ -68,7 +68,7 @@ __pycache__/
 *.vscode
 
 # Experimental results
-results/
+*results/
 
 # Figures
 figures/
@@ -82,3 +82,6 @@ figures/
 discobax-scripts/
 # *.csv
 *h5
+
+# *.txt
+# *.json
