@@ -12,7 +12,15 @@ print(os.getcwd())
 sys.path.append('../')
 from src.performance_metrics import *
 
-results_dir = "./results/"
+
+problem_setting = [
+    "discobax",
+    # "single-objective",
+    # "multi-objective",
+    # "shortest-path",
+    # "topk",
+] # Comment out the rest, only keep one
+results_dir = os.path.join(".", problem_setting[0], "results")
 
 # problem = "topk_original_200"
 # problem = "topk_himmelblau"
@@ -53,12 +61,15 @@ policies = [
     # "bax_modelgp_cma",
     # "ps_modelgp_mut",
     # "bax_modelgp_mut",
-    "ps_modelgp_dim5",
-    "bax_modelgp_dim5",
-    "OPT_modelgp_dim5",
+    # "ps_modelgp_dim5",
+    # "bax_modelgp_dim5",
+    # "OPT_modelgp_dim5",
     # "ps_modelgp_dim20",
     # "bax_modelgp_dim20",
-    # "OPT_modelgp_dim20"
+    # "OPT_modelgp_dim20",
+    "ps_dim5_init12",
+    "bax_dim5_init12",
+    "OPT_dim5_init12",
 ]
 graph_trials = [
     1, 
@@ -76,9 +87,10 @@ graph_trials = [
 show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 1
+batch_size = 5
 log = False
-bax_iters = 70
+bax_iters = 20
+max_iters = 50
 # bax_iters = None
 
 policy_to_hex = {
@@ -97,24 +109,14 @@ policy_to_label = {
     "random": "Random",
 }
 
-
-metrics = []
-
-if "topk" in problem:
-    metrics = ['Jaccard', 'Norm']
-    # metrics = ['Norm']
-elif "dijkstra" in problem:
-    metrics = ['ShortestPathCost', 'ShortestPathArea']
-elif "california_bax" in problem:
-    metrics = ['ShortestPathCost', 'ShortestPathArea', 'Error']
-elif "hartmann" in problem or "rastrigin" in problem or "ackley" in problem:
-    metrics = ['best_value']
-elif "dtlz1" in problem:
-    metrics = ['Hypervolume']
-elif "zdt" in problem or "dtlz2" in problem:
-    metrics = ['Hypervolume Difference']
-else:
-    metrics = ['DiscoBAXMetric']
+setting_to_metric = {
+    "discobax" : ["DiscoBAXMetric"],
+    "single-objective": ["BestValue"],
+    "multi-objective": ["HypervolumeDifference"],
+    "topk": ["Jaccard", "Norm"],
+    "shortest-path": ["ShortestPathCost", "ShortestPathArea"],
+}
+metrics = setting_to_metric[problem_setting[0]]
 
 # bax_iters = 100
 algo_performance_arrs = {}
@@ -146,7 +148,7 @@ for policy in policies:
     algo_performance_arrs[policy] = arrs
 
 #%%
-max_iters = max([arr.shape[1] for arr in algo_performance_arrs[policy].values()])
+# max_iters = max([arr.shape[1] for arr in algo_performance_arrs[policy].values()])
 
 
 try:
@@ -180,13 +182,13 @@ for metrics_name in metrics:
         else:
             key = None
 
-        # if "bax" in policy:
-        #     iters = bax_iters
-        # else:
-        # iters = max_iters
-
-        if bax_iters is not None:
+        if "bax" in policy:
             iters = bax_iters
+        else:
+            iters = max_iters
+
+        # if bax_iters is not None:
+        #     iters = bax_iters
 
         arr = arrs[metrics_name][:, :iters]
         

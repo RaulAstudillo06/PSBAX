@@ -80,5 +80,5 @@ figures/
 
 # DiscoBAX specific
 discobax-scripts/
-*.csv
+# *.csv
 *h5

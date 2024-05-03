@@ -74,7 +74,8 @@ def fit_model(inputs: Tensor, outputs: Tensor, model_type: str, **kwargs):
             architecture = [inputs.shape[-1]] + architecture + [outputs.shape[-1]]
             std_outputs = (outputs - outputs.mean())/outputs.std()
             model = DKGP(train_X=inputs, train_Y=std_outputs, architecture=architecture)
-            model.train_model(X=inputs, Y=std_outputs.squeeze(-1), lr=1e-2, num_iter=10000)
+            epochs = kwargs.pop("epochs", 10000)
+            model.train_model(X=inputs, Y=std_outputs.squeeze(-1), lr=1e-2, num_iter=epochs)
         return model
 
     except:

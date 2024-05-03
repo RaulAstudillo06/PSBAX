@@ -63,17 +63,18 @@ def discobax_trial(
 
     # Get script directory
     script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-    project_path = script_dir[:-11]
-    results_folder = (
-        project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
-    )
+    # project_path = script_dir[:-11]
+    # results_folder = (
+    #     project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
+    # )
+    results_folder = os.path.join(script_dir, "results", problem, policy_id)
 
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
 
     # save stderr to a file
     try:
-        sys.stderr = open(results_folder + "stderr.txt", "w")
+        sys.stderr = open(results_folder + f"stderr_{trial}.txt", "w")
     except:
         print("Not writing to stderr.txt")
         pass
@@ -83,20 +84,16 @@ def discobax_trial(
         algorithm.set_obj_func(obj_func)
         for metric in performance_metrics:
             metric.set_algo(algorithm)
-
-    if "OPT" in policy:
-        if not os.path.exists(results_folder):
-            os.makedirs(results_folder)
-        for metric in performance_metrics:
-            OPT = metric.compute_OPT()
-            fn = results_folder + "performance_metrics_" + str(trial) + ".txt"
-            # create an array of OPT with size (iter + 1, 1)
-            OPT_arr = np.array([OPT for i in range(num_iter + 1)]).reshape(-1, 1)
-            np.savetxt(fn, OPT_arr)
-        return 
-
-    x_torch = obj_func.get_x()
-
+    # if "OPT" in policy:
+        # if not os.path.exists(results_folder):
+        #     os.makedirs(results_folder)
+        # for metric in performance_metrics:
+        #     OPT = metric.compute_OPT()
+        #     fn = results_folder + "performance_metrics_" + str(trial) + ".txt"
+        #     # create an array of OPT with size (iter + 1, 1)
+        #     OPT_arr = np.array([OPT for i in range(num_iter + 1)]).reshape(-1, 1)
+        #     np.savetxt(fn, OPT_arr)
+        # return 
     if restart:
         try: 
             inputs = torch.tensor(np.loadtxt(
@@ -136,9 +133,9 @@ def discobax_trial(
             t1 = time.time()
             model_training_time = t1 - t0
             
-            # available_indices = obj_func.get_idx()
-            # cumulative_indices = [] # only used for graphing
-            # last_selected_indices = []
+            available_indices = obj_func.get_idx()
+            cumulative_indices = obj_func.get_idx_from_x(inputs)
+            last_selected_indices = cumulative_indices[-batch_size:]
 
             # check if inputs @ inputs.T is positive definite
             try:
@@ -149,27 +146,12 @@ def discobax_trial(
         except:
             pass
     else:
-
         available_indices = obj_func.get_idx()
-        # test_indices = sorted(list(np.random.choice(available_indices,size=int(test_ratio * len(available_indices)),replace=False,)))
-        # available_indices = sorted(list(set(available_indices) - set(test_indices)))
-        # obj_func.update_df(obj_func.df.loc[available_indices])
-
         cumulative_indices = []
-        last_selected_indices = []
         last_selected_indices = list(np.random.choice(available_indices, num_init_points, replace=allow_reselect))
         cumulative_indices += last_selected_indices
 
         inputs = obj_func.get_x(last_selected_indices)
-
-
-        # randomly choose initial points from x_torch
-
-        # init_idx = np.random.choice(np.arange(x_torch.shape[0]), num_init_points, replace=False)
-        # inputs = x_torch[init_idx]
-        # if len(inputs.shape) == 1:
-        #     inputs = inputs.unsqueeze(0)
-        # obj_vals = obj_func(last_selected_indices)
         obj_vals = obj_func.get_y_from_x(inputs)
         t0 = time.time()
         model = fit_model(
@@ -208,20 +190,13 @@ def discobax_trial(
             if eval_all:
                 last_selected_indices = list(np.random.choice(obj_func.get_idx(), algorithm.params.k, replace=allow_reselect))
             last_selected_indices = list(np.random.choice(obj_func.get_idx(), batch_size, replace=allow_reselect))
-            # x_next = obj_func.get_x(last_selected_indices)
         elif "ps" in policy:
-            # last_selected_indices = gen_posterior_sampling_batch_discrete(
-            #     model, algorithm, batch_size, eval_all=eval_all
-            # ) # a list
             last_selected_indices = gen_posterior_sampling_batch(
                 model, algorithm, batch_size, eval_all=eval_all
             )
 
         elif "bax" in policy:
             x_batch = obj_func.get_x()
-            # x_batch = obj_func.x_to_idx.keys()
-            # x_batch = list(x_batch)
-            # x_batch = torch.tensor(x_batch)
             acq_func = BAXAcquisitionFunction(
                 model=model, 
                 algo=algorithm,

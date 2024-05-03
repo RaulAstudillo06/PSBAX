@@ -50,34 +50,36 @@ def one_trial(
 
     # Get script directory
     script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-    project_path = script_dir[:-11]
-    results_folder = (
-        project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
-    )
+    # project_path = script_dir[:-11]
+    # results_folder = (
+    #     project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
+    # )
+    results_folder = os.path.join(script_dir, "results", problem, policy_id)
 
     if restart:
         # Check if training data is already available
         try:
             # Current available evaluations
             inputs = np.loadtxt(results_folder + "inputs/inputs_" + str(trial) + ".txt")
-            inputs = inputs.reshape(
-                inputs.shape[0],
-                batch_size,
-                int(inputs.shape[1] / batch_size),
-            )
+            # inputs = inputs.reshape(
+            #     inputs.shape[0],
+            #     batch_size,
+            #     int(inputs.shape[1] / batch_size),
+            # )
+            inputs = inputs.reshape(inputs.shape[0], -1)
             inputs = torch.tensor(inputs)
             obj_vals = torch.tensor(
                 np.loadtxt(results_folder + "obj_vals/obj_vals_" + str(trial) + ".txt")
             )
-            # Historical maximum performance metrics
-            performance_metrics = torch.tensor(
-                np.loadtxt(
-                    results_folder
-                    + "performance_metrics_vals/performance_metrics_vals_"
-                    + str(trial)
-                    + ".txt"
-                )
-            )
+            # # Historical maximum performance metrics
+            # performance_metrics = torch.tensor(
+            #     np.loadtxt(
+            #         results_folder
+            #         + "performance_metrics_vals/performance_metrics_vals_"
+            #         + str(trial)
+            #         + ".txt"
+            #     )
+            # )
             # Historical acquisition runtimes
             runtimes = list(
                 np.atleast_1d(
@@ -86,6 +88,17 @@ def one_trial(
                     )
                 )
             )
+            performance_metrics_arr = np.loadtxt(
+                results_folder + "performance_metrics_" + str(trial) + ".txt"
+            )
+            performance_metrics_vals = []
+            if len(performance_metrics_arr.shape) == 1:
+                for i in range(performance_metrics_arr.shape[0]):
+                    performance_metrics_vals.append(np.array([performance_metrics_arr[i]]))
+            else:
+                for i in range(performance_metrics_arr.shape[0]):
+                    performance_metrics_vals.append(performance_metrics_arr[i])
+            iteration = len(runtimes)
 
             # Fit GP model
             t0 = time.time()
@@ -99,7 +112,7 @@ def one_trial(
             t1 = time.time()
             model_training_time = t1 - t0
 
-            iteration = len(performance_metrics_vals[:, 0]) - 1
+            # iteration = len(performance_metrics_vals[:, 0]) - 1
             print("Restarting experiment from available data.")
 
         except:
@@ -174,8 +187,12 @@ def one_trial(
 
         # Checking GP fit MSE
         if check_GP_fit:
+
             edge_positions = kwargs.get("edge_positions", None)
-            x_ = torch.tensor(np.array(edge_positions))
+            if edge_positions is not None:
+                x_ = torch.tensor(np.array(edge_positions))
+            else:
+                x_ = generate_random_points(num_points=1000, input_dim=input_dim)
             y_ = obj_func(x_)
             post_ = model.posterior(x_)
             mean_ = post_.mean.detach().numpy().flatten()

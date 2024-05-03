@@ -325,13 +325,14 @@ class DiscreteTopKMetric(DiscretePerformanceMetric):
     
 
 class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
-    def __init__(self, name, obj_func, **kwargs):
+    def __init__(self, name, algo, obj_func, **kwargs):
         super().__init__(name)
-        self.algo = None
+        self.algo = algo
         self.obj_func = obj_func
         for (k, v) in kwargs.items():
             setattr(self, k, v)
         self.true_values = None
+        self.OPT = self.compute_OPT()
 
     # def set_obj_func(self, obj_func):
     #     self.obj_func = obj_func
@@ -341,17 +342,8 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
     
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
-        return self.evaluate()
-    
-    def evaluate(self):
-        if self.true_values is None:
-            x = self.obj_func.get_idx()
-            fx = self.obj_func(x).detach().numpy()
-            self.true_values = self.obj_func.get_noisy_f_lst(fx) # (n, budget)
         _, idxes = self.algo.get_values_and_selected_indices()
-        
-        return np.mean(np.max(self.true_values[:, idxes], axis=-1))
-
+        return self.OPT - np.mean(np.max(self.true_values[:, idxes], axis=-1))
 
     def compute_OPT(self):
         x = self.obj_func.get_idx()
@@ -359,7 +351,10 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
         _, output_mf = self.algo.run_algorithm_on_f(fx)
         # values = obj_func.get_noisy_f_lst(fx) # (n, budget)
         # max_values = np.max(values, axis=1) # (n,)
-        return self.evaluate()
+        if self.true_values is None:
+            self.true_values = self.obj_func.get_noisy_f_lst(fx) # (n, budget)
+        _, idxes = self.algo.get_values_and_selected_indices()
+        return np.mean(np.max(self.true_values[:, idxes], axis=-1))
 
 
 class PymooHypervolume(PosteriorMeanPerformanceMetric):
