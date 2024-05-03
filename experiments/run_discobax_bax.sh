@@ -1,5 +1,5 @@
 #!/bin/bash
-pidfile="discobax_pids_ps.txt"  # File where PIDs will be stored
+pidfile="discobax_pids_bax.txt"  # File where PIDs will be stored
 
 # Clean the file at the start of the script
 > "$pidfile"
