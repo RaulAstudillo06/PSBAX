@@ -1,10 +1,10 @@
 #!/bin/bash
-pidfile="discobax_pids_bax.txt"  # File where PIDs will be stored
+pidfile="discobax_pids_ps.txt"  # File where PIDs will be stored
 
 # Clean the file at the start of the script
 > "$pidfile"
 
-for acq_func in "bax"
+for acq_func in "OPT" "ps"
 do
     for first_trial in 1 3 5 7 9
     do
