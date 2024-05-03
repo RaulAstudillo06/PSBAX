@@ -74,7 +74,9 @@ def discobax_trial(
 
     # save stderr to a file
     try:
-        sys.stderr = open(results_folder + f"stderr_{trial}.txt", "w")
+        stderr_dir = results_folder + "stderr/"
+        os.makedirs(stderr_dir, exist_ok=True)
+        sys.stderr = open(stderr_dir + f"stderr_{trial}.txt", "w")
     except:
         print("Not writing to stderr.txt")
         pass

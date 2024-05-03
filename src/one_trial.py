@@ -54,7 +54,7 @@ def one_trial(
     # results_folder = (
     #     project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
     # )
-    results_folder = os.path.join(script_dir, "results", problem, policy_id)
+    results_folder = os.path.join(script_dir, "results", problem, policy_id) + "/"
 
     if restart:
         # Check if training data is already available

@@ -10,7 +10,7 @@ do
     do
         for batch_size in 1 5
         do
-            python discobax_runner.py -s --problem_idx 3 --max_iter 100 --do_pca --pca_dim 5 --eta_budget 100 --data_size 5000 --batch_size $batch_size --policy $acq_func --first_trial $first_trial --trials 2 &
+            python discobax_runner.py -s --problem_idx 3 --max_iter 100 --do_pca --pca_dim 5 --n_init 100 --eta_budget 100 --data_size 5000 --batch_size $batch_size --policy $acq_func --first_trial $first_trial --trials 2 &
             echo $! >> "$pidfile"  # Store the PID of the last background job
         done
     done
