@@ -67,7 +67,7 @@ def discobax_trial(
     # results_folder = (
     #     project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
     # )
-    results_folder = os.path.join(script_dir, "results", problem, policy_id)
+    results_folder = os.path.join(script_dir, "results", problem, policy_id) + "/"
 
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)

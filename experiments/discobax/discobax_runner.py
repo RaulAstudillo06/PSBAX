@@ -40,7 +40,7 @@ parser.add_argument('--n_init', type=int, default=None)
 parser.add_argument('--eta_budget', type=int, default=100)
 parser.add_argument('--model_type', type=str, default="gp")
 parser.add_argument('--check_GP_fit', type=bool, default=False)
-parser.add_argument('--allow_reselect', type=bool, default=False) # CHANGE
+parser.add_argument('--allow_reselect', type=bool, default=True) # CHANGE
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
@@ -63,15 +63,16 @@ problem = problem_lst[args.problem_idx]
 # === Testing === #
 TEST = True
 if TEST:
-    # python discobax_runner.py -s --problem_idx 3 --max_iter 100 --do_pca --pca_dim 5 --data_size 1700 --eta_budget 100 --policy ps -r
+    # python discobax_runner.py -s --problem_idx 3 --max_iter 100 --do_pca --pca_dim 5 --data_size 5000 --eta_budget 100 --policy ps
     args.problem_idx = 3
     args.num_iter = 100
-    args.do_pca = False
+    args.do_pca = True
     args.pca_dim = 5
     args.data_size = 1700
     args.policy = "ps"
     args.restart = False
     problem = problem_lst[args.problem_idx]
+    args.save = True
 # =============== #
 
 if args.use_random:
@@ -172,7 +173,7 @@ if args.n_init is None:
 else:
     n_init = args.n_init
 if args.save:
-    results_dir = f"./results/{problem}"
+    results_dir = f"./results"
     os.makedirs(results_dir, exist_ok=True)
     params_dict = vars(args)
     for k,v in algo_params.items():
