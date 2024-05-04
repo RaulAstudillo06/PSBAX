@@ -61,15 +61,15 @@ policies = [
     # "bax_modelgp_cma",
     # "ps_modelgp_mut",
     # "bax_modelgp_mut",
-    # "ps_modelgp_dim5",
+    "ps_modelgp_dim5",
     # "bax_modelgp_dim5",
     # "OPT_modelgp_dim5",
     # "ps_modelgp_dim20",
     # "bax_modelgp_dim20",
     # "OPT_modelgp_dim20",
-    "ps_dim5_init12",
-    "bax_dim5_init12",
-    "OPT_dim5_init12",
+    # "ps_dim5_init12",
+    # "bax_dim5_init12",
+    # "OPT_dim5_init12",
 ]
 graph_trials = [
     1, 
@@ -87,10 +87,10 @@ graph_trials = [
 show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 5
+batch_size = 1
 log = False
 bax_iters = 20
-max_iters = 50
+max_iters = 60
 # bax_iters = None
 
 policy_to_hex = {
@@ -135,6 +135,8 @@ for policy in policies:
             
             if "bax" in policy:
                 arr = arr[:bax_iters, :]    
+            else:
+                arr = arr[:max_iters, :]
 
             for i, metrics_name in enumerate(metrics):
                 vals = arr[:, i]
