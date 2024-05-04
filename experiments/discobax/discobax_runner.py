@@ -46,7 +46,7 @@ parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
 
 # === To RUN === # 
-# python discobax_runner.py -s --problem_idx 3 --max_iter 200 --do_pca --pca_dim 5 --data_size 1700 --eta_budget 100 --policy ps --first_trial 1 --trials 5
+# python discobax_runner.py -s --problem_idx 3 --max_iter 200 --do_pca --pca_dim 5 --data_size 1700 --eta_budget 100 --policy ps --first_trial 1 --trials 5 --batch_size 3
 
 data_path = f"{script_dir}/data/"
 if "discobax" not in os.getcwd():
