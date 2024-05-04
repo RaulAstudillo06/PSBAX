@@ -173,7 +173,7 @@ if args.n_init is None:
 else:
     n_init = args.n_init
 if args.save:
-    results_dir = f"./results"
+    results_dir = f"./results/{problem}/{policy}_{args.batch_size}"
     os.makedirs(results_dir, exist_ok=True)
     params_dict = vars(args)
     for k,v in algo_params.items():
