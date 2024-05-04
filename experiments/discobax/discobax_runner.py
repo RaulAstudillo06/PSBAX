@@ -135,7 +135,7 @@ algo = SubsetSelect(algo_params)
 
 # == DO if not update_objective == #
 update_objective = False
-fn = f"./data/etas_seed0_size{args.data_size}.txt"
+fn = f"{data_path}etas_seed0_size{args.data_size}.txt"
 if os.path.exists(fn):
     etas = np.loadtxt(fn)
     if len(etas) == args.eta_budget:
@@ -146,10 +146,9 @@ obj_func.initialize(seed=0, verbose=True)
 eta_arr = np.array(obj_func.etas) # (eta_budget, args.data_size)
 if not os.path.exists(fn):
     try:
-        np.savetxt(f"./data/etas_seed0_size{args.data_size}", eta_arr)
+        np.savetxt(f"{data_path}etas_seed0_size{args.data_size}", eta_arr)
     except:
         print("Unable to save etas to data dir.")
-        np.savetxt(f"experiments/discobax/data/etas_seed0_size{args.data_size}.txt", eta_arr)
 
 algo.set_obj_func(obj_func)
 
