@@ -48,7 +48,7 @@ args = parser.parse_args()
 # === To RUN === # 
 # python discobax_runner.py -s --problem_idx 3 --max_iter 200 --do_pca --pca_dim 5 --data_size 1700 --eta_budget 100 --policy ps --first_trial 1 --trials 5
 
-data_path = "./data/"
+data_path = f"{script_dir}/data/"
 if "discobax" not in os.getcwd():
     data_path = "./experiments/discobax/data/"
 problem_lst = [
@@ -59,6 +59,9 @@ problem_lst = [
     "zhu_2021_sarscov2_host_factors",
 ]
 problem = problem_lst[args.problem_idx]
+
+# get the absolute path of the current file
+
 
 # === Testing === #
 TEST = False
