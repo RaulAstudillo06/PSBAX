@@ -48,9 +48,10 @@ args = parser.parse_args()
 # === To RUN === # 
 # python discobax_runner.py -s --problem_idx 3 --max_iter 200 --do_pca --pca_dim 5 --data_size 1700 --eta_budget 100 --policy ps --first_trial 1 --trials 5 --batch_size 3
 
+# script_dir = '/home/ec2-user/projects/PSBAX/experiments/discobax'
 data_path = f"{script_dir}/data/"
-if "discobax" not in os.getcwd():
-    data_path = "./experiments/discobax/data/"
+# if "discobax" not in os.getcwd():
+#     data_path = "./experiments/discobax/data/"
 problem_lst = [
     "schmidt_2021_ifng",
     "schmidt_2021_il2",
@@ -135,7 +136,7 @@ algo = SubsetSelect(algo_params)
 
 # == DO if not update_objective == #
 update_objective = False
-fn = f"{data_path}etas_seed0_size{args.data_size}.txt"
+fn = f"{script_dir}/data/etas_seed0_size{args.data_size}.txt"
 if os.path.exists(fn):
     etas = np.loadtxt(fn)
     if len(etas) == args.eta_budget:
@@ -146,7 +147,7 @@ obj_func.initialize(seed=0, verbose=True)
 eta_arr = np.array(obj_func.etas) # (eta_budget, args.data_size)
 if not os.path.exists(fn):
     try:
-        np.savetxt(f"{data_path}etas_seed0_size{args.data_size}", eta_arr)
+        np.savetxt(f"{script_dir}/data/etas_seed0_size{args.data_size}", eta_arr)
     except:
         print("Unable to save etas to data dir.")
 
@@ -175,7 +176,7 @@ if args.n_init is None:
 else:
     n_init = args.n_init
 if args.save:
-    results_dir = f"./results/{problem}/{policy}_{args.batch_size}"
+    results_dir = f"{script_dir}/results/{problem}/{policy}_{args.batch_size}"
     os.makedirs(results_dir, exist_ok=True)
     params_dict = vars(args)
     for k,v in algo_params.items():
