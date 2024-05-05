@@ -25,7 +25,7 @@ from src.experiment_manager import experiment_manager
 from src.performance_metrics import JaccardSimilarity, NormDifference
 from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import jaccard_similarity
-from src.utils import seed_torch
+from src.utils import seed_torch, generate_random_points
 
 
 # if len(sys.argv) == 3:
@@ -39,7 +39,7 @@ from src.utils import seed_torch
 #     last_trial = 5
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--function', type=str, default='himmelblau')
 parser.add_argument('--dim', type=int, default=2)
 parser.add_argument('--first_trial', type=int, default=1)
@@ -98,7 +98,10 @@ def obj_func(X, domain=domain):
 
 seed_torch(1234) # NOTE: fix seed for generating x_path
 
-x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
+# x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
+x_path = generate_random_points(num_points=len_path, input_dim=input_dim, seed=1234).numpy()
+x_path = [list(x) for x in x_path]
+
 
 if args.function == 'himmelblau':
     himmelblau_opt = np.array(

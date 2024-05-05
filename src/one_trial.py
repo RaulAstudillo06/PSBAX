@@ -365,6 +365,9 @@ def get_new_suggested_batch(
         else:
             if edge_positions is not None:
                 x_batch = torch.tensor(edge_positions) # In BAX, they query all the edge locs as well.
+            elif algorithm.params.name == "TopK":
+                x_batch = np.array(algorithm.params.x_path)
+                x_batch = torch.from_numpy(x_batch)
             else:
                 num_points=kwargs.get("bax_num_cand", 500)
                 x_batch = generate_random_points(
