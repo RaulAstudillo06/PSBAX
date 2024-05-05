@@ -470,13 +470,15 @@ def output_dist_fn_norm(a, b):
     """Output dist_fn based on concatenated vector norm."""
     a_list = []
     list(map(a_list.extend, a.x))
-    a_list.extend(a.y)
+    # a_list.extend(a.y) # comment out the y difference because they are function sample values
     a_arr = np.array(a_list)
+    a_arr = np.sort(a_arr)
 
     b_list = []
     list(map(b_list.extend, b.x))
-    b_list.extend(b.y)
+    # b_list.extend(b.y)
     b_arr = np.array(b_list)
+    b_arr = np.sort(b_arr)
 
     return np.linalg.norm(a_arr - b_arr)
 
