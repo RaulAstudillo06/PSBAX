@@ -50,10 +50,9 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
         batch = []
         while len(batch) < batch_size:
             obj_func_sample = get_function_samples(model)
-            algo_copy = algorithm.get_copy()
-            idx_output = algo_copy.execute(obj_func_sample)
+            idx_output = algorithm.execute(obj_func_sample)
             batch.extend(idx_output)
-        x_batch = algo_copy.index_to_x(batch)
+        x_batch = algorithm.index_to_x(batch)
         acq_func = EntropyAcquisitionFunction(model=model)
         x_next, _ = optimize_acqf_discrete(
                 acq_function=acq_func, 
@@ -61,14 +60,13 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
                 choices=x_batch, 
                 max_batch_size=100, 
             )
-        idx_next = algo_copy.obj_func.get_idx_from_x(x_next)
+        idx_next = algorithm.obj_func.get_idx_from_x(x_next)
         return idx_next
     else:
         batch = []
         while len(batch) < batch_size:
             obj_func_sample = get_function_samples(model)
-            algo_copy = algorithm.get_copy()
-            x_output = algo_copy.execute(obj_func_sample)
+            x_output = algorithm.execute(obj_func_sample)
             x_output = torch.tensor(x_output)
             if len(x_output.shape) == 1:
                 x_output = x_output.view(torch.Size([1, x_output.shape[0]]))

@@ -85,7 +85,7 @@ def obj_func(X, domain=domain):
         f_0 = himmelblau
         return f_0(X_rescaled)
 
-seed_torch(1234) # NOTE: fix seed for generating x_path
+# seed_torch(1234) # NOTE: fix seed for generating x_path
 
 # x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
 x_path = generate_random_points(num_points=len_path, input_dim=input_dim, seed=1234).numpy()
@@ -105,9 +105,10 @@ if args.function == 'himmelblau':
 x_path = [list(x) for x in x_path]
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 
+algo_metric = algo.get_copy()
 performance_metrics = [
-    JaccardSimilarity(algo, obj_func),
-    NormDifference(algo, obj_func),
+    JaccardSimilarity(algo_metric, obj_func),
+    NormDifference(algo_metric, obj_func),
 ]
 
 problem = f"topk_{args.function}"

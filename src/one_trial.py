@@ -227,6 +227,7 @@ def one_trial(
 
         # New suggested batch
         t0 = time.time()
+        
         new_batch = get_new_suggested_batch(
             policy=policy,
             model=model,
@@ -326,25 +327,25 @@ def get_new_suggested_batch(
     **kwargs,
 ) -> Tensor:
     edge_positions = kwargs.get("edge_positions", None) # California
-
-    if algorithm.params.name == "EvolutionStrategies":
+    algo_acq = algorithm.get_copy()
+    if algo_acq.params.name == "EvolutionStrategies":
         data_x = model.train_inputs[0]
         data_y = model.train_targets
-        if algorithm.params.opt_mode == "min":
+        if algo_acq.params.opt_mode == "min":
             opt_idx = np.argmin(data_y)
-        elif algorithm.params.opt_mode == "max":
+        elif algo_acq.params.opt_mode == "max":
             opt_idx = np.argmax(data_y)
-        algorithm.params.init_x = data_x[opt_idx].tolist()
+        algo_acq.params.init_x = data_x[opt_idx].tolist()
     
 
     if "random" in policy:
         return generate_random_points(num_points=batch_size, input_dim=input_dim)
     elif "ps" in policy:
-        return gen_posterior_sampling_batch(model, algorithm, batch_size)
+        return gen_posterior_sampling_batch(model, algo_acq, batch_size)
     elif "bax" in policy:
         acq_func = BAXAcquisitionFunction(
             model=model, 
-            algo=algorithm,
+            algo=algo_acq,
             **kwargs, 
         )
         acq_func.initialize()
@@ -365,8 +366,8 @@ def get_new_suggested_batch(
         else:
             if edge_positions is not None:
                 x_batch = torch.tensor(edge_positions) # In BAX, they query all the edge locs as well.
-            elif algorithm.params.name == "TopK":
-                x_batch = np.array(algorithm.params.x_path)
+            elif algo_acq.params.name == "TopK":
+                x_batch = np.array(algo_acq.params.x_path)
                 x_batch = torch.from_numpy(x_batch)
             else:
                 num_points=kwargs.get("bax_num_cand", 500)
