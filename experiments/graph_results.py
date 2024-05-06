@@ -17,13 +17,14 @@ problem_setting = [
     # "discobax",
     # "single-objective",
     # "multi-objective",
-    "shortest-path",
-    # "topk",
+    # "shortest-path",
+    "topk",
 ] # Comment out the rest, only keep one
 results_dir = os.path.join(".", problem_setting[0], "results")
 
 # problem = "topk_original"
-# problem = "topk_himmelblau"
+# problem = "old_topk_himmelblau"
+problem = "topk_himmelblau"
 # problem = "ackley_10d"
 # problem = "ackley_5d"
 # problem = "dtlz1_6d"
@@ -37,7 +38,7 @@ results_dir = os.path.join(".", problem_setting[0], "results")
 # problem = "zdt2_6d_2obj_noise0.1"
 # problem = "hartmann_6d"
 # problem = "rastrigin_10d"
-problem = "dijkstra"
+# problem = "dijkstra"
 # problem = "california"
 # problem = "california_bax"
 # problem = "sanchez_2021_tau_dim5_size1700"
@@ -81,14 +82,14 @@ graph_trials = [
     9, 
     10,
 ]
-# graph_trials = [i for i in range(1, 31)]
+# graph_trials = [i for i in range(1, 20)]
 show_title = False
 save_fig = True
 path = os.path.join(results_dir, problem)
 batch_size = 1
 log = False
-bax_iters = 40
-max_iters = 40
+bax_iters = 100
+max_iters = 100
 # bax_iters = None
 optimum = None
 file_format = ".png"
