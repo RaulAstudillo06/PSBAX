@@ -5,6 +5,7 @@ from typing import Callable
 import os
 import sys
 import torch
+import json
 import numpy as np
 import argparse
 from botorch.acquisition.analytic import PosteriorMean
@@ -24,7 +25,7 @@ from src.experiment_manager import experiment_manager
 from src.performance_metrics import JaccardSimilarity, NormDifference
 from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import jaccard_similarity
-from src.utils import seed_torch
+from src.utils import seed_torch, generate_random_points
 
 
 # if len(sys.argv) == 3:
@@ -38,16 +39,18 @@ from src.utils import seed_torch
 #     last_trial = 5
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
-parser.add_argument('--function', type=str, default='original')
+parser.add_argument('--policy', type=str, default='bax')
+parser.add_argument('--function', type=str, default='himmelblau')
 parser.add_argument('--dim', type=int, default=2)
+parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--trials', type=int, default=5)
-parser.add_argument('--max_iter', type=int, default=100)
+parser.add_argument('--max_iter', type=int, default=30)
+parser.add_argument('--batch_size', type=int, default=3)
+parser.add_argument('--len_path', type=int, default=150)
+parser.add_argument('--k', type=int, default=10)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
-first_trial = 1
-last_trial = args.trials
 
 # === To RUN === # 
 # python topk_runner.py -s --trials 30 --policy ps
@@ -60,8 +63,8 @@ else:
     domain = [[-10, 10]] * input_dim # NOTE: original domain
 
 rescaled_domain = [[0, 1]] * input_dim
-len_path = 150
-k = 10
+len_path = args.len_path
+k = args.k
 
 
 def himmelblau(X: Tensor, minimize=False) -> Tensor:
@@ -95,7 +98,10 @@ def obj_func(X, domain=domain):
 
 seed_torch(1234) # NOTE: fix seed for generating x_path
 
-x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
+# x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
+x_path = generate_random_points(num_points=len_path, input_dim=input_dim, seed=1234).numpy()
+x_path = [list(x) for x in x_path]
+
 
 if args.function == 'himmelblau':
     himmelblau_opt = np.array(
@@ -160,8 +166,26 @@ performance_metrics = [
     NormDifference(algo, obj_func),
 ]
 
+problem = f"topk_{args.function}"
+
+if args.save:
+    results_dir = f"{script_dir}/results/{problem}"
+    os.makedirs(results_dir, exist_ok=True)
+    policy = args.policy
+    params_dict = vars(args)
+    # for k,v in algo_params.items():
+    #     if k not in params_dict:
+    #         params_dict[k] = v
+
+    with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
+        json.dump(params_dict, file)
+
+
+first_trial = args.first_trial
+last_trial = args.first_trial + args.trials - 1
+
 experiment_manager(
-    problem=f"topk_{args.function}_200",
+    problem=problem,
     obj_func=obj_func,
     algorithm=algo,
     performance_metrics=performance_metrics,
@@ -169,7 +193,7 @@ experiment_manager(
     noise_type="noiseless",
     noise_level=0.0,
     policy=args.policy,
-    batch_size=1,
+    batch_size=args.batch_size,
     num_init_points=2 * (input_dim + 1),
     num_iter=args.max_iter,
     first_trial=first_trial,

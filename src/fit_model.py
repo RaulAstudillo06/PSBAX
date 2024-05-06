@@ -24,12 +24,14 @@ def fit_model(inputs: Tensor, outputs: Tensor, model_type: str, **kwargs):
     try:
         if model_type == "gp":
             # covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel(lengthscale_constraint=Interval(1e-5, 1e0)))
-            kernel_type = kwargs.pop("kernel_type", "matern")
+            kernel_type = kwargs.pop("kernel_type", None)
 
             if kernel_type == "rbf":
                 covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.RBFKernel())
-            else:
+            elif kernel_type == "matern":
                 covar_module = gpytorch.kernels.ScaleKernel(gpytorch.kernels.MaternKernel())
+            else:
+                covar_module = None
 
             models = []
             for f_i in range(outputs.shape[-1]):

@@ -110,7 +110,7 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
 
         # TODO: check all dimensions
         for exe_path in self.exe_path_list:
-            if self.algorithm.params.name == "Dijkstras":
+            if self.algorithm.params.name == "Dijkstras" or self.algorithm.params.name == "TopK":
                 # comb_data_x = torch.cat([data_x, torch.tensor(np.array(exe_path.x))], dim=-2)
                 # comb_data_y = torch.cat([data_y, torch.tensor(np.array(exe_path.y))]) # (N, )
                 new_data_x = torch.tensor(np.array(exe_path.x)) # (N, n_dim)
