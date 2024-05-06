@@ -27,17 +27,6 @@ from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import jaccard_similarity
 from src.utils import seed_torch, generate_random_points
 
-
-# if len(sys.argv) == 3:
-#     first_trial = int(sys.argv[1])
-#     last_trial = int(sys.argv[2])
-# elif len(sys.argv) == 2:
-#     first_trial = int(sys.argv[1])
-#     last_trial = int(sys.argv[1])
-# else:
-#     first_trial = 1
-#     last_trial = 5
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--function', type=str, default='himmelblau')
@@ -138,28 +127,6 @@ def output_dist_fn_jaccard(a, b):
     jac_sim = jaccard_similarity(a_x_tup, b_x_tup)
     dist = 1 - jac_sim
     return dist
-
-# def metric_jacc(obj_func: Callable, posterior_mean_func: PosteriorMean):
-#     '''
-#     TODO: metrics are sharing the same algo_mf, algo_gt?
-#     '''
-#     algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
-#     _, output_gt = algo_gt.run_algorithm_on_f(obj_func) # TODO: this should be saved as a common attribute
-#     algo_mf = TopK({"x_path": x_path, "k": k}, verbose=False)
-#     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
-#     return output_dist_fn_jaccard(output_mf, output_gt)
-
-# def metric_norm(obj_func: Callable, posterior_mean_func: PosteriorMean):
-#     algo_gt = TopK({"x_path": x_path, "k": k, "name": "groundtruth"})
-#     _, output_gt = algo_gt.run_algorithm_on_f(obj_func)
-#     algo_mf = TopK({"x_path": x_path, "k": k}, verbose=False)
-#     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
-#     return output_dist_fn_norm(output_mf, output_gt)
-
-# performance_metrics = {
-#     "Jaccard": metric_jacc,
-#     "Norm": metric_norm,
-# }
 
 performance_metrics = [
     JaccardSimilarity(algo, obj_func),

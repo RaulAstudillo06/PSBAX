@@ -2,6 +2,7 @@ from typing import Callable
 
 import os
 import sys
+import json
 import torch
 import numpy as np
 import argparse
@@ -35,26 +36,19 @@ rescaled_x1_lims = (0, 1)
 rescaled_x2_lims = (0, 1)
 positions, vertices, edges = make_grid(grid_size, rescaled_x1_lims, rescaled_x2_lims)
 start, goal = vertices[-grid_size], vertices[-1]
-policy = "ps"
-# if len(sys.argv) == 3:
-#     first_trial = int(sys.argv[1])
-#     last_trial = int(sys.argv[2])
-# elif len(sys.argv) == 2:
-#     first_trial = int(sys.argv[1])
-#     last_trial = int(sys.argv[1])
-# else:
-#     first_trial = 1
-#     last_trial = 5
 
 # use argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
+parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--trials', type=int, default=5)
+parser.add_argument('--max_iter', type=int, default=40)
+parser.add_argument('--batch_size', type=int, default=1)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 
 # ====== To run ======
-# python dijkstra_runner.py -s --policy ps --trials 5
+# python dijkstra_runner.py -s --policy ps --trials 10
 
 args = parser.parse_args()
 first_trial = 1
@@ -67,7 +61,6 @@ def rosenbrock(x, y, a=1, b=100):
     return 1e-2 * ((a - x)**2 + b * (y - x**2)**2)
 
 def true_f(x_y):
-    
     x_y = np.array(x_y).reshape(-1)
     return rosenbrock(x_y[..., 0], x_y[..., 1])
 
@@ -134,30 +127,31 @@ algo_params = {
 }
 algo = Dijkstra(algo_params, vertices, start, goal)
 
-# def metric_cost(obj_func: Callable, posterior_mean_func: PosteriorMean):
-#     algo_mf = Dijkstra(algo_params, vertices, start, goal)
-#     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
-#     return output_mf[0]
-
-# def metric_area(obj_func: Callable, posterior_mean_func: PosteriorMean):
-#     algo_gt = Dijkstra(algo_params, vertices, start, goal)
-#     _, true_output = algo_gt.run_algorithm_on_f(obj_func)
-#     algo_mf = Dijkstra(algo_params, vertices, start, goal)
-#     _, output_mf = algo_mf.run_algorithm_on_f(posterior_mean_func)
-#     return area_of_polygons(true_output[1], output_mf[1])
-
-# performance_metrics = {
-#     'Cost': metric_cost,
-#     'Area': metric_area
-# }
-
+algo_metric = algo.get_copy()
 performance_metrics = [
-    ShortestPathCost(algo),
-    ShortestPathArea(algo, obj_func),
+    ShortestPathCost(algo_metric),
+    ShortestPathArea(algo_metric, obj_func),
 ]
 
+problem = "dijkstra"
+if args.save:
+    results_dir = f"{script_dir}/results/{problem}"
+    os.makedirs(results_dir, exist_ok=True)
+    policy = args.policy
+    params_dict = vars(args)
+    # for k,v in algo_params.items():
+    #     if k not in params_dict:
+    #         params_dict[k] = v
+
+    with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
+        json.dump(params_dict, file)
+
+
+first_trial = args.first_trial
+last_trial = args.first_trial + args.trials - 1
+
 experiment_manager(
-    problem="dijkstra",
+    problem=problem,
     obj_func=obj_func,
     algorithm=algo,
     performance_metrics=performance_metrics,
@@ -165,9 +159,9 @@ experiment_manager(
     noise_type="noiseless",
     noise_level=0.0,
     policy=args.policy,
-    batch_size=1,
+    batch_size=args.batch_size,
     num_init_points=2 * (input_dim + 1),
-    num_iter=100,
+    num_iter=args.max_iter,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=args.restart,
