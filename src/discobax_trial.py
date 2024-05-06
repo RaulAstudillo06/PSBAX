@@ -18,7 +18,7 @@ from collections import defaultdict
 
 from botorch.optim import optimize_acqf_discrete
 
-from src.acquisition_functions.posterior_sampling import gen_posterior_sampling_batch, gen_posterior_sampling_batch_discrete
+from src.acquisition_functions.posterior_sampling import gen_posterior_sampling_batch
 from src.acquisition_functions.bax_acquisition import BAXAcquisitionFunction
 from src.fit_model import fit_model
 from src.performance_metrics import evaluate_performance
