@@ -144,7 +144,7 @@ class ShortestPathCost(PosteriorMeanPerformanceMetric):
     
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func) 
-        true_cost = self.algo.true_cost_of_shortest_path.item()
+        true_cost = self.algo.true_cost_of_shortest_path
         return true_cost # true cost func is defined in the algo
     
 

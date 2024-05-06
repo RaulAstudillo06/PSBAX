@@ -39,7 +39,7 @@ start, goal = vertices[-grid_size], vertices[-1]
 
 # use argparse
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='bax')
+parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--max_iter', type=int, default=40)

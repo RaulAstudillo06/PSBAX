@@ -17,12 +17,12 @@ problem_setting = [
     # "discobax",
     # "single-objective",
     # "multi-objective",
-    # "shortest-path",
-    "topk",
+    "shortest-path",
+    # "topk",
 ] # Comment out the rest, only keep one
 results_dir = os.path.join(".", problem_setting[0], "results")
 
-problem = "topk_original"
+# problem = "topk_original"
 # problem = "topk_himmelblau"
 # problem = "ackley_10d"
 # problem = "ackley_5d"
@@ -37,7 +37,7 @@ problem = "topk_original"
 # problem = "zdt2_6d_2obj_noise0.1"
 # problem = "hartmann_6d"
 # problem = "rastrigin_10d"
-# problem = "dijkstra"
+problem = "dijkstra"
 # problem = "california"
 # problem = "california_bax"
 # problem = "sanchez_2021_tau_dim5_size1700"
@@ -49,11 +49,9 @@ problem = "topk_original"
 # problem = "lbfgsb_rastrigin_10d"
 
 policies = [
-    "ps", 
+    "random",
     "bax", 
-    # "bax", 
-    # "random",
-    # "ps", 
+    "ps", 
     # "OPT", 
     # "bax_modelgp",
     # "ps_modelgp",
@@ -61,8 +59,8 @@ policies = [
     # "ps_modelgp_cma",
     # "bax_modelgp_mut",
     # "ps_modelgp_mut",
-    "bax_modelgp_dim5",
-    "ps_modelgp_dim5",
+    # "bax_modelgp_dim5",
+    # "ps_modelgp_dim5",
     # "OPT_modelgp_dim5",
     # "bax_modelgp_dim20",
     # "ps_modelgp_dim20",
@@ -84,15 +82,18 @@ graph_trials = [
     10,
 ]
 # graph_trials = [i for i in range(1, 31)]
-show_title = True
+show_title = False
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 5
+batch_size = 1
 log = False
-bax_iters = 50
-max_iters = 100
+bax_iters = 40
+max_iters = 40
 # bax_iters = None
 optimum = None
+file_format = ".png"
+file_format = ".pdf"
+
 
 policy_to_hex = {
     # "ps": "#1f77b4",
@@ -108,7 +109,7 @@ policy_to_hex = {
 
 policy_to_label = {
     "ps": "Posterior Sampling",
-    "bax": "BAX",
+    "bax": "Expected Information Gain",
     "OPT": "OPT",
     "random": "Random",
 }
@@ -229,10 +230,10 @@ for metrics_name in metrics:
 
     ax.set_xlabel("Iteration")
     # ax.set_ylabel(metrics_name)
-    if log:
-        ax.set_ylabel("Log Value")
-    else:
-        ax.set_ylabel("Value")
+    # if log:
+    #     ax.set_ylabel("Log Value")
+    # else:
+    #     ax.set_ylabel("Value")
     # ax.legend()
     if show_title:
         # ax.set_title(metrics_name)
@@ -243,7 +244,7 @@ for metrics_name in metrics:
 
     # set legend to below the plot
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=len(policies))
-
+    plt.tight_layout()
     if save_fig:
         fig_dir = os.path.join(path, "plots")
         if not os.path.exists(fig_dir):
@@ -252,9 +253,9 @@ for metrics_name in metrics:
         fig_name = "_".join(policies) + "_" + metrics_name.strip(" ") + "_batch" + str(batch_size) + "_trials" + str(arr.shape[0])
         fig.savefig(
             os.path.join(
-                fig_dir, fig_name + ".png"
+                fig_dir, fig_name + file_format
             ),
-            # bbox_inches="tight",
+            bbox_inches="tight",
             dpi=300,
         )
     plt.show()
