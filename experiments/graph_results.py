@@ -48,27 +48,24 @@ problem = "discobax_sanchez_2021_tau_top_5000"
 # problem = "lbfgsb_rastrigin_10d"
 
 policies = [
-    # "ps", 
     # "bax", 
     # "random",
+    # "ps", 
     # "OPT", 
-    # "ps200",
-    # "bax200",
-    # "OPT200",
-    # "ps_modelgp",
     # "bax_modelgp",
-    # "ps_modelgp_cma",
+    # "ps_modelgp",
     # "bax_modelgp_cma",
-    # "ps_modelgp_mut",
+    # "ps_modelgp_cma",
     # "bax_modelgp_mut",
+    # "ps_modelgp_mut",
+    "bax_modelgp_dim5",
     "ps_modelgp_dim5",
-    # "bax_modelgp_dim5",
     # "OPT_modelgp_dim5",
-    # "ps_modelgp_dim20",
     # "bax_modelgp_dim20",
+    # "ps_modelgp_dim20",
     # "OPT_modelgp_dim20",
-    # "ps_dim5_init12",
     # "bax_dim5_init12",
+    # "ps_dim5_init12",
     # "OPT_dim5_init12",
 ]
 graph_trials = [
@@ -87,17 +84,21 @@ graph_trials = [
 show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 1
+batch_size = 5
 log = False
-bax_iters = 20
-max_iters = 60
+bax_iters = 50
+max_iters = 100
 # bax_iters = None
+optimum = None
 
 policy_to_hex = {
-    "ps": "#1f77b4",
-    "bax": "#ff7f0e",
-    "OPT": "#2ca02c",
-    "random": "#8c564b",
+    # "ps": "#1f77b4",
+    # "bax": "#ff7f0e",
+    # "OPT": "#2ca02c",
+    # "random": "#8c564b",
+    "ps" : 'b',
+    "bax" : 'g',
+    "random" : '#7f7f7f',
     # "bax_modelgp_dim20": "#e377c2",
     # "ps_modelgp_dim20": "#7f7f7f",
 }
@@ -146,6 +147,8 @@ for policy in policies:
         arrs[metrics_name] = np.vstack(arr) # (n_trials, n_iter)
         if log:
             arrs[metrics_name] = np.log(arrs[metrics_name])
+        if optimum is not None:
+            arrs[metrics_name] = optimum - arrs[metrics_name]
 
     algo_performance_arrs[policy] = arrs
 

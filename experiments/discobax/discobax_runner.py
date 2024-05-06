@@ -152,10 +152,11 @@ if not os.path.exists(fn):
 
 algo.set_obj_func(obj_func)
 
+algo_metric = algo.get_copy()
 performance_metrics = [
     DiscreteDiscoBAXMetric(
         name="DiscoBAXMetric", 
-        algo=algo,
+        algo=algo_metric,
         obj_func=obj_func,
     )
 ]

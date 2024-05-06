@@ -45,13 +45,15 @@ tkwargs = {
 
 def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
     eval_all = kwargs.get("eval_all", False)
+    
     if algorithm.params.name == "SubsetSelect":
         batch = []
         while len(batch) < batch_size:
             obj_func_sample = get_function_samples(model)
-            idx_output = algorithm.execute(obj_func_sample)
+            algo_copy = algorithm.get_copy()
+            idx_output = algo_copy.execute(obj_func_sample)
             batch.extend(idx_output)
-        x_batch = algorithm.index_to_x(batch)
+        x_batch = algo_copy.index_to_x(batch)
         acq_func = EntropyAcquisitionFunction(model=model)
         x_next, _ = optimize_acqf_discrete(
                 acq_function=acq_func, 
@@ -59,13 +61,14 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
                 choices=x_batch, 
                 max_batch_size=100, 
             )
-        idx_next = algorithm.obj_func.get_idx_from_x(x_next)
+        idx_next = algo_copy.obj_func.get_idx_from_x(x_next)
         return idx_next
     else:
         batch = []
         while len(batch) < batch_size:
             obj_func_sample = get_function_samples(model)
-            x_output = algorithm.execute(obj_func_sample)
+            algo_copy = algorithm.get_copy()
+            x_output = algo_copy.execute(obj_func_sample)
             x_output = torch.tensor(x_output)
             if len(x_output.shape) == 1:
                 x_output = x_output.view(torch.Size([1, x_output.shape[0]]))
@@ -80,43 +83,3 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
         return x_next
 
     
-
-# algo.run_algorithm_on_f_botorch(obj_func)
-
-def gen_posterior_sampling_batch_discrete(model, algorithm, batch_size, **kwargs):
-    eval_all = kwargs.get("eval_all", False)
-    batch = []
-    for _ in range(batch_size):
-        # obj_func_sample = get_gp_samples(
-        #     model=model,
-        #     num_outputs=1,
-        #     n_samples=1,
-        #     num_rff_features=1000,
-        # )
-        # obj_func_sample = PosteriorMean(model=obj_func_sample)
-
-        # Original
-        obj_func_sample = get_function_samples(model)
-        idx_output = algorithm.execute(obj_func_sample) # np.array(N, n_dim)
-        if eval_all:
-            return idx_output
-        else: 
-            x_output = algorithm.index_to_x(idx_output)
-            if len(x_output.shape) == 1:
-                x_output = x_output.view(torch.Size([1, x_output.shape[0]]))
-            post_obj_x_output = model.posterior(x_output)
-            selected_idx = rand_argmax(post_obj_x_output.variance.detach().squeeze())
-            # FIXME: the variance is really low.
-
-        batch.append(idx_output[selected_idx])
-    
-    return batch
-    #     # New
-    # x_cand = []
-    # for index in batch:
-    #     x_cand.append(algorithm.index_to_x(index))
-
-    # return torch.cat(x_cand, dim=0)
-
-
-
