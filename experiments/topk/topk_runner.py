@@ -30,7 +30,7 @@ from src.utils import seed_torch, generate_random_points
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--function', type=str, default='original')
-parser.add_argument('--dim', type=int, default=2)
+parser.add_argument('--dim', type=int, default=3)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--max_iter', type=int, default=30)
