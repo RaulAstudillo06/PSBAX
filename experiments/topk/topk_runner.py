@@ -29,7 +29,7 @@ from src.utils import seed_torch, generate_random_points
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
-parser.add_argument('--function', type=str, default='himmelblau')
+parser.add_argument('--function', type=str, default='original')
 parser.add_argument('--dim', type=int, default=2)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--trials', type=int, default=5)
@@ -89,6 +89,7 @@ def obj_func(X, domain=domain):
 
 # x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
 # x_path = generate_random_points(num_points=len_path, input_dim=input_dim, seed=1234).numpy()
+# np.save(f"{script_dir}/data/{args.function[:3]}_x_np.npy", x_path)
 
 if args.function == 'himmelblau':
     x_path = np.load(f"{script_dir}/data/him_x_np.npy")
@@ -102,6 +103,8 @@ if args.function == 'himmelblau':
     # )
     # himmelblau_opt = (himmelblau_opt - np.array(domain)[:, 0]) / (np.array(domain)[:, 1] - np.array(domain)[:, 0])
     # x_path = np.concatenate([x_path, np.array(himmelblau_opt)], axis=0)
+elif args.function == 'original':
+    x_path = np.load(f"{script_dir}/data/ori_x_np.npy")
 
 x_path = [list(x) for x in x_path]
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
