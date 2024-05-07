@@ -16,29 +16,39 @@ from src.performance_metrics import *
 
 # TODO
 problem_setting = [
-    # "discobax",
+    "discobax",
     # "single-objective",
     # "multi-objective",
-    "shortest-path",
+    # "shortest-path",
     # "topk",
 ] # Comment out the rest, only keep one
 
 # TODO
 # problem = "topk_original"
 # problem = "topk_himmelblau"
-problem = "dijkstra"
+# problem = "topk_ori_1"
+# problem = "topk_him_1"
+# problem = "dijkstra"
+# problem = "hartmann_6d"
+# problem = "ackley_10d"
+problem = "discobax_1"
 results_dir = os.path.join(".", problem_setting[0], "results") 
 path = os.path.join(results_dir, problem)
 
 policies = [
-    "bax",
-    "ps",
-    # "random"
+    # "bax",
+    # "ps",
+    # "random",
+    # "bax_gp_lbfgsb",
+    # "ps_gp_lbfgsb",
+    "bax_modelgp_dim5",
+    "ps_modelgp_dim5",
 ]
 
 # TODO
-iters = 40
-batch_size = 1
+iters = 100
+batch_size = 5
+trials = np.arange(1, 10)
 
 runtime_arrs = {} # policy -> runtimes per iteration
 for policy in policies:
@@ -47,7 +57,11 @@ for policy in policies:
     
     for f in os.listdir(files_dir):
         if f.endswith(".txt") and "runtimes" in f:
+            if int(f.split(".")[0].split("_")[-1]) not in trials:
+                continue
             runtimes = np.loadtxt(os.path.join(files_dir, f)).squeeze() # runtimes of one trial
+            if iters is None:
+                iters = len(runtimes)
             runtime_arrs[policy] = runtime_arrs.get(policy, np.zeros((iters, )))
             runtime_arrs[policy] += runtimes[:iters]
 #%%

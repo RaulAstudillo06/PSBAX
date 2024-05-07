@@ -81,8 +81,8 @@ def fit_model(inputs: Tensor, outputs: Tensor, model_type: str, **kwargs):
         return model
 
     except:
-        files_path = kwargs.pop("files_path", "results")
+        file_path = kwargs.pop("file_path", "results")
         print("Error in fitting model, saving inputs and outputs to files")
-        torch.save(inputs, f"{files_path}/inputs.pt")
-        torch.save(outputs, f"{files_path}/outputs.pt")
+        torch.save(inputs, f"{file_path}failed_inputs.pt")
+        torch.save(outputs, f"{file_path}failed_outputs.pt")
         return None

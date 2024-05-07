@@ -107,6 +107,7 @@ def one_trial(
                 obj_vals,
                 model_type=model_type,
                 # architecture=architecture,
+                file_path=results_folder + f"{trial}_",
                 **kwargs
             )
             t1 = time.time()
@@ -131,6 +132,7 @@ def one_trial(
                 inputs,
                 obj_vals,
                 model_type=model_type,
+                file_path=results_folder + f"{trial}_",
                 # architecture=architecture,
                 **kwargs
             )
@@ -167,6 +169,7 @@ def one_trial(
             inputs,
             obj_vals,
             model_type=model_type,
+            file_path=results_folder + f"{trial}_",
             # architecture=architecture,
             **kwargs,
         )
@@ -260,6 +263,7 @@ def one_trial(
             inputs,
             obj_vals,
             model_type=model_type,
+            file_path=results_folder + f"trial{trial}_iter{iteration}_",
             # architecture=architecture,
             **kwargs,
         )

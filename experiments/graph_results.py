@@ -82,14 +82,14 @@ graph_trials = [
     9, 
     10,
 ]
-# graph_trials = [i for i in range(1, 20)]
+# graph_trials = [i for i in range(1, 21)]
 show_title = False
 save_fig = True
 path = os.path.join(results_dir, problem)
 batch_size = 1
 log = False
-bax_iters = 100
-max_iters = 100
+max_iters = 50
+bax_iters = 50
 # bax_iters = None
 optimum = None
 file_format = ".png"
@@ -263,3 +263,6 @@ for metrics_name in metrics:
 
 
 #%%
+
+
+    

@@ -28,7 +28,7 @@ from src.bax.util.graph import jaccard_similarity
 from src.utils import seed_torch, generate_random_points
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--function', type=str, default='himmelblau')
 parser.add_argument('--dim', type=int, default=2)
 parser.add_argument('--first_trial', type=int, default=1)
@@ -91,7 +91,7 @@ def obj_func(X, domain=domain):
 # x_path = generate_random_points(num_points=len_path, input_dim=input_dim, seed=1234).numpy()
 
 if args.function == 'himmelblau':
-    x_path = np.load(f"{script_dir}/demo/data/x_np.npy")
+    x_path = np.load(f"{script_dir}/data/him_x_np.npy")
     # himmelblau_opt = np.array(
     #     [
     #         [3.0, 2.0],

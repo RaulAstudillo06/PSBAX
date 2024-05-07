@@ -130,6 +130,7 @@ def discobax_trial(
                 inputs,
                 obj_vals,
                 model_type=model_type,
+                file_path=results_folder + f"{trial}_",
                 **kwargs,
             )
             t1 = time.time()
@@ -146,7 +147,7 @@ def discobax_trial(
                 pass
 
         except:
-            pass
+            raise ValueError("Error in restarting trial")
     else:
         available_indices = obj_func.get_idx()
         cumulative_indices = []
@@ -160,6 +161,7 @@ def discobax_trial(
             inputs,
             obj_vals,
             model_type=model_type,
+            file_path=results_folder + f"{trial}_",
             **kwargs,
         )
         t1 = time.time()
@@ -237,6 +239,7 @@ def discobax_trial(
             obj_vals,
             model_type=model_type,
             # architecture=architecture,
+            file_path=results_folder + f"trial{trial}_iter{iteration}_",
             **kwargs,
         )
         t1 = time.time()
