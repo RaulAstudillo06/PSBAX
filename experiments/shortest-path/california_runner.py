@@ -217,7 +217,7 @@ performance_metrics = [
 input_dim = 2
 # Nodes are indices
 experiment_manager(
-    problem="california_bax1",
+    problem="california",
     algorithm=algo,
     obj_func=obj_func,
     performance_metrics=performance_metrics,
