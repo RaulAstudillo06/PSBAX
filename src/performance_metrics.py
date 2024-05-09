@@ -386,6 +386,21 @@ class PymooHypervolume(PosteriorMeanPerformanceMetric):
             return np.mean(hvs)
 
 
+class NewShortestPathCost(PosteriorMeanPerformanceMetric):
+    def __init__(self, algo, **kwargs):
+        super().__init__("NewShortestPathCost")
+        self.algo = algo
+        self.optimum_cost = kwargs.pop("optimum_cost", 0)
+        self.num_runs = kwargs.pop("num_runs", 1)
+    
+    def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
+        costs = []
+        for _ in range(self.num_runs):
+            _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
+            cost = self.algo.exe_path.true_cost
+            costs.append(cost)
+        return np.mean(costs), np.mean(costs) - self.optimum_cost
+
 
 def evaluate_performance(metrics, model, **kwargs) -> Tensor:
     '''

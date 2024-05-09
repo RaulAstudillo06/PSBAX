@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import os
 import torch
 from botorch.fit import fit_gpytorch_mll
 from botorch.models.gp_regression import SingleTaskGP
@@ -81,8 +81,9 @@ def fit_model(inputs: Tensor, outputs: Tensor, model_type: str, **kwargs):
         return model
 
     except:
-        file_path = kwargs.pop("file_path", "results")
+        file_path = kwargs.pop("file_path", "results/")
         print("Error in fitting model, saving inputs and outputs to files")
+        os.makedirs(file_path, exist_ok=True)
         torch.save(inputs, f"{file_path}failed_inputs.pt")
         torch.save(outputs, f"{file_path}failed_outputs.pt")
         return None

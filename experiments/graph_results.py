@@ -14,17 +14,17 @@ from src.performance_metrics import *
 
 
 problem_setting = [
-    # "discobax",
+    "discobax",
     # "single-objective",
     # "multi-objective",
     # "shortest-path",
-    "topk",
+    # "topk",
 ] # Comment out the rest, only keep one
 results_dir = os.path.join(".", problem_setting[0], "results")
 
 # problem = "topk_original"
 # problem = "old_topk_himmelblau"
-problem = "topk_himmelblau"
+# problem = "topk_himmelblau"
 # problem = "ackley_10d"
 # problem = "ackley_5d"
 # problem = "dtlz1_6d"
@@ -45,14 +45,14 @@ problem = "topk_himmelblau"
 # problem = "schmidt_2021_ifng_top_10000"
 # problem = "schmidt_2021_ifng_top_1700"
 # problem = "old_discobax_sanchez_2021_tau_top_5000"
-# problem = "discobax_sanchez_2021_tau_top_5000"
+problem = "discobax_sanchez_2021_tau_top_5000"
 # problem = "dijkstra"
 # problem = "lbfgsb_rastrigin_10d"
 
 policies = [
-    "random",
-    "bax", 
-    "ps", 
+    # "random",
+    # "bax", 
+    # "ps", 
     # "OPT", 
     # "bax_modelgp",
     # "ps_modelgp",
@@ -60,8 +60,8 @@ policies = [
     # "ps_modelgp_cma",
     # "bax_modelgp_mut",
     # "ps_modelgp_mut",
-    # "bax_modelgp_dim5",
-    # "ps_modelgp_dim5",
+    "bax_modelgp_dim5",
+    "ps_modelgp_dim5",
     # "OPT_modelgp_dim5",
     # "bax_modelgp_dim20",
     # "ps_modelgp_dim20",
@@ -80,7 +80,7 @@ graph_trials = [
     7, 
     8, 
     9, 
-    10,
+    # 10,
 ]
 # graph_trials = [i for i in range(1, 21)]
 show_title = False
@@ -88,8 +88,8 @@ save_fig = True
 path = os.path.join(results_dir, problem)
 batch_size = 1
 log = False
-max_iters = 50
-bax_iters = 50
+max_iters = 100
+bax_iters = 80
 # bax_iters = None
 optimum = None
 file_format = ".png"
