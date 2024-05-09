@@ -93,7 +93,6 @@ batch_size = 3
 log = False
 bax_iters = 100
 max_iters = 100
-bax_iters = 80
 # bax_iters = None
 optimum = None
 file_format = ".png"
