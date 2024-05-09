@@ -27,7 +27,7 @@ debug._set_state(False)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='ps')
-parser.add_argument('--problem_idx', type=int, default=3)
+parser.add_argument('--problem_idx', type=int, default=0)
 parser.add_argument('--use_random', default=False, action='store_true')
 parser.add_argument('--do_pca', default=False, action='store_true')
 parser.add_argument('--pca_dim', type=int, default=20)

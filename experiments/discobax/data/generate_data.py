@@ -25,7 +25,7 @@ problem_lst = [
     "zhu_2021_sarscov2_host_factors", # 16670
 ]
 
-problem = problem_lst[1]
+problem = problem_lst[0]
 random = False
 data_size = 5000
 
