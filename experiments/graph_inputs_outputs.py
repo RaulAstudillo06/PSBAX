@@ -29,7 +29,7 @@ from src.utils import (
 from src.performance_metrics import output_dist_fn_norm, output_dist_fn_jaccard
 
 #%%
-problem_dir = os.path.join(cwd, "topk/results/topk_himmelblau") 
+problem_dir = os.path.join(cwd, "topk/results/topk_himmelblau_0506") 
 bax_dir = os.path.join(problem_dir, "bax_1")
 ps_dir = os.path.join(problem_dir, "ps_1")
 
@@ -57,7 +57,7 @@ def obj_func(X, domain=[-6, 6]):
     f_0 = himmelblau
     return f_0(X_rescaled)
 
-policy = "ps"
+policy = "bax"
 dir = os.path.join(problem_dir, f"{policy}_1")
 trial = 1
 inputs = np.loadtxt(os.path.join(dir, "inputs", f"inputs_{trial}.txt"))
@@ -95,7 +95,7 @@ def reshape_mesh(xx):
 
 x_mesh = create_mesh(-0.1, 1.1, steps=10)
 z = obj_func(reshape_mesh(x_mesh).numpy()).reshape(x_mesh[0].shape)
-def plot(policy, file_format="pdf", show_title=False):
+def plot(policy, file_format="pdf", show_title=False, save_fig=True):
     colors = {
         "ps" : "b",
         "bax" : "g",
@@ -103,7 +103,8 @@ def plot(policy, file_format="pdf", show_title=False):
     fig, ax = plt.subplots(
         figsize=(8, 8)
     )
-    ax.contourf(x_mesh[0], x_mesh[1], z, cmap="YlOrRd", alpha=0.6, levels=40)
+    norm = plt.Normalize(np.quantile(z, 0.2), z.max())
+    ax.contourf(x_mesh[0], x_mesh[1], z, cmap="YlOrRd", alpha=0.6, levels=40, norm=norm)
     ax.scatter(
         x_top_k[:, 0], 
         x_top_k[:, 1], 
@@ -148,11 +149,12 @@ def plot(policy, file_format="pdf", show_title=False):
     ax.set_xlim([0, 1])
     ax.set_ylim([0, 1])
     plt.tight_layout()
-    plt.savefig(
-        os.path.join(problem_dir, f"plots/{policy}.{file_format}"),
-        bbox_inches="tight",
-        dpi=300,
-    )
+    if save_fig:
+        plt.savefig(
+            os.path.join(problem_dir, f"plots/{policy}.{file_format}"),
+            bbox_inches="tight",
+            dpi=300,
+        )
     plt.show()
 
 plot(policy)

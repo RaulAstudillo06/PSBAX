@@ -109,6 +109,7 @@ if args.save:
         if k not in params_dict and k != "ref_point":
             params_dict[k] = v
 
+    params_dict["algo_id"] = algo_id
     with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
         json.dump(params_dict, file)
 

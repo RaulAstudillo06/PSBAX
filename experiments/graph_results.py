@@ -72,21 +72,21 @@ policies = [
 ]
 graph_trials = [
     1, 
-    2, 
+    # 2, 
     3, 
-    4, 
+    # 4, 
     5, 
-    6, 
+    # 6, 
     7, 
-    8, 
+    # 8, 
     9, 
     # 10,
 ]
-# graph_trials = [i for i in range(1, 21)]
+# graph_trials = [i for i in range(1, 19)]
 show_title = False
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 1
+batch_size = 5
 log = False
 max_iters = 100
 bax_iters = 80
