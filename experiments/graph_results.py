@@ -14,8 +14,8 @@ from src.performance_metrics import *
 
 
 problem_setting = [
-    "discobax",
-    # "single-objective",
+    # "discobax",
+    "single-objective",
     # "multi-objective",
     # "shortest-path",
     # "topk",
@@ -37,6 +37,7 @@ results_dir = os.path.join(".", problem_setting[0], "results")
 # problem = "zdt2_6d_2obj"
 # problem = "zdt2_6d_2obj_noise0.1"
 # problem = "hartmann_6d"
+problem = "ackley_10d"
 # problem = "rastrigin_10d"
 # problem = "dijkstra"
 # problem = "california"
@@ -45,7 +46,7 @@ results_dir = os.path.join(".", problem_setting[0], "results")
 # problem = "schmidt_2021_ifng_top_10000"
 # problem = "schmidt_2021_ifng_top_1700"
 # problem = "old_discobax_sanchez_2021_tau_top_5000"
-problem = "discobax_sanchez_2021_tau_top_5000"
+# problem = "discobax_sanchez_2021_tau_top_5000"
 # problem = "dijkstra"
 # problem = "lbfgsb_rastrigin_10d"
 
@@ -56,12 +57,14 @@ policies = [
     # "OPT", 
     # "bax_modelgp",
     # "ps_modelgp",
+    "bax_gp_lbfgsb",
+    "ps_gp_lbfgsb",
     # "bax_modelgp_cma",
     # "ps_modelgp_cma",
     # "bax_modelgp_mut",
     # "ps_modelgp_mut",
-    "bax_modelgp_dim5",
-    "ps_modelgp_dim5",
+    # "bax_modelgp_dim5",
+    # "ps_modelgp_dim5",
     # "OPT_modelgp_dim5",
     # "bax_modelgp_dim20",
     # "ps_modelgp_dim20",
@@ -72,23 +75,23 @@ policies = [
 ]
 graph_trials = [
     1, 
-    # 2, 
+    2, 
     3, 
-    # 4, 
+    4, 
     5, 
-    # 6, 
+    6, 
     7, 
-    # 8, 
+    8, 
     9, 
-    # 10,
+    10,
 ]
 # graph_trials = [i for i in range(1, 19)]
 show_title = False
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 5
+batch_size = 3
 log = False
-bax_iters = 55
+bax_iters = 100
 max_iters = 100
 # bax_iters = None
 optimum = None
