@@ -96,7 +96,7 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         # if len(X.shape) == 2:
         #     X = X.unsqueeze(1)
         
-        N, q, d = X.shape
+        # N, q, d = X.shape
 
         posterior = self.model.posterior(X)
         mu, cov = posterior.mean, posterior.covariance_matrix

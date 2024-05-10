@@ -3,6 +3,7 @@ import os
 import sys
 sys.setrecursionlimit(10000) 
 import torch
+import json
 import pandas as pd
 import numpy as np
 import argparse
@@ -14,9 +15,6 @@ torch.autograd.set_detect_anomaly(False)
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
-
-# == if using colab == 
-sys.path.append('../')
 
 
 # from src.bax.alg.dijkstra import Dijkstra
@@ -32,26 +30,23 @@ from src.performance_metrics import NewShortestPathCost
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
-parser.add_argument('--trials', type=int, default=3)
+parser.add_argument('--trials', type=int, default=5)
+parser.add_argument('--first_trial', type=int, default=1)
+parser.add_argument('--batch_size', type=int, default=1)
+parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
-parser.add_argument('--num_init_points', type=int, default=5)
-# ====== To run ======
-# python california_runner.py -s --policy bax --trials 5
-
 args = parser.parse_args()
-first_trial = 1
-last_trial = args.trials
+# ====== To run ======
+# python new_california_runner.py -s --policy bax --trials 5
+
 
 # ======== data processing
 
-if "experiments" in os.listdir(os.getcwd()):
-    print(os.listdir(os.getcwd()))
-    os.chdir("experiments/")
+df_edges = pd.read_csv(f"{script_dir}/data/new_edges.csv", index_col="edgeid")
+df_nodes = pd.read_csv(f"{script_dir}/data/new_nodes.csv", index_col="nodeid")
 
-df_edges = pd.read_csv(f"{script_dir}/data/new_edges.csv", index=False)
-df_nodes = pd.read_csv(f"{script_dir}/data/new_nodes.csv", index=False)
-
+# Need positive weight for Dijkstra
 df_edges["pos_weight"] = df_edges["mean_elevation"] - df_edges["mean_elevation"].min() 
 
 # find the closest node to the start and end points
@@ -86,39 +81,60 @@ def obj_func(X):
 
 algo_copy = algo.get_copy()
 true_ep, true_output = algo_copy.run_algorithm_on_f(obj_func)
-# optimum_cost = true_output[0] = 72.80633717926638
+
+algo_metric = algo.get_copy()
 
 performance_metrics = [
     NewShortestPathCost(
-        algo, 
+        algo_metric,
+        optimum_cost=true_ep.true_cost
     )
 ]
 
-input_dim = 2
+args.save = True
+problem = "california"
+if args.save:
+    results_dir = f"./results/{problem}"
+    os.makedirs(results_dir, exist_ok=True)
+    policy = args.policy
+    params_dict = vars(args)
+    for k,v in algo_params.items():
+        if k == "start" or k == "end":
+            v = int(v)
+        if k not in params_dict and k != "df_edges":
+            params_dict[k] = v
+
+    with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
+        json.dump(params_dict, file)
+
+first_trial = args.first_trial
+last_trial = args.first_trial + args.trials - 1
+
+n_dim = 2
 # Nodes are indices
 experiment_manager(
     problem="california",
     algorithm=algo,
     obj_func=obj_func,
     performance_metrics=performance_metrics,
-    input_dim=input_dim,
+    input_dim=n_dim,
     noise_type="noiseless",
     noise_level=0.0,
     policy=args.policy,
-    batch_size=1,
-    num_init_points=args.num_init_points,
-    num_iter=70,
+    batch_size=args.batch_size,
+    num_init_points=2 * (n_dim + 1),
+    num_iter=args.max_iter,
     first_trial=first_trial,
     last_trial=last_trial,
     restart=args.restart,
     save_data=args.save,
     edge_positions=edge_positions,
-    exe_paths=20,
-    bax_num_cand=500,
-    model_verbose=False,
+    exe_paths=3,
 )
 
 
 
 # =================
 
+
+# %%

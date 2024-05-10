@@ -345,7 +345,7 @@ def get_new_suggested_batch(
     if "random" in policy:
         return generate_random_points(num_points=batch_size, input_dim=input_dim)
     elif "ps" in policy:
-        return gen_posterior_sampling_batch(model, algo_acq, batch_size)
+        return gen_posterior_sampling_batch(model, algo_acq, batch_size, **kwargs)
     elif "bax" in policy:
         acq_func = BAXAcquisitionFunction(
             model=model, 
@@ -369,7 +369,7 @@ def get_new_suggested_batch(
             )
         else:
             if edge_positions is not None:
-                x_batch = torch.tensor(edge_positions) # In BAX, they query all the edge locs as well.
+                x_batch = torch.from_numpy(edge_positions) # In BAX, they query all the edge locs as well.
             elif algo_acq.params.name == "TopK":
                 x_batch = np.array(algo_acq.params.x_path)
                 x_batch = torch.from_numpy(x_batch)
