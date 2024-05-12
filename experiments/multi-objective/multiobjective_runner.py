@@ -24,7 +24,7 @@ from src.performance_metrics import PymooHypervolume
 from src.utils import compute_noise_std
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--problem', type=str, default='dtlz2')
+parser.add_argument('--problem', type=str, default='zdt1')
 parser.add_argument('--opt_mode', type=str, default='maximize')
 parser.add_argument('--noise', type=float, default=0.0)
 parser.add_argument('--policy', type=str, default='bax')
@@ -56,7 +56,7 @@ if args.problem == 'dtlz1':
         num_objectives=args.n_obj,
         negate=negate, 
     )
-    ref_val = f._ref_val
+    ref_val = -f._ref_val if negate else f._ref_val
     ref_point = np.array([ref_val] * args.n_obj)
     opt_value = None
 elif args.problem == 'dtlz2':
@@ -82,8 +82,7 @@ elif args.problem == 'zdt1':
         num_objectives=args.n_obj,
         negate=negate, 
     )
-    ref_val = f._ref_val
-    ref_point = np.array([ref_val] * args.n_obj)
+    ref_point = f.ref_point.numpy()
     opt_value = None
 elif args.problem == "zdt2":
     f = ZDT2(
