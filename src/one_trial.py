@@ -107,7 +107,7 @@ def one_trial(
                 obj_vals,
                 model_type=model_type,
                 # architecture=architecture,
-                file_path=results_folder + f"{trial}_",
+                file_path=results_folder + f"failed/trial{trial}",
                 **kwargs
             )
             t1 = time.time()
@@ -132,7 +132,7 @@ def one_trial(
                 inputs,
                 obj_vals,
                 model_type=model_type,
-                file_path=results_folder + f"{trial}_",
+                file_path=results_folder + f"failed/trial{trial}",
                 # architecture=architecture,
                 **kwargs
             )
@@ -169,7 +169,7 @@ def one_trial(
             inputs,
             obj_vals,
             model_type=model_type,
-            file_path=results_folder + f"{trial}_",
+            file_path=results_folder + f"failed/trial{trial}",
             # architecture=architecture,
             **kwargs,
         )
@@ -191,9 +191,9 @@ def one_trial(
         # Checking GP fit MSE
         if check_GP_fit:
 
-            edge_positions = kwargs.get("edge_positions", None)
-            if edge_positions is not None:
-                x_ = torch.tensor(np.array(edge_positions))
+            edge_coords = kwargs.get("edge_coords", None)
+            if edge_coords is not None:
+                x_ = torch.tensor(np.array(edge_coords))
             else:
                 x_ = generate_random_points(num_points=1000, input_dim=input_dim)
             y_ = obj_func(x_)
@@ -263,7 +263,7 @@ def one_trial(
             inputs,
             obj_vals,
             model_type=model_type,
-            file_path=results_folder + f"trial{trial}_iter{iteration}_",
+            file_path=results_folder + f"failed/trial{trial}",
             # architecture=architecture,
             **kwargs,
         )
@@ -330,7 +330,7 @@ def get_new_suggested_batch(
     policy_params: Optional[Dict] = None,
     **kwargs,
 ) -> Tensor:
-    edge_positions = kwargs.get("edge_positions", None) # California
+    edge_coords = kwargs.get("edge_coords", None) # California
     algo_acq = algorithm.get_copy()
     if algo_acq.params.name == "EvolutionStrategies":
         data_x = model.train_inputs[0]
@@ -368,8 +368,8 @@ def get_new_suggested_batch(
                 init_batch_limit=100,
             )
         else:
-            if edge_positions is not None:
-                x_batch = torch.from_numpy(edge_positions) # In BAX, they query all the edge locs as well.
+            if edge_coords is not None:
+                x_batch = torch.from_numpy(edge_coords) # In BAX, they query all the edge locs as well.
             elif algo_acq.params.name == "TopK":
                 x_batch = np.array(algo_acq.params.x_path)
                 x_batch = torch.from_numpy(x_batch)

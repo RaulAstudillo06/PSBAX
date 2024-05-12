@@ -130,7 +130,7 @@ def discobax_trial(
                 inputs,
                 obj_vals,
                 model_type=model_type,
-                file_path=results_folder + f"{trial}_",
+                file_path=results_folder + f"failed/trial{trial}",
                 **kwargs,
             )
             t1 = time.time()
@@ -141,10 +141,10 @@ def discobax_trial(
             last_selected_indices = cumulative_indices[-batch_size:]
 
             # check if inputs @ inputs.T is positive definite
-            try:
-                torch.linalg.cholesky(inputs @ inputs.T) # (n, n)
-            except:
-                pass
+            # try:
+            #     torch.linalg.cholesky(inputs @ inputs.T) # (n, n)
+            # except:
+            #     pass
 
         except:
             raise ValueError("Error in restarting trial")
@@ -161,7 +161,7 @@ def discobax_trial(
             inputs,
             obj_vals,
             model_type=model_type,
-            file_path=results_folder + f"{trial}_",
+            file_path=results_folder + f"failed/trial{trial}",
             **kwargs,
         )
         t1 = time.time()
@@ -239,7 +239,7 @@ def discobax_trial(
             obj_vals,
             model_type=model_type,
             # architecture=architecture,
-            file_path=results_folder + f"trial{trial}_iter{iteration}_",
+            file_path=results_folder + f"failed/trial{trial}",
             **kwargs,
         )
         t1 = time.time()

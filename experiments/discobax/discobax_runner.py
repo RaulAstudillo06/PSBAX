@@ -30,7 +30,7 @@ parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--problem_idx', type=int, default=0)
 parser.add_argument('--use_random', default=False, action='store_true')
 parser.add_argument('--do_pca', default=False, action='store_true')
-parser.add_argument('--pca_dim', type=int, default=20)
+parser.add_argument('--pca_dim', type=int, default=5)
 parser.add_argument('--data_size', type=int, default=5000)
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
@@ -65,16 +65,16 @@ problem = problem_lst[args.problem_idx]
 
 
 # === Testing === #
-TEST = False
+TEST = True
 if TEST:
-    # python discobax_runner.py -s --problem_idx 3 --max_iter 100 --do_pca --pca_dim 5 --data_size 5000 --eta_budget 100 --policy ps
+    # python discobax_runner.py --problem_idx 3 --max_iter 100 --data_size 1700 --policy ps
     args.problem_idx = 3
     args.num_iter = 100
     args.do_pca = True
     args.pca_dim = 5
     args.data_size = 1700
     args.policy = "ps"
-    args.restart = False
+    args.restart = True
     problem = problem_lst[args.problem_idx]
     args.save = True
 # =============== #
