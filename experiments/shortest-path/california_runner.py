@@ -45,12 +45,12 @@ last_trial = args.trials
 
 # ======== data processing
 
-if "experiments" in os.listdir(os.getcwd()):
-    print(os.listdir(os.getcwd()))
-    os.chdir("experiments/")
+# if "experiments" in os.listdir(os.getcwd()):
+#     print(os.listdir(os.getcwd()))
+#     os.chdir("experiments/")
 
-df_edges = pd.read_csv("./data/california/ba_edges_new.csv")
-df_nodes = pd.read_csv("./data/california/ba_edges_new.csv")
+df_edges = pd.read_csv(f"{script_dir}/data/ba_edges_new.csv")
+df_nodes = pd.read_csv(f"{script_dir}/data/ba_edges_new.csv")
 
 df_edges["elevation"] = (df_edges["elevation_y"] + df_edges["elevation_x"]) / 2
 edge_elevation = df_edges["elevation"].to_numpy()

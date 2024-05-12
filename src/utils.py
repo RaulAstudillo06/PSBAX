@@ -36,10 +36,10 @@ def generate_initial_data(
     noise_level = kwargs.get("noise_level", None) # a tensor of noise levels as shape (num_obj,)
     seed = kwargs.get("seed", None)
 
-    edge_positions = kwargs.get("edge_positions", None)
-    if edge_positions is not None:
-        idx = np.random.choice(range(edge_positions.shape[0]), num_init_points, replace=False)
-        inputs = torch.tensor(edge_positions[idx])
+    edge_coords = kwargs.get("edge_coords", None)
+    if edge_coords is not None:
+        idx = np.random.choice(range(edge_coords.shape[0]), num_init_points, replace=False)
+        inputs = torch.tensor(edge_coords[idx])
     else:
         inputs = generate_random_points(num_points=num_init_points, input_dim=input_dim, seed=seed)
     outputs = get_obj_vals(obj_func, inputs, noise_type, noise_level)

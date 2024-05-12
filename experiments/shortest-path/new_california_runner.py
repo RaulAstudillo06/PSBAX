@@ -1,6 +1,7 @@
 #%%
 import os
 import sys
+import math
 sys.setrecursionlimit(10000) 
 import torch
 import json
@@ -21,7 +22,7 @@ sys.path.append(src_dir)
 # from src.bax.util.domain_util import unif_random_sample_domain
 # from src.bax.util.graph import make_grid, edges_of_path, positions_of_path, area_of_polygons
 # from src.bax.util.graph import make_vertices, make_edges
-from src.bax.alg.dijkstra_nx import DijkstraNx
+from src.bax.alg.dijkstra_nx import DijkstraNx, calculate_work
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import NewShortestPathCost
 
@@ -29,7 +30,7 @@ from src.performance_metrics import NewShortestPathCost
 # print(os.listdir(os.getcwd()))
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='bax')
+parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--batch_size', type=int, default=1)
@@ -43,27 +44,68 @@ args = parser.parse_args()
 
 # ======== data processing
 
-df_edges = pd.read_csv(f"{script_dir}/data/new_edges.csv", index_col="edgeid")
-df_nodes = pd.read_csv(f"{script_dir}/data/new_nodes.csv", index_col="nodeid")
+# df_edges = pd.read_csv(f"{script_dir}/data/new_edges.csv", index_col="edgeid")
+# df_nodes = pd.read_csv(f"{script_dir}/data/new_nodes.csv", index_col="nodeid")
+df_edges = pd.read_csv(f"{script_dir}/data/california_edges.csv", index_col="edgeid")
+df_nodes = pd.read_csv(f"{script_dir}/data/california_nodes.csv", index_col="nodeid")
+df_nodes["norm_longitude"] = (df_nodes["longitude"] - df_nodes["longitude"].min()) / (df_nodes["longitude"].max() - df_nodes["longitude"].min())
+df_nodes["norm_latitude"] = (df_nodes["latitude"] - df_nodes["latitude"].min()) / (df_nodes["latitude"].max() - df_nodes["latitude"].min())
+df_edges_clone = df_edges.copy()
+df_edges_clone["start_nodeid"] = df_edges["end_nodeid"]
+df_edges_clone["end_nodeid"] = df_edges["start_nodeid"]
+df_edges = pd.concat([df_edges, df_edges_clone], ignore_index=True)
 
-# Need positive weight for Dijkstra
-df_edges["pos_weight"] = df_edges["mean_elevation"] - df_edges["mean_elevation"].min() 
+
+def from_row_to_coord(row):
+    u, v = row["start_nodeid"], row["end_nodeid"]
+    start_node = df_nodes.loc[u]
+    end_node = df_nodes.loc[v]
+    edge = np.array([start_node["norm_longitude"], start_node["norm_latitude"], end_node["norm_longitude"], end_node["norm_latitude"]])
+    return edge
+
+def from_row_to_work(row):
+    u, v = row["start_nodeid"], row["end_nodeid"]
+    start_node = df_nodes.loc[u]
+    end_node = df_nodes.loc[v]
+    tuple1 = (start_node["longitude"], start_node["latitude"], start_node["elevation"])
+    tuple2 = (end_node["longitude"], end_node["latitude"], end_node["elevation"])
+    return calculate_work(tuple1, tuple2)
+
+
+
+df_edges["coord"] = df_edges.apply(from_row_to_coord, axis=1)
+df_edges["work"] = df_edges.apply(from_row_to_work, axis=1)
+edge_coords = np.vstack(df_edges["coord"])
+# normalize edge coords to 0, 1
+# edge_coords = (edge_coords - edge_coords.min(axis=0)) / (edge_coords.max(axis=0) - edge_coords.min(axis=0))
+# assign new coords to df_edges["coord"]
+df_edges["coord"] = list(edge_coords)
+edge_work = df_edges["work"].to_numpy()
+edge_coord_to_work = {tuple(e): w for e, w in zip(edge_coords, edge_work)}
+
 
 # find the closest node to the start and end points
 start = (-121, 39)
 end = (-117, 35)
 start_node = df_nodes.iloc[((df_nodes["longitude"] - start[0])**2 + (df_nodes["latitude"] - start[1])**2).idxmin()]
 end_node = df_nodes.iloc[((df_nodes["longitude"] - end[0])**2 + (df_nodes["latitude"] - end[1])**2).idxmin()]
+start = start_node.name
+goal = end_node.name
+# 720035.454
 
-edge_positions = df_edges[["norm_longitude", "norm_latitude"]].to_numpy()
-edge_pos_to_weight = {tuple(e): w for e, w in zip(edge_positions, df_edges["pos_weight"])}
+# start = 3939
+# goal = 446
+# true cost = 515605.3191434491
+# edge_coords = df_edges[["norm_longitude", "norm_latitude"]].to_numpy()
+# edge_pos_to_weight = {tuple(e): w for e, w in zip(edge_coords, df_edges["pos_weight"])}
 
 algo_params = {
     "name" : "DijkstraNx",
-    "start": start_node.name,
-    "end": end_node.name,
+    "start": start,
+    "end": goal,
     "df_edges": df_edges,
-    "edge_weight": "pos_weight",
+    "df_nodes": df_nodes,
+    "softplus" : True,
 }
 algo = DijkstraNx(
     algo_params
@@ -76,12 +118,13 @@ def obj_func(X):
     y_values = []
     for x in X:
         x_tuple = tuple(x.tolist())
-        y_values.append(edge_pos_to_weight[x_tuple])
+        y_values.append(edge_coord_to_work[x_tuple])
     return torch.tensor(y_values)
 
 algo_copy = algo.get_copy()
 true_ep, true_output = algo_copy.run_algorithm_on_f(obj_func)
 
+print(f"True cost: {true_ep.true_cost}")
 algo_metric = algo.get_copy()
 
 performance_metrics = [
@@ -91,7 +134,7 @@ performance_metrics = [
     )
 ]
 
-args.save = True
+# args.save = True
 problem = "california"
 if args.save:
     results_dir = f"./results/{problem}"
@@ -101,7 +144,7 @@ if args.save:
     for k,v in algo_params.items():
         if k == "start" or k == "end":
             v = int(v)
-        if k not in params_dict and k != "df_edges":
+        if k not in params_dict and k != "df_edges" and k != "df_nodes":
             params_dict[k] = v
 
     with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
@@ -110,7 +153,7 @@ if args.save:
 first_trial = args.first_trial
 last_trial = args.first_trial + args.trials - 1
 
-n_dim = 2
+n_dim = 4
 # Nodes are indices
 experiment_manager(
     problem="california",
@@ -128,8 +171,8 @@ experiment_manager(
     last_trial=last_trial,
     restart=args.restart,
     save_data=args.save,
-    edge_positions=edge_positions,
-    exe_paths=3,
+    edge_coords=edge_coords,
+    exe_paths=30,
 )
 
 
