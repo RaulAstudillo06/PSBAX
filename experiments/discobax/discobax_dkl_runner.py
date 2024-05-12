@@ -51,9 +51,8 @@ args = parser.parse_args()
 # check gp fit
 # python discobax_dkl_runner.py -s --problem_idx 4 --max_iter 10 --policy ps --data_size 1700 --n_init 100 --check_GP_fit 1 --trials 1 
 
-data_path = "./data/"
-if "discobax" not in os.getcwd():
-    data_path = "./experiments/discobax/data/"
+data_path = f"{script_dir}/data/"
+
 problem_lst = [
     "schmidt_2021_ifng",
     "schmidt_2021_il2",
@@ -132,7 +131,7 @@ algo = SubsetSelect(algo_params)
 
 # == DO if not update_objective == #
 update_objective = False
-fn = f"./data/etas_seed0_size{args.data_size}.txt"
+fn = f"{script_dir}/data/etas_seed0_size{args.data_size}.txt"
 if os.path.exists(fn):
     etas = np.loadtxt(fn)
     if len(etas) == args.eta_budget:
@@ -143,10 +142,9 @@ obj_func.initialize(seed=0, verbose=True)
 eta_arr = np.array(obj_func.etas) # (eta_budget, args.data_size)
 if not os.path.exists(fn):
     try:
-        np.savetxt(f"./data/etas_seed0_size{args.data_size}", eta_arr)
+        np.savetxt(f"{script_dir}/data/etas_seed0_size{args.data_size}", eta_arr)
     except:
         print("Unable to save etas to data dir.")
-        np.savetxt(f"experiments/discobax/data/etas_seed0_size{args.data_size}.txt", eta_arr)
 
 algo.set_obj_func(obj_func)
 
@@ -173,7 +171,7 @@ if args.n_init is None:
 else:
     n_init = args.n_init
 if args.save:
-    results_dir = f"./results/{problem}"
+    results_dir = f"{script_dir}/results/{problem}/{policy}_{args.batch_size}"
     os.makedirs(results_dir, exist_ok=True)
     params_dict = vars(args)
     for k,v in algo_params.items():
@@ -188,8 +186,8 @@ first_trial = args.first_trial
 last_trial = args.first_trial + args.trials - 1
 
 # NOTE: Change DKGP hyperparameters here!
-model_architecture = [64, 32, 10] # Excluding input_dim and output_dim
-epochs = 10000
+model_architecture = [160, 40, 10, 5] # Excluding input_dim and output_dim
+epochs = 5000
 experiment_manager(
     problem=problem,
     algorithm=algo,
