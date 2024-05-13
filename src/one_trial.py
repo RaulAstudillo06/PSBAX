@@ -355,7 +355,7 @@ def get_new_suggested_batch(
         return gen_posterior_sampling_batch(model, algo_acq, batch_size, **kwargs)
     elif "qehvi" in policy:
         mean_at_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
-        ref_point = torch.tensor(algo_acq.ref_point)
+        ref_point = torch.tensor(algo_acq.params.ref_point)
         partitioning = FastNondominatedPartitioning(
             ref_point=ref_point,
             Y=mean_at_train_inputs,
