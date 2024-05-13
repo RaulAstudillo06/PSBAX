@@ -7,8 +7,15 @@ import os
 import sys
 import time
 import torch
+from botorch.acquisition.multi_objective.monte_carlo import (
+    qNoisyExpectedHypervolumeImprovement
+)
 from botorch.models.model import Model
 from botorch.optim import optimize_acqf_discrete
+from botorch.sampling.normal import SobolQMCNormalSampler
+from botorch.utils.multi_objective.box_decompositions.non_dominated import (
+    FastNondominatedPartitioning,
+)
 from torch import Tensor
 import matplotlib.pyplot as plt
 
@@ -346,6 +353,31 @@ def get_new_suggested_batch(
         return generate_random_points(num_points=batch_size, input_dim=input_dim)
     elif "ps" in policy:
         return gen_posterior_sampling_batch(model, algo_acq, batch_size, **kwargs)
+    elif "qehvi" in policy:
+        mean_at_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
+        ref_point = torch.tensor(algo_acq.ref_point)
+        partitioning = FastNondominatedPartitioning(
+            ref_point=ref_point,
+            Y=mean_at_train_inputs,
+        )
+        acq_func = qNoisyExpectedHypervolumeImprovement(
+            model=model,
+            ref_point=ref_point,
+            partitioning=partitioning,
+            sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
+        )
+        standard_bounds = torch.tensor(
+            [[0.0] * input_dim, [1.0] * input_dim]
+        )  # This assumes the input domain has been normalized beforehand
+        x_next = optimize_acqf_and_get_suggested_batch(
+            acq_func=acq_func,
+            bounds=standard_bounds,
+            batch_size=batch_size,
+            num_restarts=5 * input_dim * batch_size,
+            raw_samples=100 * input_dim * batch_size,
+            batch_limit=5,
+            init_batch_limit=100,
+        )
     elif "bax" in policy:
         acq_func = BAXAcquisitionFunction(
             model=model, 
