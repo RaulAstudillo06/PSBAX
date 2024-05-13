@@ -8,7 +8,7 @@ import sys
 import time
 import torch
 from botorch.acquisition.multi_objective.monte_carlo import (
-    qNoisyExpectedHypervolumeImprovement
+    qExpectedHypervolumeImprovement
 )
 from botorch.models.model import Model
 from botorch.optim import optimize_acqf_discrete
@@ -360,7 +360,7 @@ def get_new_suggested_batch(
             ref_point=ref_point,
             Y=mean_at_train_inputs,
         )
-        acq_func = qNoisyExpectedHypervolumeImprovement(
+        acq_func = qExpectedHypervolumeImprovement(
             model=model,
             ref_point=ref_point,
             partitioning=partitioning,
