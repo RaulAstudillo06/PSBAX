@@ -18,7 +18,7 @@ script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
-from src.bax.alg.multiobjective import PymooAlgorithm, HypervolumeAlgorithm
+from src.bax.alg.multiobjective import PymooAlgorithm, HypervolumeAlgorithm, ScalarizedParetoSolver
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import PymooHypervolume
 from src.utils import compute_noise_std
@@ -30,12 +30,12 @@ parser.add_argument('--noise', type=float, default=0.0)
 parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
-parser.add_argument('--n_dim', type=int, default=6)
+parser.add_argument('--n_dim', type=int, default=3)
 parser.add_argument('--n_obj', type=int, default=2)
 parser.add_argument('--n_gen', type=int, default=500)
-parser.add_argument('--pop_size', type=int, default=100)
+parser.add_argument('--pop_size', type=int, default=5)
 # parser.add_argument('--n_init', type=int, default=10)
-parser.add_argument('--batch_size', type=int, default=3)
+parser.add_argument('--batch_size', type=int, default=1)
 parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--algo_name', type=str, default='NSGA2')
 parser.add_argument('--save', '-s', action='store_true', default=False)
@@ -105,26 +105,32 @@ def obj_func(X):
     return f(X)
 
 
+# algo_params = {
+#     "n_dim": args.n_dim,
+#     "n_obj": args.n_obj,
+#     "n_gen": args.n_gen,
+#     "pop_size": args.pop_size,
+#     "n_offsprings": 10,
+#     "opt_mode": args.opt_mode,
+#     "ref_point": ref_point,
+#     "output_size": 50,
+#     "num_runs": 1,
+# }
+# algo = HypervolumeAlgorithm(algo_params)
+
 algo_params = {
     "n_dim": args.n_dim,
     "n_obj": args.n_obj,
-    "n_gen": args.n_gen,
-    "pop_size": args.pop_size,
-    "n_offsprings": 10,
-    "opt_mode": args.opt_mode,
-    "ref_point": ref_point,
-    "output_size": 50,
-    "num_runs": 1,
+    "set_size": args.pop_size,
 }
-algo = HypervolumeAlgorithm(algo_params)
-
+algo = ScalarizedParetoSolver(algo_params)
 
 performance_metrics = [
     PymooHypervolume(
         algo=algo.get_copy(),
         obj_func=obj_func,
         ref_point=ref_point,
-        num_runs=5,
+        num_runs=1,
         opt_value=opt_value,
     )
 ]
@@ -170,6 +176,7 @@ experiment_manager(
     bax_num_cand=10000,
     noise_type=noise_type,
     noise_level=noise_levels,
+    exe_paths=2,
 )
 
 

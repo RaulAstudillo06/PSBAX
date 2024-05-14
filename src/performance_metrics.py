@@ -417,21 +417,21 @@ def evaluate_performance(metrics, model, **kwargs) -> Tensor:
             metric.initialize(model)
             val = metric(model)
         elif isinstance(metric, PosteriorMeanPerformanceMetric):
-            # if isinstance(model, SingleTaskGP) or isinstance(model, DKGP):
-            #     posterior_mean_func = PosteriorMean(model)
-            # else:
-            #     # assert(isinstance(model, ModelListGP))
-            #     pms = []
-            #     for m in model.models:
-            #         pms.append(PosteriorMean(m))
-            #     def aux_func(x):
-            #         # FIXME
-            #         return torch.cat([pm(x) for pm in pms], dim=-1)
-            #     posterior_mean_func = GenericDeterministicModel(f=aux_func)
-            if metric.algo.params.name == "LBFGSB":
+            if isinstance(model, SingleTaskGP) or isinstance(model, DKGP):
                 posterior_mean_func = PosteriorMean(model)
             else:
-                posterior_mean_func = lambda x : model.posterior(x).mean
+                # assert(isinstance(model, ModelListGP))
+                pms = []
+                for m in model.models:
+                    pms.append(PosteriorMean(m))
+                def aux_func(x):
+                    # FIXME
+                    return torch.cat([pm(x) for pm in pms], dim=-1)
+                posterior_mean_func = GenericDeterministicModel(f=aux_func)
+            # if metric.algo.params.name == "LBFGSB":
+            #     posterior_mean_func = PosteriorMean(model)
+            # else:
+            #     posterior_mean_func = lambda x : model.posterior(x).mean
             if metric.algo.params.name == "EvolutionStrategies":
                 # metric.algo.set_cma_seed(seed)
                 data_x = model.train_inputs[0]
@@ -441,6 +441,9 @@ def evaluate_performance(metrics, model, **kwargs) -> Tensor:
                 elif metric.algo.params.opt_mode == "max":
                     opt_idx = np.argmax(data_y)
                 metric.algo.params.init_x = data_x[opt_idx].tolist()
+            
+            if metric.algo.params.name == "ScalarizedParetoSolver":
+                metric.algo.set_model(model)
             val = metric(posterior_mean_func)
         if isinstance(val, tuple):
             performance_metrics.extend(val)

@@ -13,6 +13,23 @@ from pymoo.operators.sampling.rnd import FloatRandomSampling
 from botorch.utils.multi_objective.box_decompositions.non_dominated import (
     FastNondominatedPartitioning
 )
+from botorch.acquisition import AcquisitionFunction
+from botorch.acquisition.objective import MCAcquisitionObjective
+from botorch.models.model import Model
+from botorch.utils.transforms import t_batch_mode_transform
+from botorch.acquisition.objective import GenericMCObjective
+from botorch.utils.multi_objective.scalarization import get_chebyshev_scalarization
+from botorch.utils.sampling import sample_simplex
+from botorch.generation.gen import get_best_candidates
+from botorch.models.model import Model
+from botorch.utils.gp_sampling import get_gp_samples
+from botorch.models.deterministic import GenericDeterministicModel
+from botorch.optim.optimize import optimize_acqf
+
+# from .alg_utils import get_function_samples, optimize_acqf_and_get_suggested_batch
+# from src.utils.utils import optimize_acqf_and_get_suggested_query
+from torch import Tensor
+from typing import Optional
 
 
 from .algorithms import Algorithm
@@ -238,5 +255,116 @@ class HypervolumeAlgorithm(Algorithm):
         self.run_algorithm_on_f(f)
         return self.exe_path.x
     
+class ScalarizedFunction(AcquisitionFunction):
+    r""" """
+
+    def __init__(
+        self,
+        model: Model,
+        f,
+        objective: Optional[MCAcquisitionObjective] = None,
+    ) -> None:
+        r""" """
+        super().__init__(model=model)
+        self.objective = objective
+        self.f = f
+
+    @t_batch_mode_transform()
+    def forward(self, X: Tensor) -> Tensor:
+        r""" """
+        fx = self.f(X).view(1, -1) # need to be `sample_shape x batch_shape x q x m` to pass to self.objective
+        scalarized_posterior_mean = self.objective(fx)
+        return scalarized_posterior_mean
+
+class ScalarizedParetoSolver(Algorithm):
+    def set_params(self, params):
+        super().set_params(params)
+        params = dict_to_namespace(params)
+        self.params.name = getattr(params, "name", "ScalarizedParetoSolver")
+        self.params.n_dim = getattr(params, "n_dim", None)
+        self.params.n_obj = getattr(params, "n_obj", None)
+        self.params.num_runs = getattr(params, "num_runs", 10)
+        self.params.set_size = getattr(params, "set_size", 50)
+        self.params.opt_mode = getattr(params, "opt_mode", "maximize") # always maximizing
+    
+    def initialize(self):
+        self.exe_path = Namespace()
+    
+    def set_model(self, model):
+        self.model = model
+
+    def run_algorithm_on_f(self, f):
+        self.initialize()
+        query = []
+        mean_train_inputs = self.model.posterior(self.model.train_inputs[0][0]).mean.detach()
+        for _ in range(self.params.set_size):
+            # model_rff_sample = get_function_samples(model=self.model)
+            weights = sample_simplex(mean_train_inputs.shape[-1]).squeeze()
+            chebyshev_scalarization = GenericMCObjective(
+                get_chebyshev_scalarization(weights=weights, Y=mean_train_inputs)
+            )
+            acquisition_function = ScalarizedFunction(
+                model=self.model, f=f, objective=chebyshev_scalarization
+            )
+            standard_bounds = torch.tensor(
+            [[0.0] * self.params.n_dim, [1.0] * self.params.n_dim]
+            )  # This assumes the input domain has been normalized beforehand
+            x_next = optimize_acqf_and_get_suggested_batch(
+                acq_func=acquisition_function,
+                bounds=standard_bounds,
+                batch_size=1,
+                num_restarts=5 * self.params.n_dim,
+                raw_samples=100 * self.params.n_dim,
+                batch_limit=1,
+                init_batch_limit=1,
+            )
+
+            query.append(x_next.clone())
+        
+        query = torch.cat(query, dim=-2)
+        y_vals = f(query.unsqueeze(1)).detach().squeeze()
+
+        self.exe_path.x = np.array(query)
+        self.exe_path.y = np.array(y_vals)
+        return self.exe_path, self.exe_path.x
+    
+    def get_output(self):
+        return self.exe_path.x
+    
+    def execute(self, f):
+        self.run_algorithm_on_f(f)
+        return self.exe_path.x
+    
 
 
+def optimize_acqf_and_get_suggested_batch(
+    acq_func: AcquisitionFunction,
+    bounds: Tensor,
+    batch_size: int,
+    num_restarts: int,
+    raw_samples: int,
+    batch_initial_conditions: Optional[Tensor] = None,
+    batch_limit: Optional[int] = 2,
+    init_batch_limit: Optional[int] = 30,
+) -> Tensor:
+    """Optimizes the acquisition function and returns the (approximate) optimum."""
+
+    candidates, acq_values = optimize_acqf(
+        acq_function=acq_func,
+        bounds=bounds,
+        q=batch_size,
+        num_restarts=num_restarts,
+        raw_samples=raw_samples,
+        batch_initial_conditions=batch_initial_conditions,
+        options={
+            "batch_limit": batch_limit,
+            "init_batch_limit": init_batch_limit,
+            "maxiter": 100,
+            "nonnegative": False,
+            "method": "L-BFGS-B",
+        },
+        return_best_only=False,
+    )
+    candidates = candidates.detach()
+    new_x = get_best_candidates(batch_candidates=candidates, batch_values=acq_values)
+    return new_x

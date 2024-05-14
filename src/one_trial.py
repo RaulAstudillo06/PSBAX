@@ -348,6 +348,8 @@ def get_new_suggested_batch(
             opt_idx = np.argmax(data_y)
         algo_acq.params.init_x = data_x[opt_idx].tolist()
     
+    if algo_acq.params.name == "ScalarizedParetoSolver":
+        algo_acq.set_model(model)
 
     if "random" in policy:
         return generate_random_points(num_points=batch_size, input_dim=input_dim)
