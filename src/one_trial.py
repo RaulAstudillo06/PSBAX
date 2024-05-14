@@ -380,6 +380,7 @@ def get_new_suggested_batch(
             batch_limit=5,
             init_batch_limit=100,
         )
+        return x_next
     elif "bax" in policy:
         acq_func = BAXAcquisitionFunction(
             model=model, 

@@ -315,8 +315,8 @@ class ScalarizedParetoSolver(Algorithm):
                 batch_size=1,
                 num_restarts=5 * self.params.n_dim,
                 raw_samples=100 * self.params.n_dim,
-                batch_limit=1,
-                init_batch_limit=1,
+                batch_limit=5,
+                init_batch_limit=100,
             )
 
             query.append(x_next.clone())

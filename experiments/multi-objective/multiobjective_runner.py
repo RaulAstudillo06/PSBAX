@@ -121,7 +121,7 @@ def obj_func(X):
 algo_params = {
     "n_dim": args.n_dim,
     "n_obj": args.n_obj,
-    "set_size": args.pop_size,
+    "set_size": 5 * (2 ** args.n_obj),
 }
 algo = ScalarizedParetoSolver(algo_params)
 
@@ -173,10 +173,9 @@ experiment_manager(
     last_trial=last_trial,
     restart=args.restart,
     save_data=args.save,
-    bax_num_cand=10000,
+    bax_num_cand=1000 * n_dim,
     noise_type=noise_type,
     noise_level=noise_levels,
-    exe_paths=2,
 )
 
 
