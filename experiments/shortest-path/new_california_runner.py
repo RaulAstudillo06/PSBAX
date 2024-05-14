@@ -22,7 +22,7 @@ sys.path.append(src_dir)
 # from src.bax.util.domain_util import unif_random_sample_domain
 # from src.bax.util.graph import make_grid, edges_of_path, positions_of_path, area_of_polygons
 # from src.bax.util.graph import make_vertices, make_edges
-from src.bax.alg.dijkstra_nx import DijkstraNx, calculate_work
+from src.bax.alg.dijkstra import DijkstraNx, calculate_work
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import NewShortestPathCost
 
@@ -34,7 +34,7 @@ parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--batch_size', type=int, default=1)
-parser.add_argument('--max_iter', type=int, default=100)
+parser.add_argument('--max_iter', type=int, default=50)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
@@ -85,16 +85,16 @@ edge_coord_to_work = {tuple(e): w for e, w in zip(edge_coords, edge_work)}
 
 
 # find the closest node to the start and end points
-start = (-121, 39)
-end = (-117, 35)
-start_node = df_nodes.iloc[((df_nodes["longitude"] - start[0])**2 + (df_nodes["latitude"] - start[1])**2).idxmin()]
-end_node = df_nodes.iloc[((df_nodes["longitude"] - end[0])**2 + (df_nodes["latitude"] - end[1])**2).idxmin()]
-start = start_node.name
-goal = end_node.name
+# start = (-121, 39)
+# end = (-117, 35)
+# start_node = df_nodes.iloc[((df_nodes["longitude"] - start[0])**2 + (df_nodes["latitude"] - start[1])**2).idxmin()]
+# end_node = df_nodes.iloc[((df_nodes["longitude"] - end[0])**2 + (df_nodes["latitude"] - end[1])**2).idxmin()]
+# start = start_node.name
+# goal = end_node.name
 # 720035.454
 
-# start = 3939
-# goal = 446
+start = 3939
+goal = 446
 # true cost = 515605.3191434491
 # edge_coords = df_edges[["norm_longitude", "norm_latitude"]].to_numpy()
 # edge_pos_to_weight = {tuple(e): w for e, w in zip(edge_coords, df_edges["pos_weight"])}
