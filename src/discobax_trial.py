@@ -147,7 +147,29 @@ def discobax_trial(
             #     pass
 
         except:
-            raise ValueError("Error in restarting trial")
+            available_indices = obj_func.get_idx()
+            cumulative_indices = []
+            last_selected_indices = list(np.random.choice(available_indices, num_init_points, replace=allow_reselect))
+            cumulative_indices += last_selected_indices
+
+            inputs = obj_func.get_x(last_selected_indices)
+            obj_vals = obj_func.get_y_from_x(inputs)
+            t0 = time.time()
+            model = fit_model(
+                inputs,
+                obj_vals,
+                model_type=model_type,
+                file_path=results_folder + f"failed/trial{trial}",
+                **kwargs,
+            )
+            t1 = time.time()
+            model_training_time = t1 - t0
+
+            performance_metrics_vals = [
+                evaluate_performance(performance_metrics, model, **kwargs)
+            ]
+            runtimes = []
+            iteration = 0
     else:
         available_indices = obj_func.get_idx()
         cumulative_indices = []
