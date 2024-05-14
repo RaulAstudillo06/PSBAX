@@ -174,8 +174,8 @@ def get_function_samples(model):
         def aux_func(X):
             val = []
             for gp_sample in gp_samples:
-                val.append(gp_sample.posterior(X).mean)
-            return torch.cat(val, dim=-1)
+                val.append(gp_sample.posterior(X).mean) # (N, 1, 1)
+            return torch.cat(val, dim=-1) # (N, 1, 2)
         obj_func_sample = GenericDeterministicModel(f=aux_func).to(**tkwargs)
     
     return obj_func_sample

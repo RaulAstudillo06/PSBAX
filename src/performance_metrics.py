@@ -426,7 +426,7 @@ def evaluate_performance(metrics, model, **kwargs) -> Tensor:
                     pms.append(PosteriorMean(m))
                 def aux_func(x):
                     # FIXME
-                    return torch.cat([pm(x) for pm in pms], dim=-1)
+                    return torch.stack([pm(x) for pm in pms], dim=-1)
                 posterior_mean_func = GenericDeterministicModel(f=aux_func)
             # if metric.algo.params.name == "LBFGSB":
             #     posterior_mean_func = PosteriorMean(model)

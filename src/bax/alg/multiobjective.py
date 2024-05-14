@@ -272,8 +272,10 @@ class ScalarizedFunction(AcquisitionFunction):
     @t_batch_mode_transform()
     def forward(self, X: Tensor) -> Tensor:
         r""" """
-        fx = self.f(X).view(1, -1) # need to be `sample_shape x batch_shape x q x m` to pass to self.objective
-        scalarized_posterior_mean = self.objective(fx)
+        fx = self.f(X) # need to be `sample_shape x batch_shape x q x m` to pass to self.objective
+        if len(fx.shape) < 2:
+            fx = fx.view(1, -1)
+        scalarized_posterior_mean = self.objective(fx).squeeze()
         return scalarized_posterior_mean
 
 class ScalarizedParetoSolver(Algorithm):
@@ -324,8 +326,8 @@ class ScalarizedParetoSolver(Algorithm):
         query = torch.cat(query, dim=-2)
         y_vals = f(query.unsqueeze(1)).detach().squeeze()
 
-        self.exe_path.x = np.array(query)
-        self.exe_path.y = np.array(y_vals)
+        self.exe_path.x = np.array(query) # (N, d)
+        self.exe_path.y = np.array(y_vals) # (N, m)
         return self.exe_path, self.exe_path.x
     
     def get_output(self):
