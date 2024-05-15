@@ -285,8 +285,13 @@ class ScalarizedParetoSolver(Algorithm):
         self.params.name = getattr(params, "name", "ScalarizedParetoSolver")
         self.params.n_dim = getattr(params, "n_dim", None)
         self.params.n_obj = getattr(params, "n_obj", None)
-        self.params.num_runs = getattr(params, "num_runs", 10)
-        self.params.set_size = getattr(params, "set_size", 50)
+        self.params.num_runs = getattr(params, "num_runs", 1)
+        self.params.set_size = getattr(params, "set_size", 5 * (2 ** self.params.n_obj))
+        self.params.num_restarts = getattr(params, "num_restarts", 5 * self.params.n_dim)
+        self.params.raw_samples = getattr(params, "raw_samples", 100 * self.params.n_dim)
+        self.params.batch_limit = getattr(params, "batch_limit", 5)
+        self.params.init_batch_limit = getattr(params, "init_batch_limit", 25 * self.params.n_dim)
+
         self.params.opt_mode = getattr(params, "opt_mode", "maximize") # always maximizing
     
     def initialize(self):
@@ -315,12 +320,11 @@ class ScalarizedParetoSolver(Algorithm):
                 acq_func=acquisition_function,
                 bounds=standard_bounds,
                 batch_size=1,
-                num_restarts=5 * self.params.n_dim,
-                raw_samples=100 * self.params.n_dim,
-                batch_limit=5,
-                init_batch_limit=100,
+                num_restarts=self.params.num_restarts,
+                raw_samples=self.params.raw_samples,
+                batch_limit=self.params.batch_limit,
+                init_batch_limit=self.params.init_batch_limit,
             )
-
             query.append(x_next.clone())
         
         query = torch.cat(query, dim=-2)

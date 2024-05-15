@@ -121,14 +121,28 @@ def obj_func(X):
 algo_params = {
     "n_dim": args.n_dim,
     "n_obj": args.n_obj,
-    "set_size": 5 * (2 ** args.n_obj),
-    # "set_size" : 3,
+    "set_size": 2 ** args.n_obj,
+    "num_restarts": args.n_dim,
+    "raw_samples": 50 * args.n_dim,
+    "batch_limit": args.n_dim,
+    "init_batch_limit": 25 * args.n_dim,
 }
 algo = ScalarizedParetoSolver(algo_params)
 
+performance_metric_algo_params = {
+    "n_dim": args.n_dim,
+    "n_obj": args.n_obj,
+    "set_size": 5 * (2 ** args.n_obj),
+    "num_restarts": 5 * args.n_dim,
+    "raw_samples": 100 * args.n_dim,
+    "batch_limit": 5,
+    "init_batch_limit": 25 * args.n_dim,
+}
+performance_metric_algo = ScalarizedParetoSolver(performance_metric_algo_params)
+
 performance_metrics = [
     PymooHypervolume(
-        algo=algo.get_copy(),
+        algo=performance_metric_algo,
         obj_func=obj_func,
         ref_point=ref_point,
         num_runs=1,
