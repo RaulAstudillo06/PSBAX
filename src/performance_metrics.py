@@ -402,6 +402,39 @@ class NewShortestPathCost(PosteriorMeanPerformanceMetric):
         return np.mean(costs), np.mean(costs) - self.optimum_cost
 
 
+class F1Score(PosteriorMeanPerformanceMetric):
+    def __init__(self, algo, obj_func, **kwargs):
+        super().__init__("F1Score")
+        self.algo = algo
+        self.obj_func = obj_func
+        self.x_gt = None # numpy array
+
+    def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
+        _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
+        if self.x_gt is None:
+            _, output_gt = self.algo.run_algorithm_on_f(self.obj_func)
+            self.x_gt = output_gt
+
+        return self.f1_score(self.x_gt, output_mf)
+    
+    def f1_score(self, x_gt, x_pred):
+        x_gt_set = set()
+        for x in x_gt:
+            x_gt_set.add(tuple(x))
+        x_pred_set = set()
+        for x in x_pred:
+            x_pred_set.add(tuple(x))
+        tp = len(x_gt_set.intersection(x_pred_set))
+        fp = len(x_pred_set.difference(x_gt_set))
+        fn = len(x_gt_set.difference(x_pred_set))
+        precision = tp / (tp + fp)
+        recall = tp / (tp + fn)
+        f1 = 2 * precision * recall / (precision + recall)
+        return f1
+    
+
+
+
 def evaluate_performance(metrics, model, **kwargs) -> Tensor:
     '''
     Args:
@@ -432,6 +465,10 @@ def evaluate_performance(metrics, model, **kwargs) -> Tensor:
             #     posterior_mean_func = PosteriorMean(model)
             # else:
             #     posterior_mean_func = lambda x : model.posterior(x).mean
+
+            # NOTE: Using PosteriorMean or GenericDeterministicModel requires X to be `batch_shape x q=1 x d`
+            # but model.posterior(x).mean doesn't require it.
+
             if metric.algo.params.name == "EvolutionStrategies":
                 # metric.algo.set_cma_seed(seed)
                 data_x = model.train_inputs[0]

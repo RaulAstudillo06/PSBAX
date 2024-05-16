@@ -37,17 +37,36 @@ def generate_initial_data(
     seed = kwargs.get("seed", None)
 
     edge_coords = kwargs.get("edge_coords", None)
+    x_set = kwargs.get("x_set", None)
+    x_init = kwargs.get("x_init", None)
+
     if edge_coords is not None:
         idx = np.random.choice(range(edge_coords.shape[0]), num_init_points, replace=False)
         inputs = torch.tensor(edge_coords[idx])
+    elif x_set is not None:
+        idx = np.random.choice(range(x_set.shape[0]), num_init_points, replace=False)
+        inputs = torch.tensor(x_set[idx])
     else:
         inputs = generate_random_points(num_points=num_init_points, input_dim=input_dim, seed=seed)
+    if x_init is not None:
+        inputs = torch.cat([inputs, x_init], dim=0)
     outputs = get_obj_vals(obj_func, inputs, noise_type, noise_level)
     return inputs, outputs
 
 
-def generate_random_points(num_points: int, input_dim: int, seed: int = None, batch_size: int = None):
+def generate_random_points(num_points: int, input_dim: int, seed: int = None, batch_size: int = None, **kwargs):
     # Generate `num_batches` inputs each constituted by `batch_size` points chosen uniformly at random
+    edge_coords = kwargs.get("edge_coords", None)
+    x_set = kwargs.get("x_set", None)
+    x_init = kwargs.get("x_init", None)
+    if edge_coords is not None:
+        idx = np.random.choice(range(edge_coords.shape[0]), num_points, replace=False)
+        inputs = torch.tensor(np.atleast_2d(edge_coords[idx]))
+        return inputs
+    elif x_set is not None:
+        idx = np.random.choice(range(x_set.shape[0]), num_points, replace=False)
+        inputs = torch.tensor(np.atleast_2d(x_set[idx]))
+        return inputs
     
     if seed is not None:
         old_state = torch.random.get_rng_state()

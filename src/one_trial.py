@@ -338,6 +338,7 @@ def get_new_suggested_batch(
     **kwargs,
 ) -> Tensor:
     edge_coords = kwargs.get("edge_coords", None) # California
+    x_set = kwargs.get("x_set", None) # Level set
     algo_acq = algorithm.get_copy()
     if algo_acq.params.name == "EvolutionStrategies":
         data_x = model.train_inputs[0]
@@ -352,7 +353,7 @@ def get_new_suggested_batch(
         algo_acq.set_model(model)
 
     if "random" in policy:
-        return generate_random_points(num_points=batch_size, input_dim=input_dim)
+        return generate_random_points(num_points=batch_size, input_dim=input_dim, **kwargs)
     elif "ps" in policy:
         return gen_posterior_sampling_batch(model, algo_acq, batch_size, **kwargs)
     elif "qehvi" in policy:
@@ -405,6 +406,8 @@ def get_new_suggested_batch(
         else:
             if edge_coords is not None:
                 x_batch = torch.from_numpy(edge_coords) # In BAX, they query all the edge locs as well.
+            elif x_set is not None:
+                x_batch = torch.from_numpy(x_set)
             elif algo_acq.params.name == "TopK":
                 x_batch = np.array(algo_acq.params.x_path)
                 x_batch = torch.from_numpy(x_batch)
