@@ -199,7 +199,7 @@ def one_trial(
             if edge_coords is not None:
                 x_ = torch.tensor(np.array(edge_coords))
             else:
-                x_ = generate_random_points(num_points=1000, input_dim=input_dim)
+                x_ = generate_random_points(num_points=1000, input_dim=input_dim, **kwargs)
             y_ = obj_func(x_)
             post_ = model.posterior(x_)
             mean_ = post_.mean.detach().numpy().flatten()
@@ -408,6 +408,7 @@ def get_new_suggested_batch(
                 x_batch = generate_random_points(
                     num_points=num_points, 
                     input_dim=input_dim,
+                    **kwargs,
                 ) # (N, d)
             x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
         

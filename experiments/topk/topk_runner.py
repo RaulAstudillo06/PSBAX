@@ -150,4 +150,5 @@ experiment_manager(
     last_trial=last_trial,
     restart=args.restart,
     save_data=args.save,
+    x_batch=np.array(x_path),
 )
