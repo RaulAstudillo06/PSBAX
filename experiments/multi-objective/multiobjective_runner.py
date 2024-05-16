@@ -138,6 +138,7 @@ performance_metric_algo_params = {
     "raw_samples": 100 * args.n_dim,
     "batch_limit": 5,
     "init_batch_limit": 25 * args.n_dim,
+    "ref_point": ref_point,
 }
 performance_metric_algo = ScalarizedParetoSolver(performance_metric_algo_params)
 
