@@ -353,10 +353,10 @@ def get_new_suggested_batch(
     elif "ps" in policy:
         return gen_posterior_sampling_batch(model, algo_acq, batch_size, **kwargs)
     elif "qehvi" in policy:
-        qNoisyExpectedHypervolumeImprovement(
+        acq_func=qNoisyExpectedHypervolumeImprovement(
             model=model,
             ref_point=torch.tensor(algo_acq.params.ref_point),  # use known reference point
-            X_baseline=model.train_inputs[0][0].copy(),
+            X_baseline=model.train_inputs[0][0],
             prune_baseline=False,
             sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
         )
