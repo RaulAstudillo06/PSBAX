@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 print(os.getcwd())
 # when run in jupyter notebook: /home/ec2-user/projects/PSBAX/experiments
 sys.path.append('../')
-from src.performance_metrics import *
+# from src.performance_metrics import *
 
 
 problem_setting = [
@@ -50,10 +50,10 @@ results_dir = os.path.join(".", problem_setting[0], "results")
 # problem = "discobax_sanchez_2021_tau_top_5000"
 # problem = "dijkstra"
 # problem = "lbfgsb_rastrigin_10d"
-problem = "levelset_himmelblau"
+problem = "levelset_volcano"
 
 policies = [
-    # "random",
+    "random",
     "bax", 
     "ps", 
     # "OPT", 
@@ -83,9 +83,9 @@ graph_trials = [
     5, 
     6, 
     7, 
-    8, 
-    9, 
-    10,
+    # 8, 
+    # 9, 
+    # 10,
 ]
 # graph_trials = [i for i in range(1, 19)]
 show_title = True
@@ -162,6 +162,7 @@ for policy in policies:
             arrs[metrics_name] = optimum - arrs[metrics_name]
 
     algo_performance_arrs[policy] = arrs
+
 
 #%%
 # max_iters = max([arr.shape[1] for arr in algo_performance_arrs[policy].values()])
