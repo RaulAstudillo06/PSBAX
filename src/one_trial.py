@@ -8,14 +8,11 @@ import sys
 import time
 import torch
 from botorch.acquisition.multi_objective.monte_carlo import (
-    qExpectedHypervolumeImprovement
+    qNoisyExpectedHypervolumeImprovement
 )
 from botorch.models.model import Model
 from botorch.optim import optimize_acqf_discrete
 from botorch.sampling.normal import SobolQMCNormalSampler
-from botorch.utils.multi_objective.box_decompositions.non_dominated import (
-    FastNondominatedPartitioning,
-)
 from torch import Tensor
 import matplotlib.pyplot as plt
 
@@ -357,16 +354,11 @@ def get_new_suggested_batch(
     elif "ps" in policy:
         return gen_posterior_sampling_batch(model, algo_acq, batch_size, **kwargs)
     elif "qehvi" in policy:
-        mean_at_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
-        ref_point = torch.tensor(algo_acq.params.ref_point)
-        partitioning = FastNondominatedPartitioning(
-            ref_point=ref_point,
-            Y=mean_at_train_inputs,
-        )
-        acq_func = qExpectedHypervolumeImprovement(
+        acq_func=qNoisyExpectedHypervolumeImprovement(
             model=model,
-            ref_point=ref_point,
-            partitioning=partitioning,
+            ref_point=torch.tensor(algo_acq.params.ref_point),  # use known reference point
+            X_baseline=model.train_inputs[0][0],
+            prune_baseline=False,
             sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
         )
         standard_bounds = torch.tensor(

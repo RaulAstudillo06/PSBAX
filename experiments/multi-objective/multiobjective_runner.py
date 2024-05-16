@@ -8,7 +8,7 @@ import json
 from pymoo.problems import get_problem
 from pymoo.indicators.hv import HV
 from botorch.settings import debug
-from botorch.test_functions.multi_objective import DTLZ1, ZDT1, ZDT2, DTLZ2
+from botorch.test_functions.multi_objective import DTLZ1, ZDT1, ZDT2, DTLZ2, VehicleSafety
 
 torch.set_default_dtype(torch.float64)
 torch.autograd.set_detect_anomaly(False)
@@ -76,6 +76,15 @@ elif args.problem == 'dtlz2':
     pymoo_ref_point = np.array([1.1] * args.n_obj)
     ind_pymoo = HV(ref_point=pymoo_ref_point)
     opt_value = ind_pymoo(pymoo_pf)
+elif args.problem == 'vehiclesafety':
+    vehiclesafety_func = VehicleSafety(negate=True)
+    ref_point = vehiclesafety_func.ref_point.numpy()
+
+    def f(X):
+        X_unscaled = 2.0 * X + 1.0
+        output = vehiclesafety_func(X_unscaled)
+        return output
+    
 elif args.problem == 'zdt1':
     f = ZDT1(
         dim=args.n_dim,
@@ -121,14 +130,30 @@ def obj_func(X):
 algo_params = {
     "n_dim": args.n_dim,
     "n_obj": args.n_obj,
-    "set_size": 5 * (2 ** args.n_obj),
-    # "set_size" : 3,
+    "set_size": 2 ** args.n_obj,
+    "num_restarts": args.n_dim,
+    "raw_samples": 50 * args.n_dim,
+    "batch_limit": args.n_dim,
+    "init_batch_limit": 25 * args.n_dim,
+    "ref_point": ref_point,
 }
 algo = ScalarizedParetoSolver(algo_params)
 
+performance_metric_algo_params = {
+    "n_dim": args.n_dim,
+    "n_obj": args.n_obj,
+    "set_size": 5 * (2 ** args.n_obj),
+    "num_restarts": 5 * args.n_dim,
+    "raw_samples": 100 * args.n_dim,
+    "batch_limit": 5,
+    "init_batch_limit": 25 * args.n_dim,
+    "ref_point": ref_point,
+}
+performance_metric_algo = ScalarizedParetoSolver(performance_metric_algo_params)
+
 performance_metrics = [
     PymooHypervolume(
-        algo=algo.get_copy(),
+        algo=performance_metric_algo,
         obj_func=obj_func,
         ref_point=ref_point,
         num_runs=1,
