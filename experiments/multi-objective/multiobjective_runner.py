@@ -8,7 +8,7 @@ import json
 from pymoo.problems import get_problem
 from pymoo.indicators.hv import HV
 from botorch.settings import debug
-from botorch.test_functions.multi_objective import DTLZ1, ZDT1, ZDT2, DTLZ2
+from botorch.test_functions.multi_objective import DTLZ1, ZDT1, ZDT2, DTLZ2, VehicleSafety
 
 torch.set_default_dtype(torch.float64)
 torch.autograd.set_detect_anomaly(False)
@@ -76,6 +76,15 @@ elif args.problem == 'dtlz2':
     pymoo_ref_point = np.array([1.1] * args.n_obj)
     ind_pymoo = HV(ref_point=pymoo_ref_point)
     opt_value = ind_pymoo(pymoo_pf)
+elif args.problem == 'vehiclesafety':
+    vehiclesafety_func = VehicleSafety(negate=True)
+    ref_point = vehiclesafety_func.ref_point.numpy()
+
+    def f(X):
+        X_unscaled = 2.0 * X + 1.0
+        output = vehiclesafety_func(X_unscaled)
+        return output
+    
 elif args.problem == 'zdt1':
     f = ZDT1(
         dim=args.n_dim,
