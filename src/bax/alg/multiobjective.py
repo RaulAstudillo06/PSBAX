@@ -291,6 +291,7 @@ class ScalarizedParetoSolver(Algorithm):
         self.params.raw_samples = getattr(params, "raw_samples", 100 * self.params.n_dim)
         self.params.batch_limit = getattr(params, "batch_limit", 5)
         self.params.init_batch_limit = getattr(params, "init_batch_limit", 25 * self.params.n_dim)
+        self.params.ref_point = getattr(params, "ref_point")
 
         self.params.opt_mode = getattr(params, "opt_mode", "maximize") # always maximizing
     
