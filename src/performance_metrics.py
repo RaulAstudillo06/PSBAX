@@ -147,6 +147,21 @@ class ShortestPathCost(PosteriorMeanPerformanceMetric):
         true_cost = self.algo.true_cost_of_shortest_path
         return true_cost # true cost func is defined in the algo
     
+class SumOfObjectiveValues(PosteriorMeanPerformanceMetric):
+    def __init__(self, algo, obj_func):
+        super().__init__("Sum of objective values")
+        self.algo = algo
+        self.obj_func = obj_func
+        self.sum_gt = None
+
+    def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
+        if self.sum_gt is None:
+            _, self.output_gt = self.algo.run_algorithm_on_f(self.obj_func)
+            sum_gt = self.obj_func(np.array(self.output_gt.x)).sum().item()
+        _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
+        sum_mf = self.obj_func(np.array(output_mf.x)).sum().item()
+        
+        return sum_gt - sum_mf
 
 class ShortestPathArea(PosteriorMeanPerformanceMetric):
     def __init__(self, algo, obj_func):

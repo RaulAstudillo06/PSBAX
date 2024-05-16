@@ -15,10 +15,11 @@ from src.performance_metrics import *
 
 problem_setting = [
     # "discobax",
-    "single-objective",
+    # "single-objective",
     # "multi-objective",
     # "shortest-path",
     # "topk",
+    "level-set",
 ] # Comment out the rest, only keep one
 results_dir = os.path.join(".", problem_setting[0], "results")
 
@@ -37,7 +38,7 @@ results_dir = os.path.join(".", problem_setting[0], "results")
 # problem = "zdt2_6d_2obj"
 # problem = "zdt2_6d_2obj_noise0.1"
 # problem = "hartmann_6d"
-problem = "ackley_10d"
+# problem = "ackley_10d"
 # problem = "rastrigin_10d"
 # problem = "dijkstra"
 # problem = "california"
@@ -49,16 +50,17 @@ problem = "ackley_10d"
 # problem = "discobax_sanchez_2021_tau_top_5000"
 # problem = "dijkstra"
 # problem = "lbfgsb_rastrigin_10d"
+problem = "levelset_himmelblau"
 
 policies = [
     # "random",
-    # "bax", 
-    # "ps", 
+    "bax", 
+    "ps", 
     # "OPT", 
     # "bax_modelgp",
     # "ps_modelgp",
-    "bax_gp_lbfgsb",
-    "ps_gp_lbfgsb",
+    # "bax_gp_lbfgsb",
+    # "ps_gp_lbfgsb",
     # "bax_modelgp_cma",
     # "ps_modelgp_cma",
     # "bax_modelgp_mut",
@@ -86,13 +88,13 @@ graph_trials = [
     10,
 ]
 # graph_trials = [i for i in range(1, 19)]
-show_title = False
+show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 3
+batch_size = 1
 log = False
-bax_iters = 100
-max_iters = 100
+bax_iters = 30
+max_iters = 30
 # bax_iters = None
 optimum = None
 file_format = ".png"
@@ -122,8 +124,9 @@ setting_to_metric = {
     "discobax" : ["DiscoBAXMetric"],
     "single-objective": ["BestValue"],
     "multi-objective": ["HypervolumeDifference"],
-    "topk": ["Jaccard", "Norm"],
-    "shortest-path": ["ShortestPathCost", "ShortestPathArea"],
+    "topk": ["Jaccard", "SumOfValues"],
+    "shortest-path": ["ShortestPathCost", "Regret"],
+    "level-set": ["F1Score"],
 }
 metrics = setting_to_metric[problem_setting[0]]
 

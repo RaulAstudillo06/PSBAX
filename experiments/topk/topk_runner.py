@@ -22,7 +22,7 @@ sys.path.append(src_dir)
 
 from src.bax.alg.algorithms import TopK
 from src.experiment_manager import experiment_manager
-from src.performance_metrics import JaccardSimilarity, NormDifference
+from src.performance_metrics import JaccardSimilarity, NormDifference, SumOfObjectiveValues
 from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import jaccard_similarity
 from src.utils import seed_torch, generate_random_points
@@ -112,7 +112,8 @@ algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 algo_metric = algo.get_copy()
 performance_metrics = [
     JaccardSimilarity(algo_metric, obj_func),
-    NormDifference(algo_metric, obj_func),
+    # NormDifference(algo_metric, obj_func),
+    SumOfObjectiveValues(algo_metric, obj_func),
 ]
 
 problem = f"topk_{args.function}"
