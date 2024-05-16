@@ -126,6 +126,7 @@ algo_params = {
     "raw_samples": 50 * args.n_dim,
     "batch_limit": args.n_dim,
     "init_batch_limit": 25 * args.n_dim,
+    "ref_point": ref_point,
 }
 algo = ScalarizedParetoSolver(algo_params)
 
