@@ -372,6 +372,7 @@ def get_new_suggested_batch(
             batch_limit=5,
             init_batch_limit=100,
         )
+        return x_next
     elif "qehvi" in policy:
         mean_at_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
         ref_point = mean_at_train_inputs.min(0).values
