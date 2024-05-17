@@ -374,9 +374,12 @@ def get_new_suggested_batch(
             init_batch_limit=100,
         )
     elif "qehvi" in policy:
-        acq_func=qNoisyExpectedHypervolumeImprovement(
+        mean_at_train_inputs = model.posterior(model.train_inputs[0][0]).mean.detach()
+        ref_point = mean_at_train_inputs.min(0).values
+        # ref_point = torch.tensor(algo_acq.params.ref_point)
+        acq_func = qNoisyExpectedHypervolumeImprovement(
             model=model,
-            ref_point=torch.tensor(algo_acq.params.ref_point),  # use known reference point
+            ref_point=ref_point,
             X_baseline=model.train_inputs[0][0],
             prune_baseline=False,
             sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
