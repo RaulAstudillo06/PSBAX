@@ -7,7 +7,7 @@ import os
 import sys
 import time
 import torch
-from botorch.acquisition import qExpectedImprovement
+from botorch.acquisition import qNoisyExpectedImprovement
 from botorch.acquisition.multi_objective.monte_carlo import (
     qNoisyExpectedHypervolumeImprovement
 )
@@ -355,11 +355,10 @@ def get_new_suggested_batch(
     elif "ps" in policy:
         return gen_posterior_sampling_batch(model, algo_acq, batch_size, **kwargs)
     elif "qei" in policy:
-        acq_func = qExpectedImprovement(
+        acq_func = qNoisyExpectedImprovement(
             model=model,
-            best_f=model.train_targets.max(), # TODO: check whether this is before outcome transform
+            X_baseline=model.train_inputs[0],
             sampler=SobolQMCNormalSampler(sample_shape=torch.Size([128])),
-        
         )
         standard_bounds = torch.tensor(
             [[0.0] * input_dim, [1.0] * input_dim]
