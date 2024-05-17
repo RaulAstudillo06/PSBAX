@@ -61,6 +61,16 @@ def generate_random_points(num_points: int, input_dim: int, seed: int = None, ba
     elif x_batch is not None:
         idx = np.random.choice(range(x_batch.shape[0]), num_points, replace=True)
         inputs = torch.tensor(np.atleast_2d(x_batch[idx]))
+        return inputs
+
+    if seed is not None:
+        old_state = torch.random.get_rng_state()
+        torch.manual_seed(seed)
+        inputs = torch.rand([num_points, input_dim])
+        torch.random.set_rng_state(old_state)
+    else:
+        inputs = torch.rand([num_points, input_dim])
+    return inputs
 
     if seed is not None:
         old_state = torch.random.get_rng_state()

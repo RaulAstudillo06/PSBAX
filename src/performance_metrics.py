@@ -149,7 +149,7 @@ class ShortestPathCost(PosteriorMeanPerformanceMetric):
     
 class SumOfObjectiveValues(PosteriorMeanPerformanceMetric):
     def __init__(self, algo, obj_func):
-        super().__init__("Sum of objective values")
+        super().__init__("Sum of objective values (regret)")
         self.algo = algo
         self.obj_func = obj_func
         self.sum_gt = None
@@ -374,7 +374,7 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
 
 class PymooHypervolume(PosteriorMeanPerformanceMetric):
     def __init__(self, algo, obj_func, ref_point, **kwargs):
-        super().__init__("Hypervolume")
+        
         self.algo = algo
         self.obj_func = obj_func
         self.ref_point = ref_point
@@ -383,6 +383,8 @@ class PymooHypervolume(PosteriorMeanPerformanceMetric):
         self.hv = Hypervolume(ref_point=torch.from_numpy(ref_point))
         # self.hv = HV(ref_point=self.weight * self.ref_point)
         self.opt_value = kwargs.pop("opt_value", None)
+        name = "HypervolumeDifference" if self.opt_value is not None else "Hypervolume"
+        super().__init__(name)
     
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         hvs = []
