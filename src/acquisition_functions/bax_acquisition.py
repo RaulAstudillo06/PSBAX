@@ -266,9 +266,19 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         #     return exe_path_list, output_list
 
         self.algorithm.initialize()
-        algo_list = []
-        algo_list = [self.algorithm.get_copy() for _ in range(self.n_samples)]
+        if (nocopy := getattr(self.algorithm.params, "no_copy", False)):
+            exe_path_list = []
+            output_list = []
+            for f_sample in f_sample_list:
+                algo = self.algorithm.get_copy()
+                exe_path, output = algo.run_algorithm_on_f(f_sample)
+                # algo_list.append(algo)
+                exe_path_list.append(exe_path)
+                output_list.append(output)
+            return exe_path_list, output_list
         
+
+        algo_list = [self.algorithm.get_copy() for _ in range(self.n_samples)]
         if self.algorithm.params.name == "TopK":
             for algo in algo_list:
                 algo.initialize()

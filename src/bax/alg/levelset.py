@@ -14,6 +14,7 @@ class LevelSetEstimator(Algorithm):
         self.params.name = getattr(params, "name", "SimpleLevelSet")
         self.params.threshold = getattr(params, "threshold", 10)
         self.params.x_set = getattr(params, "x_set", None)
+        self.params.no_copy = getattr(params, "no_copy", None)
 
     def initialize(self):
         self.exe_path = Namespace()

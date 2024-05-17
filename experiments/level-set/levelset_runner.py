@@ -25,7 +25,7 @@ from src.experiment_manager import experiment_manager
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='random')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--problem', type=str, default='volcano')
 parser.add_argument('--tau', type=float, default=0.55)
 parser.add_argument('--dim', type=int, default=2)
@@ -109,6 +109,7 @@ algo_params = {
     "threshold" : threshold,
     "x_set" : x_set,
     # "x_init" : x_init,
+    "no_copy" : True,
 }
 algo = LevelSetEstimator(algo_params)
 
