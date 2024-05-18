@@ -148,7 +148,7 @@ def one_trial(
             # performance_metrics_vals = [
             #     compute_performance_metrics(obj_func, model, performance_metrics)
             # ]
-            kwargs["seed"] = trial - 1 # TODO: change to previous trial
+            # kwargs["seed"] = trial - 1 # TODO: change to previous trial
             performance_metrics_vals = [
                 evaluate_performance(performance_metrics, model, **kwargs)
             ]
@@ -181,7 +181,6 @@ def one_trial(
         t1 = time.time()
         model_training_time = t1 - t0
 
-        kwargs["seed"] = 0
         performance_metrics_vals = [
             evaluate_performance(performance_metrics, model, **kwargs)
         ]
@@ -281,7 +280,7 @@ def one_trial(
         # )
         # TODO: is this necessary?
     
-        kwargs["seed"] = trial
+        # kwargs["seed"] = trial
         current_performance_metrics = evaluate_performance(performance_metrics, model, **kwargs)
 
         # for i, performance_metric_id in enumerate(performance_metrics.keys()):

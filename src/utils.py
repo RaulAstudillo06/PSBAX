@@ -47,9 +47,9 @@ def generate_initial_data(
 
 def generate_random_points(num_points: int, input_dim: int, seed: int = None, batch_size: int = None, **kwargs):
     # Generate `num_batches` inputs each constituted by `batch_size` points chosen uniformly at random
-    edge_coords = kwargs.get("edge_coords", None)
-    x_set = kwargs.get("x_set", None)
-    x_batch = kwargs.get("x_batch", None)
+    edge_coords = kwargs.get("edge_coords", None) # Dijkstra
+    x_set = kwargs.get("x_set", None) # Level set
+    x_batch = kwargs.get("x_batch", None) # Top k
     if edge_coords is not None:
         idx = np.random.choice(range(edge_coords.shape[0]), num_points, replace=True)
         inputs = torch.tensor(np.atleast_2d(edge_coords[idx]))
