@@ -90,7 +90,7 @@ def obj_func(X, domain=domain):
 
 # seed_torch(1234) # NOTE: fix seed for generating x_path
 
-args.use_mesh = True
+
 if args.use_mesh:
     xx = get_mesh(input_dim, args.steps)
     x_path = reshape_mesh(xx).numpy()
