@@ -214,3 +214,27 @@ def seed_torch(seed, verbose=True):
 def rand_argmax(tens):
     max_inds, = torch.where(tens == tens.max())
     return np.random.choice(max_inds)
+
+def reshape_mesh(xx):
+    '''
+    Args:
+        xx: list of torch tensors from get_mesh
+    Returns:
+        torch tensor of shape (num_points, input_dim = len(xx))
+    '''
+    return torch.hstack([xx[i].reshape(-1, 1) for i in range(len(xx))])
+
+def get_mesh(dim, steps):
+    '''
+    Args:
+        dim: int, input dimension
+        steps: int, number of points in each dimension
+    Returns:
+        len(dim) list of torch tensors of shape (steps, steps, ..., steps)
+    '''
+    xx = []
+    for _ in range(dim):
+        ax = torch.linspace(0, 1, steps)
+        xx.append(ax)
+    xx = torch.meshgrid(*xx, indexing='ij')
+    return xx

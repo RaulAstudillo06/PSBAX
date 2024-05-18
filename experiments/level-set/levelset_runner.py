@@ -22,11 +22,12 @@ sys.path.append(src_dir)
 from src.bax.alg.levelset import LevelSetEstimator
 from src.performance_metrics import F1Score
 from src.experiment_manager import experiment_manager
+from src.utils import reshape_mesh, get_mesh
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
-parser.add_argument('--problem', type=str, default='volcano')
+parser.add_argument('--problem', type=str, default='griewank')
 parser.add_argument('--tau', type=float, default=0.55)
 parser.add_argument('--dim', type=int, default=2)
 parser.add_argument('--n_init', type=int, default=0)
@@ -39,17 +40,6 @@ parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
 #%%
-
-def reshape_mesh(xx):
-    return torch.hstack([xx[i].reshape(-1, 1) for i in range(len(xx))])
-
-def get_mesh(dim, steps):
-    xx = []
-    for _ in range(dim):
-        ax = torch.linspace(0, 1, steps)
-        xx.append(ax)
-    xx = torch.meshgrid(*xx, indexing='ij')
-    return xx
 
 def get_threshold(f, tau, n=1000):
     x_test = torch.rand(n, args.dim)
@@ -74,6 +64,7 @@ if args.problem == "volcano":
     x_init = torch.from_numpy(np.atleast_2d(x_set[idx]))
 elif args.problem == "himmelblau":
     args.dim = 2
+    args.steps = 50
     bounds = [-6, 6]
     def himmelblau(X: torch.Tensor, minimize=False) -> torch.Tensor:
         X = (bounds[1] - bounds[0]) * X + bounds[0]
@@ -88,6 +79,26 @@ elif args.problem == "himmelblau":
     xx = get_mesh(args.dim, args.steps)
     x_set = reshape_mesh(xx).numpy()
     fx = himmelblau(torch.tensor(x_set))
+    x_to_elevation = {tuple(x): f for x, f in zip(x_set, fx)}
+    idx = torch.argmax(fx)
+    x_init = torch.tensor(x_set[idx]).reshape(1, -1)
+elif args.problem == "griewank":
+    args.dim = 3
+    args.steps = 15
+    bounds = [-5, 5]
+    def griewank(X: torch.Tensor, minimize=False) -> torch.Tensor:
+        X = (bounds[1] - bounds[0]) * X + bounds[0]
+        a = X[:, 0]
+        b = X[:, 1]
+        result = 1 + (a ** 2 + b ** 2) / 4000 - torch.cos(a) * torch.cos(b / math.sqrt(2))
+        if not minimize:
+            return -result
+        return result
+
+    threshold = get_threshold(griewank, args.tau)
+    xx = get_mesh(args.dim, args.steps)
+    x_set = reshape_mesh(xx).numpy()
+    fx = griewank(torch.tensor(x_set))
     x_to_elevation = {tuple(x): f for x, f in zip(x_set, fx)}
     idx = torch.argmax(fx)
     x_init = torch.tensor(x_set[idx]).reshape(1, -1)

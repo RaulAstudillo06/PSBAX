@@ -25,7 +25,7 @@ from src.experiment_manager import experiment_manager
 from src.performance_metrics import JaccardSimilarity, NormDifference, SumOfObjectiveValues
 from src.bax.util.domain_util import unif_random_sample_domain
 from src.bax.util.graph import jaccard_similarity
-from src.utils import seed_torch, generate_random_points
+from src.utils import seed_torch, generate_random_points, get_mesh, reshape_mesh
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='random')
@@ -36,6 +36,8 @@ parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--max_iter', type=int, default=30)
 parser.add_argument('--batch_size', type=int, default=3)
 parser.add_argument('--len_path', type=int, default=150)
+parser.add_argument('--use_mesh', action='store_true', default=False)
+parser.add_argument('--steps', type=int, default=15)
 parser.add_argument('--k', type=int, default=10)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
@@ -43,6 +45,7 @@ args = parser.parse_args()
 
 # === To RUN === # 
 # python topk_runner.py -s --trials 30 --policy ps
+
 
 if args.function == 'himmelblau':
     input_dim = 2
@@ -87,9 +90,15 @@ def obj_func(X, domain=domain):
 
 # seed_torch(1234) # NOTE: fix seed for generating x_path
 
-# x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
-x_path = generate_random_points(num_points=len_path, input_dim=input_dim, seed=1234).numpy()
-# np.save(f"{script_dir}/data/{args.function[:3]}_x_np.npy", x_path)
+args.use_mesh = True
+if args.use_mesh:
+    xx = get_mesh(input_dim, args.steps)
+    x_path = reshape_mesh(xx).numpy()
+    len_path = x_path.shape[0]
+else: 
+    # x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
+    x_path = generate_random_points(num_points=len_path, input_dim=input_dim, seed=1234).numpy()
+    # np.save(f"{script_dir}/data/{args.function[:3]}_x_np.npy", x_path)
 
 if args.function == 'himmelblau':
 #     x_path = np.load(f"{script_dir}/data/him_x_np.npy")

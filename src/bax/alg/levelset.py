@@ -24,7 +24,8 @@ class LevelSetEstimator(Algorithm):
         if self.params.name == "SimpleLevelSet":
             if isinstance(f, PosteriorMean):
                 x_set = torch.from_numpy(self.params.x_set).unsqueeze(1)
-                fx = f(x_set).detach().numpy().flatten()
+                # fx = f(x_set).detach().numpy().flatten()
+                fx = eval_in_batch(f, x_set).detach().numpy().flatten()
             else:
                 x_set = self.params.x_set
                 fx = f(x_set).numpy().flatten()
@@ -48,3 +49,7 @@ class LevelSetEstimator(Algorithm):
     
     def get_output(self):
         return self.exe_path.x
+    
+
+def eval_in_batch(f, x_set, max_batch_size=100):
+    return torch.cat([f(X_) for X_ in x_set.split(max_batch_size)])
