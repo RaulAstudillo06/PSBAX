@@ -96,7 +96,7 @@ elif args.function == 'rastrigin':
     rastrigin = Rastrigin(dim=input_dim, negate=True)
 
     def obj_func(X, domain=domain):
-        return rastrigin(10.24 * X - 5.12)
+        return rastrigin(torch.tensor(10.24 * X - 5.12))
 
 # seed_torch(1234) # NOTE: fix seed for generating x_path
 
