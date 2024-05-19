@@ -110,7 +110,9 @@ elif args.problem == "penicillin":
     bounds = penicillin.bounds
     ref_point = penicillin.ref_point.numpy()
     def f(X):
-        X_unscaled = torch.mul(X, torch.tensor([bounds[i][1] - bounds[i][0] for i in range(len(bounds))])) + torch.tensor([bounds[i][0] for i in range(len(bounds))])
+        X_unscaled = X.clone()
+        for i in range(bounds):
+            X_unscaled[..., i] = X[..., i] * (bounds[i][1] - bounds[i][0]) + bounds[i][0]
         return penicillin(X_unscaled)
     opt_value = None
 
