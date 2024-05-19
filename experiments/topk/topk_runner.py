@@ -6,11 +6,12 @@ import os
 import sys
 import torch
 import json
+import math
 import numpy as np
 import argparse
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.settings import debug
-from botorch.test_functions.synthetic import Rastrigin
+from botorch.test_functions.synthetic import Rastrigin, Michalewicz
 from torch import Tensor
 
 torch.set_default_dtype(torch.float64)
@@ -56,6 +57,9 @@ elif args.function == 'original':
 elif args.function == 'rastrigin':
     input_dim = args.dim
     domain = [[-5.12, 5.12]] * input_dim # NOTE: original domain
+elif args.function == 'michalewicz':
+    input_dim = args.dim
+    domain = [[0.0, math.pi]] * input_dim # NOTE: original domain
 
 rescaled_domain = [[0, 1]] * input_dim
 len_path = args.len_path
@@ -97,6 +101,11 @@ elif args.function == 'rastrigin':
 
     def obj_func(X, domain=domain):
         return rastrigin(torch.tensor(10.24 * X - 5.12))
+elif args.function == 'michalewicz':
+    michalewicz = Michalewicz(dim=input_dim, negate=True)
+
+    def obj_func(X, domain=domain):
+        return michalewicz(torch.tensor(math.pi * X))
 
 # seed_torch(1234) # NOTE: fix seed for generating x_path
 
