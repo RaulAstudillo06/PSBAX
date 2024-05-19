@@ -496,7 +496,10 @@ def haversine(lat1, lon1, lat2, lon2):
     distance = R * c
     return distance
 
-def calculate_work(u, v, mu=0.1):
+def euclidean(lon1, lat1, lon2, lat2):
+    return math.sqrt((lon1 - lon2)**2 + (lat1 - lat2)**2)
+
+def calculate_work(u, v, mu=10):
     '''
     Args: 
         u, v: (longitude, latitude, elevation)
@@ -505,7 +508,8 @@ def calculate_work(u, v, mu=0.1):
     g = 9.81  # gravity in m/s^2
     long_u, lat_u, elev_u = u
     long_v, lat_v, elev_v = v
-    d = haversine(lat_u, long_u, lat_v, long_v) * 1000
+    # d = haversine(lat_u, long_u, lat_v, long_v) * 1000
+    d = euclidean(long_u, lat_u, long_v, lat_v) * 1000
     
     delta_elev = elev_v - elev_u
     W_gravity = g * delta_elev # work due to gravity (unit mass)
@@ -513,4 +517,4 @@ def calculate_work(u, v, mu=0.1):
     # print("W_gravity:", W_gravity)
     # print("W_friction:", W_friction)
     total_work = W_gravity + W_friction
-    return total_work
+    return total_work / 10000

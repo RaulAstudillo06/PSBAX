@@ -30,7 +30,7 @@ from src.performance_metrics import NewShortestPathCost
 # print(os.listdir(os.getcwd()))
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--policy', type=str, default='random')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--batch_size', type=int, default=1)
@@ -69,6 +69,8 @@ def from_row_to_work(row):
     end_node = df_nodes.loc[v]
     tuple1 = (start_node["longitude"], start_node["latitude"], start_node["elevation"])
     tuple2 = (end_node["longitude"], end_node["latitude"], end_node["elevation"])
+    # tuple1 = (start_node["norm_longitude"], start_node["norm_latitude"], start_node["elevation"])
+    # tuple2 = (end_node["norm_longitude"], end_node["norm_latitude"], end_node["elevation"])
     return calculate_work(tuple1, tuple2)
 
 
@@ -135,7 +137,7 @@ performance_metrics = [
 ]
 
 # args.save = True
-problem = "california"
+problem = "new_california"
 if args.save:
     results_dir = f"./results/{problem}"
     os.makedirs(results_dir, exist_ok=True)
@@ -146,6 +148,8 @@ if args.save:
             v = int(v)
         if k not in params_dict and k != "df_edges" and k != "df_nodes":
             params_dict[k] = v
+    # params_dict["euclidean_dist"] = True
+    params_dict["friction"] = 10
 
     with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
         json.dump(params_dict, file)
@@ -156,7 +160,7 @@ last_trial = args.first_trial + args.trials - 1
 n_dim = 4
 # Nodes are indices
 experiment_manager(
-    problem="california",
+    problem=problem,
     algorithm=algo,
     obj_func=obj_func,
     performance_metrics=performance_metrics,
