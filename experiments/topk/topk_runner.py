@@ -6,11 +6,12 @@ import os
 import sys
 import torch
 import json
+import math
 import numpy as np
 import argparse
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.settings import debug
-from botorch.test_functions.synthetic import Hartmann
+from botorch.test_functions.synthetic import Rastrigin, Michalewicz
 from torch import Tensor
 
 torch.set_default_dtype(torch.float64)
@@ -50,9 +51,15 @@ args = parser.parse_args()
 if args.function == 'himmelblau':
     input_dim = 2
     domain = [[-6, 6]] * input_dim # NOTE: himmelblau domain
-else:
+elif args.function == 'original':
     input_dim = args.dim
     domain = [[-10, 10]] * input_dim # NOTE: original domain
+elif args.function == 'rastrigin':
+    input_dim = args.dim
+    domain = [[-5.12, 5.12]] * input_dim # NOTE: original domain
+elif args.function == 'michalewicz':
+    input_dim = args.dim
+    domain = [[0.0, math.pi]] * input_dim # NOTE: original domain
 
 rescaled_domain = [[0, 1]] * input_dim
 len_path = args.len_path
@@ -68,25 +75,37 @@ def himmelblau(X: Tensor, minimize=False) -> Tensor:
     else:
         return result
 
+if args.function == 'himmelblau' or args.function == 'original':
+    def obj_func(X, domain=domain):
+        '''
+        Args:
+            X: (1, n_dim)
+        '''
+        # check if x is a torch tensor
+        if not isinstance(X, torch.Tensor):
+            X = torch.tensor(X)
+        # rescale X from 0, 1 to domain
+        X_rescaled = X.clone()
+        X_rescaled = torch.mul(X, torch.tensor([domain[i][1] - domain[i][0] for i in range(len(domain))])) + torch.tensor([domain[i][0] for i in range(len(domain))])
+        
+        if args.function == 'original':
+            f_0 = lambda x:  2 * torch.abs(x) * torch.sin(x)
+            return torch.sum(torch.stack([f_0(x) for x in X_rescaled]), dim=-1)
+        elif args.function == 'himmelblau':
+            f_0 = himmelblau
+            return f_0(X_rescaled)
+        elif args.function == 'rastrigin':
+            return f_0(X_rescaled)
+elif args.function == 'rastrigin':
+    rastrigin = Rastrigin(dim=input_dim, negate=True)
 
-def obj_func(X, domain=domain):
-    '''
-    Args:
-        X: (1, n_dim)
-    '''
-    # check if x is a torch tensor
-    if not isinstance(X, torch.Tensor):
-        X = torch.tensor(X)
-    # rescale X from 0, 1 to domain
-    X_rescaled = X.clone()
-    X_rescaled = torch.mul(X, torch.tensor([domain[i][1] - domain[i][0] for i in range(len(domain))])) + torch.tensor([domain[i][0] for i in range(len(domain))])
-    
-    if args.function == 'original':
-        f_0 = lambda x:  2 * torch.abs(x) * torch.sin(x)
-        return torch.sum(torch.stack([f_0(x) for x in X_rescaled]), dim=-1)
-    elif args.function == 'himmelblau':
-        f_0 = himmelblau
-        return f_0(X_rescaled)
+    def obj_func(X, domain=domain):
+        return rastrigin(torch.tensor(10.24 * X - 5.12))
+elif args.function == 'michalewicz':
+    michalewicz = Michalewicz(dim=input_dim, negate=True)
+
+    def obj_func(X, domain=domain):
+        return michalewicz(torch.tensor(math.pi * X))
 
 # seed_torch(1234) # NOTE: fix seed for generating x_path
 

@@ -8,7 +8,8 @@ import json
 from pymoo.problems import get_problem
 from pymoo.indicators.hv import HV
 from botorch.settings import debug
-from botorch.test_functions.multi_objective import DTLZ1, ZDT1, ZDT2, DTLZ2, VehicleSafety
+from botorch.test_functions.multi_objective import DTLZ1, ZDT1, ZDT2, DTLZ2, VehicleSafety, Penicillin
+
 
 torch.set_default_dtype(torch.float64)
 torch.autograd.set_detect_anomaly(False)
@@ -104,11 +105,16 @@ elif args.problem == "zdt2":
         "zdt2",
         n_var=n_dim,
     ) # minimizing
-
-    pymoo_pf = pymoo_problem.pareto_front()
-    pymoo_ref_point = np.array([11.0] * args.n_obj)
-    ind_pymoo = HV(ref_point=pymoo_ref_point)
-    opt_value = ind_pymoo(pymoo_pf)
+elif args.problem == "penicillin":
+    penicillin = Penicillin(negate=True)
+    bounds = penicillin.bounds
+    ref_point = penicillin.ref_point.numpy()
+    def f(X):
+        X_unscaled = X.clone()
+        for i in range(bounds):
+            X_unscaled[..., i] = X[..., i] * (bounds[i][1] - bounds[i][0]) + bounds[i][0]
+        return penicillin(X_unscaled)
+    opt_value = None
 
 def obj_func(X):
     return f(X)
