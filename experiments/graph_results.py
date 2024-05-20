@@ -50,12 +50,15 @@ results_dir = os.path.join(".", problem_setting[0], "results")
 # problem = "discobax_sanchez_2021_tau_top_5000"
 # problem = "dijkstra"
 # problem = "lbfgsb_rastrigin_10d"
+# problem = "levelset_himmelblau"
 problem = "levelset_volcano"
+# problem = "levelset_griewank"
 
 policies = [
     "random",
     "bax", 
     "ps", 
+    "lse",
     # "OPT", 
     # "bax_modelgp",
     # "ps_modelgp",
@@ -83,9 +86,9 @@ graph_trials = [
     5, 
     6, 
     7, 
-    # 8, 
-    # 9, 
-    # 10,
+    8, 
+    9, 
+    10,
 ]
 # graph_trials = [i for i in range(1, 19)]
 show_title = True
@@ -111,6 +114,7 @@ policy_to_hex = {
     "random" : '#7f7f7f',
     # "bax_modelgp_dim20": "#e377c2",
     # "ps_modelgp_dim20": "#7f7f7f",
+    "lse" : "#e377c2",
 }
 
 policy_to_label = {
@@ -118,6 +122,7 @@ policy_to_label = {
     "bax": "Expected Information Gain",
     "OPT": "OPT",
     "random": "Random",
+    "lse" : "Level Set Estimation",
 }
 
 setting_to_metric = {
@@ -196,6 +201,8 @@ for metrics_name in metrics:
             key = "random"
         elif "OPT" in policy:
             key = "OPT"
+        elif "lse" in policy:
+            key = "lse"
         else:
             key = None
 

@@ -177,7 +177,7 @@ experiment_manager(
     save_data=args.save,
     x_set=x_set,
     x_init=x_init,
-    acq_func=acq_func,
+    acq_func=acq_func if args.policy == "lse" else None,
 )
 
 

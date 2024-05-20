@@ -26,11 +26,11 @@ class LSE():
         for i, x in enumerate(self.x_set):
             x_post = model.posterior(torch.from_numpy(x.reshape(1, -1)))
             mean = x_post.mean.detach().numpy().squeeze()
-            var = x_post.variance.detach().numpy().squeeze()
+            std = x_post.stddev.detach().numpy().squeeze()
             C = self.x_to_C[tuple(x)]
             Q = np.array([
-                mean - np.sqrt(self.beta * var),
-                mean + np.sqrt(self.beta * var)
+                mean - self.beta * std,
+                mean + self.beta * std,
             ])
             # get the intersection of C and Q
             C = np.array([max(C[0], Q[0]), min(C[1], Q[1])])
