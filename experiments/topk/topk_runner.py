@@ -11,7 +11,7 @@ import numpy as np
 import argparse
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.settings import debug
-from botorch.test_functions.synthetic import Rastrigin, Levy
+from botorch.test_functions.synthetic import Rastrigin, Hartmann
 from torch import Tensor
 
 torch.set_default_dtype(torch.float64)
@@ -37,7 +37,7 @@ parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--max_iter', type=int, default=30)
 parser.add_argument('--batch_size', type=int, default=3)
 parser.add_argument('--len_path', type=int, default=150)
-parser.add_argument('--use_mesh', action='store_true', default=False)
+parser.add_argument('--use_mesh', action='store_true', default=True)
 parser.add_argument('--steps', type=int, default=15)
 parser.add_argument('--k', type=int, default=10)
 parser.add_argument('--save', '-s', action='store_true', default=False)
@@ -57,11 +57,11 @@ elif args.function == 'original':
 elif args.function == 'rastrigin':
     input_dim = args.dim
     domain = [[-5.12, 5.12]] * input_dim # NOTE: original domain
-elif args.function == 'levy':
+elif args.function == 'hartmann':
     input_dim = args.dim
-    domain = [[-10.0, 10.0]] * input_dim # NOTE: original domain
+    domain = [[0.0, 1.0]] * input_dim # NOTE: original domain
 
-rescaled_domain = [[0, 1]] * input_dim
+rescaled_domain = [[0.0, 1.0]] * input_dim
 len_path = args.len_path
 k = args.k
 
@@ -100,12 +100,12 @@ elif args.function == 'rastrigin':
     rastrigin = Rastrigin(dim=input_dim, negate=True)
 
     def obj_func(X, domain=domain):
-        return rastrigin(torch.tensor(10.24 * X - 5.12))
-elif args.function == 'levy':
-    levy = Levy(dim=input_dim, negate=True)
+        return rastrigin(torch.tensor(9.0 * X - 4.0))
+elif args.function == 'hartmann':
+    hartmann = Hartmann(dim=input_dim, negate=True)
 
     def obj_func(X, domain=domain):
-        return levy(torch.tensor((20.0 * X) - 10.0))
+        return hartmann(torch.tensor(X))
 
 # seed_torch(1234) # NOTE: fix seed for generating x_path
 
@@ -114,6 +114,7 @@ if args.use_mesh:
     xx = get_mesh(input_dim, args.steps)
     x_path = reshape_mesh(xx).numpy()
     len_path = x_path.shape[0]
+    print(x_path.shape)
 else: 
     # x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
     x_path = generate_random_points(num_points=len_path, input_dim=input_dim, seed=1234).numpy()
