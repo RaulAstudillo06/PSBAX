@@ -11,7 +11,7 @@ import numpy as np
 import argparse
 from botorch.acquisition.analytic import PosteriorMean
 from botorch.settings import debug
-from botorch.test_functions.synthetic import Rastrigin, Hartmann
+from botorch.test_functions.synthetic import Rastrigin, Hartmann, Rosenbrock
 from torch import Tensor
 
 torch.set_default_dtype(torch.float64)
@@ -60,6 +60,9 @@ elif args.function == 'rastrigin':
 elif args.function == 'hartmann':
     input_dim = args.dim
     domain = [[0.0, 1.0]] * input_dim # NOTE: original domain
+elif args.function == 'rosenbrock':
+    input_dim = args.dim
+    domain = [[-2.0, 2.0]] * input_dim # NOTE: original domain
 
 rescaled_domain = [[0.0, 1.0]] * input_dim
 len_path = args.len_path
@@ -106,6 +109,11 @@ elif args.function == 'hartmann':
 
     def obj_func(X, domain=domain):
         return hartmann(torch.tensor(X))
+elif args.function == 'rosenbrock':
+    rosenbrock = Rosenbrock(dim=input_dim, negate=True)
+
+    def obj_func(X, domain=domain):
+        return rosenbrock(torch.tensor(4.0*X - 2.0))
 
 # seed_torch(1234) # NOTE: fix seed for generating x_path
 
