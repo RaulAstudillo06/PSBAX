@@ -21,15 +21,16 @@ sys.path.append(src_dir)
 
 from src.bax.alg.levelset import LevelSetEstimator
 from src.performance_metrics import F1Score
+from src.acquisition_functions.lse import LSE
 from src.experiment_manager import experiment_manager
 from src.utils import reshape_mesh, get_mesh
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='bax')
-parser.add_argument('--problem', type=str, default='griewank')
+parser.add_argument('--policy', type=str, default='lse')
+parser.add_argument('--problem', type=str, default='himmelblau')
 parser.add_argument('--tau', type=float, default=0.55)
-parser.add_argument('--dim', type=int, default=2)
+parser.add_argument('--dim', type=int, default=3)
 parser.add_argument('--n_init', type=int, default=0)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--trials', type=int, default=5)
@@ -41,7 +42,7 @@ parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
 #%%
 
-def get_threshold(f, tau, n=1000):
+def get_threshold(f, tau, n=10000):
     x_test = torch.rand(n, args.dim)
     f_test = f(x_test)
     f_test_sorted, _ = torch.sort(f_test, descending=False)
@@ -96,6 +97,7 @@ elif args.problem == "griewank":
         return result
 
     threshold = get_threshold(griewank, args.tau)
+    print(f"Threshold: {threshold}")
     xx = get_mesh(args.dim, args.steps)
     x_set = reshape_mesh(xx).numpy()
     fx = griewank(torch.tensor(x_set))
@@ -131,6 +133,12 @@ performance_metrics = [
         obj_func,
     )
 ]
+
+if "lse" in args.policy:
+    acq_func = LSE(
+        x_set,
+        threshold,
+    )
 
 if args.n_init == 0:
     args.n_init = 2 * (args.dim + 1)
@@ -169,6 +177,7 @@ experiment_manager(
     save_data=args.save,
     x_set=x_set,
     x_init=x_init,
+    acq_func=acq_func,
 )
 
 

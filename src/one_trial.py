@@ -17,8 +17,10 @@ from botorch.sampling.normal import SobolQMCNormalSampler
 from torch import Tensor
 import matplotlib.pyplot as plt
 
+
 from src.acquisition_functions.posterior_sampling import gen_posterior_sampling_batch
 from src.acquisition_functions.bax_acquisition import BAXAcquisitionFunction
+from src.acquisition_functions.lse import LSE
 from src.fit_model import fit_model
 from src.performance_metrics import evaluate_performance
 
@@ -433,6 +435,10 @@ def get_new_suggested_batch(
                     **kwargs,
                 ) # (N, d)
             x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
-        
+    elif "lse" in policy:
+        acq_func = kwargs.get("acq_func", None)
+
+        x_next = torch.from_numpy(acq_func.get_next_x(model).reshape(1, -1))
+
         return x_next
 
