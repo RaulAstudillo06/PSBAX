@@ -66,6 +66,7 @@ if args.problem == "volcano":
 elif args.problem == "himmelblau":
     args.dim = 2
     args.steps = 50
+    args.tau = 0.55
     bounds = [-6, 6]
     def himmelblau(X: torch.Tensor, minimize=False) -> torch.Tensor:
         X = (bounds[1] - bounds[0]) * X + bounds[0]
