@@ -461,6 +461,7 @@ def get_new_suggested_batch(
                     **kwargs,
                 ) # (N, d)
             x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
+        return x_next
     elif "lse" in policy:
         acq_func = kwargs.get("lse_acq_func", None)
 
