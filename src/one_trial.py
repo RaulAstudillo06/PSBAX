@@ -30,6 +30,7 @@ from src.utils import (
     get_obj_vals,
     seed_torch,
     optimize_acqf_and_get_suggested_batch,
+    f1_score,
 )
 
 # See experiment_manager.py for parameters
@@ -62,6 +63,8 @@ def one_trial(
     #     project_path + "/experiments/results/" + problem + "/" + policy_id + "/"
     # )
     results_folder = os.path.join(script_dir, "results", problem, policy_id) + "/"
+
+    
 
     if restart:
         # Check if training data is already available
@@ -146,6 +149,13 @@ def one_trial(
             t1 = time.time()
             model_training_time = t1 - t0
 
+            if policy == "lse":
+                threshold = kwargs.get("threshold", None)
+                acq_func = LSE(threshold)
+                x_set = kwargs.get("x_set", None)
+                acq_func.initialize(x_set)
+                kwargs["lse_acq_func"] = acq_func
+
             # Historical performance metrics
             # performance_metrics_vals = [
             #     compute_performance_metrics(obj_func, model, performance_metrics)
@@ -160,6 +170,8 @@ def one_trial(
             runtimes = []
 
             iteration = 0
+
+            
     else:
         # Initial data
         inputs, obj_vals = generate_initial_data(
@@ -183,6 +195,14 @@ def one_trial(
         t1 = time.time()
         model_training_time = t1 - t0
 
+        if policy == "lse":
+            threshold = kwargs.get("threshold", None)
+            acq_func = LSE(threshold)
+            x_set = kwargs.get("x_set", None)
+            acq_func.initialize(x_set)
+            kwargs["lse_acq_func"] = acq_func
+            
+
         performance_metrics_vals = [
             evaluate_performance(performance_metrics, model, **kwargs)
         ]
@@ -191,6 +211,8 @@ def one_trial(
         runtimes = []
 
         iteration = 0
+
+
 
     while iteration < num_iter:
 
@@ -284,6 +306,10 @@ def one_trial(
     
         # kwargs["seed"] = trial
         current_performance_metrics = evaluate_performance(performance_metrics, model, **kwargs)
+
+        
+            
+
 
         # for i, performance_metric_id in enumerate(performance_metrics.keys()):
         #     print(performance_metric_id + ": " + str(current_performance_metrics[i]))
@@ -436,7 +462,7 @@ def get_new_suggested_batch(
                 ) # (N, d)
             x_next, _ = optimize_acqf_discrete(acq_function=acq_func, q=batch_size, choices=x_batch, max_batch_size=100)
     elif "lse" in policy:
-        acq_func = kwargs.get("acq_func", None)
+        acq_func = kwargs.get("lse_acq_func", None)
 
         x_next = torch.from_numpy(acq_func.get_next_x(model).reshape(1, -1))
 

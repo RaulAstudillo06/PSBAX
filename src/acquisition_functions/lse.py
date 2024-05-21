@@ -5,16 +5,10 @@ torch.set_default_dtype(torch.float64)
 torch.autograd.set_detect_anomaly(False)
 
 class LSE():
-    def __init__(self, x_set, threshold):
+    def __init__(self, threshold, beta=3, epsilon=0.01, **kwargs):
+        self.threshold = threshold
         self.beta = 3
         self.epsilon = 0.01
-        self.x_set = x_set
-        self.x_to_C = {}
-        for x in self.x_set:
-            self.x_to_C[tuple(x)] = np.array([-np.inf, np.inf])
-        self.threshold = threshold
-        self.H = []
-        self.L = []
         
     def get_next_x(self, model):
         # posterior = model.posterior(torch.from_numpy(self.x_set))
@@ -61,3 +55,11 @@ class LSE():
 
         return x_next
     
+    def initialize(self, x_set):
+        self.x_set = x_set
+        self.x_to_C = {}
+        for x in self.x_set:
+            self.x_to_C[tuple(x)] = np.array([-np.inf, np.inf])
+        
+        self.H = []
+        self.L = []

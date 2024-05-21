@@ -238,3 +238,25 @@ def get_mesh(dim, steps):
         xx.append(ax)
     xx = torch.meshgrid(*xx, indexing='ij')
     return xx
+
+def f1_score(x_gt, x_pred):
+    '''
+    Args:
+        x_gt: np.array(N, d)
+        x_pred: np.array(N, d)
+    '''
+    x_gt_set = set()
+    for x in x_gt:
+        x_gt_set.add(tuple(x))
+    x_pred_set = set()
+    for x in x_pred:
+        x_pred_set.add(tuple(x))
+    tp = len(x_gt_set.intersection(x_pred_set))
+    fp = len(x_pred_set.difference(x_gt_set))
+    fn = len(x_gt_set.difference(x_pred_set))
+    if tp == 0 or (tp + fp) == 0 or (tp + fn) == 0:
+        return 0
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = 2 * precision * recall / (precision + recall)
+    return f1

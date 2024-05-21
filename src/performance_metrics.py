@@ -20,7 +20,7 @@ from pymoo.indicators.hv import HV
 from botorch.utils.multi_objective import Hypervolume
 
 from src.models.deep_kernel_gp import DKGP
-from src.utils import optimize_acqf_and_get_suggested_batch
+from src.utils import optimize_acqf_and_get_suggested_batch, f1_score
 from .bax.util.graph import area_of_polygons
 
 class PosteriorMeanPerformanceMetric:
@@ -432,25 +432,9 @@ class F1Score(PosteriorMeanPerformanceMetric):
             _, output_gt = self.algo.run_algorithm_on_f(self.obj_func)
             self.x_gt = output_gt
 
-        return self.f1_score(self.x_gt, output_mf)
+        return f1_score(self.x_gt, output_mf)
     
-    def f1_score(self, x_gt, x_pred):
-        x_gt_set = set()
-        for x in x_gt:
-            x_gt_set.add(tuple(x))
-        x_pred_set = set()
-        for x in x_pred:
-            x_pred_set.add(tuple(x))
-        tp = len(x_gt_set.intersection(x_pred_set))
-        fp = len(x_pred_set.difference(x_gt_set))
-        fn = len(x_gt_set.difference(x_pred_set))
-        if tp == 0 or (tp + fp) == 0 or (tp + fn) == 0:
-            return 0
-        precision = tp / (tp + fp)
-        recall = tp / (tp + fn)
-        f1 = 2 * precision * recall / (precision + recall)
-        return f1
-    
+
 
 
 
@@ -505,6 +489,17 @@ def evaluate_performance(metrics, model, **kwargs) -> Tensor:
             performance_metrics.extend(val)
         else:
             performance_metrics.append(val)
+    
+    # for LSE
+    
+    acq_func = kwargs.get("lse_acq_func", None)
+    if acq_func is not None:
+        H = np.array(acq_func.H)
+        gt = metrics[0].x_gt
+        score = f1_score(gt, H)
+        performance_metrics.append(score)
+
+
     return np.atleast_1d(performance_metrics)
 
 
