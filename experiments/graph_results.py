@@ -3,7 +3,20 @@ import os
 import sys
 import torch
 import numpy as np
+import matplotlib
+import seaborn as sns
 import matplotlib.pyplot as plt
+
+matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["ps.fonttype"] = 42
+
+# matplotlib and seaborn settings
+#sns.set()
+#sns.color_palette("dark")
+sns.set_style("white")
+fontsize = 22
+plt.rc("xtick", labelsize=fontsize)
+plt.rc("ytick", labelsize=fontsize)
 
 
 # For running in jupyter notebook
@@ -14,12 +27,12 @@ sys.path.append('../')
 
 
 problem_setting = [
-    # "discobax",
+    "discobax",
     # "single-objective",
     # "multi-objective",
     # "shortest-path",
     # "topk",
-    "level-set",
+    # "level-set",
 ] # Comment out the rest, only keep one
 results_dir = os.path.join(".", problem_setting[0], "results")
 
@@ -48,6 +61,7 @@ results_dir = os.path.join(".", problem_setting[0], "results")
 # problem = "schmidt_2021_ifng_top_1700"
 # problem = "old_discobax_sanchez_2021_tau_top_5000"
 # problem = "discobax_sanchez_2021_tau_top_5000"
+problem = "discobax_schmidt_2021_ifng_top_5000"
 # problem = "dijkstra"
 # problem = "lbfgsb_rastrigin_10d"
 problem = "levelset_himmelblau"
@@ -55,21 +69,21 @@ problem = "levelset_himmelblau"
 # problem = "levelset_griewank"
 
 policies = [
-    "random",
-    "bax", 
-    "ps", 
-    "lse",
-    # "OPT", 
+    # "random",
+    # "bax", 
+    # "ps", 
+    # "lse",
+    # "OPT",
+    # "random_modelgp", 
     # "bax_modelgp",
     # "ps_modelgp",
+    # "random_gp_lbfgsb",
+    # "qei_gp_lbfgsb",
     # "bax_gp_lbfgsb",
     # "ps_gp_lbfgsb",
-    # "bax_modelgp_cma",
-    # "ps_modelgp_cma",
-    # "bax_modelgp_mut",
-    # "ps_modelgp_mut",
-    # "bax_modelgp_dim5",
-    # "ps_modelgp_dim5",
+    "random_modelgp_dim5",
+    "bax_modelgp_dim5",
+    "ps_modelgp_dim5",
     # "OPT_modelgp_dim5",
     # "bax_modelgp_dim20",
     # "ps_modelgp_dim20",
@@ -90,16 +104,16 @@ graph_trials = [
     9, 
     10,
 ]
-# graph_trials = [i for i in range(1, 19)]
-show_title = True
+graph_trials = [i for i in range(1, 31)]
+show_title = False
 save_fig = True
 path = os.path.join(results_dir, problem)
 batch_size = 1
 log = False
-bax_iters = 30
-max_iters = 30
+bax_iters = 100
+max_iters = 100
 # bax_iters = None
-optimum = None
+optimum = None # 3.32237
 file_format = ".png"
 file_format = ".pdf"
 
@@ -111,6 +125,8 @@ policy_to_hex = {
     # "random": "#8c564b",
     "ps" : 'b',
     "bax" : 'g',
+    "qehvi" : 'r',
+    "qei" : 'r',
     "random" : '#7f7f7f',
     # "bax_modelgp_dim20": "#e377c2",
     # "ps_modelgp_dim20": "#7f7f7f",
@@ -118,11 +134,13 @@ policy_to_hex = {
 }
 
 policy_to_label = {
-    "ps": "Posterior Sampling",
-    "bax": "Expected Information Gain",
+    "ps": "PS (Ours)",
+    "bax": "EIG",
+    "qehvi": "EHVI",
+    "qei": "EI",
+    "lse" "LSE"
     "OPT": "OPT",
     "random": "Random",
-    "lse" : "Level Set Estimation",
 }
 
 setting_to_metric = {
@@ -155,8 +173,12 @@ for policy in policies:
                 arr = arr[:, None]
             
             if "bax" in policy:
+                if arr.shape[0] < bax_iters:
+                    print(f)
                 arr = arr[:bax_iters, :]    
             else:
+                if arr.shape[0] < max_iters:
+                    print(f)
                 arr = arr[:max_iters, :]
 
             for i, metrics_name in enumerate(metrics):
@@ -165,10 +187,10 @@ for policy in policies:
             
     for (metrics_name, arr) in arrs.items():
         arrs[metrics_name] = np.vstack(arr) # (n_trials, n_iter)
-        if log:
-            arrs[metrics_name] = np.log(arrs[metrics_name])
         if optimum is not None:
             arrs[metrics_name] = optimum - arrs[metrics_name]
+        if log:
+            arrs[metrics_name] = np.log(arrs[metrics_name])
 
     algo_performance_arrs[policy] = arrs
 
@@ -183,7 +205,7 @@ except:
     pass
 # plot
 for metrics_name in metrics:
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(1, 1, figsize=(12, 8))
     for policy in policies:
         # if policy == "OPT":
         #     continue
@@ -207,6 +229,10 @@ for metrics_name in metrics:
             key = "OPT"
         elif "lse" in policy:
             key = "lse"
+        elif "qehvi" in policy:
+            key = "qehvi"
+        elif "qei" in policy:
+            key = "qei"
         else:
             key = None
 
@@ -219,6 +245,7 @@ for metrics_name in metrics:
         #     iters = bax_iters
 
         arr = arrs[metrics_name][:, :iters]
+        print(arr.shape)
         
         x_range = np.arange(iters)
         if key is not None:
@@ -247,7 +274,7 @@ for metrics_name in metrics:
             # plot log scale
     # ax.set_yscale("log")
 
-    ax.set_xlabel("Iteration")
+    ax.set_xlabel("Iteration", fontsize=fontsize)
     # ax.set_ylabel(metrics_name)
     # if log:
     #     ax.set_ylabel("Log Value")
@@ -262,20 +289,20 @@ for metrics_name in metrics:
         print(f"{problem} q={batch_size} {metrics_name}")
 
     # set legend to below the plot
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=len(policies))
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=len(policies), fontsize=fontsize)
     plt.tight_layout()
     if save_fig:
         fig_dir = os.path.join(path, "plots")
         if not os.path.exists(fig_dir):
             os.makedirs(fig_dir, exist_ok=True)
         # add strategy to file name
-        fig_name = "_".join(policies) + "_" + metrics_name.strip(" ") + "_batch" + str(batch_size) + "_trials" + str(arr.shape[0])
+        fig_name = problem + "_" + str.lower(metrics_name.strip(" ")) + "_batch" + str(batch_size)
         fig.savefig(
             os.path.join(
                 fig_dir, fig_name + file_format
             ),
             bbox_inches="tight",
-            dpi=300,
+            #dpi=300,
         )
     plt.show()
 
