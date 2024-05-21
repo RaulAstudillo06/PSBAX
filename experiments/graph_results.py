@@ -50,8 +50,8 @@ results_dir = os.path.join(".", problem_setting[0], "results")
 # problem = "discobax_sanchez_2021_tau_top_5000"
 # problem = "dijkstra"
 # problem = "lbfgsb_rastrigin_10d"
-# problem = "levelset_himmelblau"
-problem = "levelset_volcano"
+problem = "levelset_himmelblau"
+# problem = "levelset_volcano"
 # problem = "levelset_griewank"
 
 policies = [
@@ -147,6 +147,10 @@ for policy in policies:
             if int(f.split(".")[0].split("_")[-1]) not in graph_trials:
                 continue
             arr = np.loadtxt(os.path.join(files_dir, f))
+
+            if "lse" in policy:
+                arr = arr[:, 0]
+            
             if len(arr.shape) == 1:
                 arr = arr[:, None]
             
