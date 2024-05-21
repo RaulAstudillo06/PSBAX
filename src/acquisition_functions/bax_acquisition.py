@@ -109,24 +109,7 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         # data_y = self.model.train_targets # (N, )
 
         # TODO: check all dimensions
-        for exe_path in self.exe_path_list:
-            if self.algorithm.params.name == "Dijkstras" or self.algorithm.params.name == "TopK":
-                # comb_data_x = torch.cat([data_x, torch.tensor(np.array(exe_path.x))], dim=-2)
-                # comb_data_y = torch.cat([data_y, torch.tensor(np.array(exe_path.y))]) # (N, )
-                new_data_x = torch.tensor(np.array(exe_path.x)) # (N, n_dim)
-                new_data_y = torch.tensor(np.array(exe_path.y)) # (N, )
-            else:
-                # comb_data_x = torch.cat([data_x, torch.tensor(exe_path.x)], dim=-2) # (N, n_dim)
-                # comb_data_y = torch.cat([data_y, torch.tensor(exe_path.y)]) # (N, )
-                new_data_x = torch.tensor(exe_path.x) # (N, n_dim)
-                new_data_y = torch.tensor(exe_path.y) # (N, )
-            # comb_model = self.model.clone()
-            # fit gp model again with the new data
-            comb_model = self.fit_with_old_model(
-                new_data_x,
-                new_data_y,
-            ) # FIXME: check if its doing the right thing
-            # get posterior mean and cov
+        for comb_model in self.comb_model_list:
             comb_posterior = comb_model.posterior(X)
             comb_mu, comb_cov = comb_posterior.mvn.mean, comb_posterior.mvn.covariance_matrix
             mu_list.append(comb_mu)
@@ -245,6 +228,27 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         exe_path_list, output_list = self.run_algorithm_on_f_list(f_sample_list)
         self.exe_path_list = exe_path_list
         self.output_list = output_list
+        self.comb_model_list = []
+
+        for exe_path in self.exe_path_list:
+            if self.algorithm.params.name == "Dijkstras" or self.algorithm.params.name == "TopK":
+                # comb_data_x = torch.cat([data_x, torch.tensor(np.array(exe_path.x))], dim=-2)
+                # comb_data_y = torch.cat([data_y, torch.tensor(np.array(exe_path.y))]) # (N, )
+                new_data_x = torch.tensor(np.array(exe_path.x)) # (N, n_dim)
+                new_data_y = torch.tensor(np.array(exe_path.y)) # (N, )
+            else:
+                # comb_data_x = torch.cat([data_x, torch.tensor(exe_path.x)], dim=-2) # (N, n_dim)
+                # comb_data_y = torch.cat([data_y, torch.tensor(exe_path.y)]) # (N, )
+                new_data_x = torch.tensor(exe_path.x) # (N, n_dim)
+                new_data_y = torch.tensor(exe_path.y) # (N, )
+            # comb_model = self.model.clone()
+            # fit gp model again with the new data
+            comb_model = self.fit_with_old_model(
+                new_data_x,
+                new_data_y,
+            ) # FIXME: check if its doing the right thing
+            # get posterior mean and cov
+            self.comb_model_list.append(comb_model)
     
     def run_algorithm_on_f_list(
             self, 
