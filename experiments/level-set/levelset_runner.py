@@ -27,7 +27,7 @@ from src.utils import reshape_mesh, get_mesh
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='lse')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--problem', type=str, default='himmelblau')
 parser.add_argument('--tau', type=float, default=0.55)
 parser.add_argument('--dim', type=int, default=3)

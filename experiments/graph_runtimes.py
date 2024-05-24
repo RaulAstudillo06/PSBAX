@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 
 # For running in jupyter notebook
 print(os.getcwd())
+cwd = os.getcwd()
+
 # when run in jupyter notebook: /home/ec2-user/projects/PSBAX/experiments
 sys.path.append('../')
 from src.performance_metrics import *
@@ -16,11 +18,12 @@ from src.performance_metrics import *
 
 # TODO
 problem_setting = [
-    "discobax",
+    # "discobax",
     # "single-objective",
     # "multi-objective",
     # "shortest-path",
-    # "topk",
+    "topk",
+    # "level-set",
 ] # Comment out the rest, only keep one
 
 # TODO
@@ -31,24 +34,29 @@ problem_setting = [
 # problem = "dijkstra"
 # problem = "hartmann_6d"
 # problem = "ackley_10d"
-problem = "discobax_1"
+# problem = "discobax_1"
+# problem = "levelset_volcano_Raul"
+# problem = "sanchez"
+# problem = "schimdt"
+# problem = "rosenbrock"
+problem = "himmelblau"
 results_dir = os.path.join(".", problem_setting[0], "results") 
 path = os.path.join(results_dir, problem)
 
 policies = [
-    # "bax",
-    # "ps",
+    "bax",
+    "ps",
     # "random",
     # "bax_gp_lbfgsb",
     # "ps_gp_lbfgsb",
-    "bax_modelgp_dim5",
-    "ps_modelgp_dim5",
+    # "bax_modelgp_dim5",
+    # "ps_modelgp_dim5",
 ]
 
 # TODO
 iters = 100
-batch_size = 5
-trials = np.arange(1, 10)
+batch_size = 1
+trials = np.arange(1, 30)
 
 runtime_arrs = {} # policy -> runtimes per iteration
 for policy in policies:
@@ -63,7 +71,12 @@ for policy in policies:
             if iters is None:
                 iters = len(runtimes)
             runtime_arrs[policy] = runtime_arrs.get(policy, np.zeros((iters, )))
-            runtime_arrs[policy] += runtimes[:iters]
+            try:
+                runtime_arrs[policy] += runtimes[:iters]
+            except:
+                print(f)
+                continue
+                
 #%%
 print(problem)
 for policy in runtime_arrs:
