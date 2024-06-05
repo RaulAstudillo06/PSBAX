@@ -22,7 +22,7 @@ sys.path.append(src_dir)
 # from src.bax.util.domain_util import unif_random_sample_domain
 # from src.bax.util.graph import make_grid, edges_of_path, positions_of_path, area_of_polygons
 # from src.bax.util.graph import make_vertices, make_edges
-from src.bax.alg.dijkstra import DijkstraNx, calculate_work
+from src.bax.alg.dijkstra import DijkstraNx, calculate_work, calculate_energy
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import NewShortestPathCost
 
@@ -30,11 +30,12 @@ from src.performance_metrics import NewShortestPathCost
 # print(os.listdir(os.getcwd()))
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='random')
+parser.add_argument('--policy', type=str, default='ps')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--batch_size', type=int, default=1)
 parser.add_argument('--max_iter', type=int, default=50)
+parser.add_argument('--neg_weights', type=bool, default=False)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
@@ -73,17 +74,24 @@ def from_row_to_work(row):
     # tuple2 = (end_node["norm_longitude"], end_node["norm_latitude"], end_node["elevation"])
     return calculate_work(tuple1, tuple2)
 
-
+def from_row_to_energy(row):
+    u, v = row["start_nodeid"], row["end_nodeid"]
+    start_node = df_nodes.loc[u]
+    end_node = df_nodes.loc[v]
+    tuple1 = (start_node["longitude"], start_node["latitude"], start_node["elevation"])
+    tuple2 = (end_node["longitude"], end_node["latitude"], end_node["elevation"])
+    return calculate_energy(tuple1, tuple2, neg_weights=args.neg_weights)
 
 df_edges["coord"] = df_edges.apply(from_row_to_coord, axis=1)
-df_edges["work"] = df_edges.apply(from_row_to_work, axis=1)
+# df_edges["work"] = df_edges.apply(from_row_to_work, axis=1)
+df_edges["fx"] = df_edges.apply(from_row_to_energy, axis=1)
 edge_coords = np.vstack(df_edges["coord"])
 # normalize edge coords to 0, 1
 # edge_coords = (edge_coords - edge_coords.min(axis=0)) / (edge_coords.max(axis=0) - edge_coords.min(axis=0))
 # assign new coords to df_edges["coord"]
 df_edges["coord"] = list(edge_coords)
-edge_work = df_edges["work"].to_numpy()
-edge_coord_to_work = {tuple(e): w for e, w in zip(edge_coords, edge_work)}
+edge_fx = df_edges["fx"].to_numpy()
+edge_coord_to_fx = {tuple(e): w for e, w in zip(edge_coords, edge_fx)}
 
 
 # find the closest node to the start and end points
@@ -120,7 +128,7 @@ def obj_func(X):
     y_values = []
     for x in X:
         x_tuple = tuple(x.tolist())
-        y_values.append(edge_coord_to_work[x_tuple])
+        y_values.append(edge_coord_to_fx[x_tuple])
     return torch.tensor(y_values)
 
 algo_copy = algo.get_copy()
@@ -137,7 +145,7 @@ performance_metrics = [
 ]
 
 # args.save = True
-problem = "new_california"
+problem = "new_california_energy"
 if args.save:
     results_dir = f"./results/{problem}"
     os.makedirs(results_dir, exist_ok=True)
@@ -149,7 +157,7 @@ if args.save:
         if k not in params_dict and k != "df_edges" and k != "df_nodes":
             params_dict[k] = v
     # params_dict["euclidean_dist"] = True
-    params_dict["friction"] = 10
+    # params_dict["friction"] = 10
 
     with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
         json.dump(params_dict, file)

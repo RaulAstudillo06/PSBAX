@@ -35,7 +35,6 @@ df_edges_clone = df_edges.copy()
 df_edges_clone["start_nodeid"] = df_edges["end_nodeid"]
 df_edges_clone["end_nodeid"] = df_edges["start_nodeid"]
 df_edges = pd.concat([df_edges, df_edges_clone], ignore_index=True)
-#%%
 
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -71,6 +70,25 @@ def calculate_work(u, v, mu=10):
     total_work = W_gravity + W_friction
     return total_work / 500
 
+def calculate_energy(u, v, neg_weights=False):
+    m = 1830 # mass of the vehicle in kg
+    C_r = 0.01 # rolling resistance coefficient
+    A = 2.6 # frontal area in m^2
+    C_d = 0.35 # drag coefficient
+    g = 9.81  # gravity in m/s^2
+    rho = 1.225 # air density in kg/m^3
+    velocity = 40 # velocity in m/s
+    long_u, lat_u, elev_u = u
+    long_v, lat_v, elev_v = v
+
+    d = euclidean(long_u, lat_u, long_v, lat_v) * 1000
+    delta_elev = elev_v - elev_u
+    h = np.sqrt(d**2 + delta_elev**2)
+    sin = delta_elev / h
+    cos = d / h
+    energy = m * g * d * sin + m * g * C_r * d * cos + 0.5 * C_d * A * rho * d * velocity**2 
+    
+    return energy / 3600 if neg_weights else np.maximum(0, energy / 3600)
 
 def from_row_to_coord(row):
     u, v = row["start_nodeid"], row["end_nodeid"]
@@ -89,14 +107,23 @@ def from_row_to_work(row):
     # tuple2 = (end_node["norm_longitude"], end_node["norm_latitude"], end_node["elevation"])
     return calculate_work(tuple1, tuple2)
 
+
+def from_row_to_energy(row):
+    u, v = row["start_nodeid"], row["end_nodeid"]
+    start_node = df_nodes.loc[u]
+    end_node = df_nodes.loc[v]
+    tuple1 = (start_node["longitude"], start_node["latitude"], start_node["elevation"])
+    tuple2 = (end_node["longitude"], end_node["latitude"], end_node["elevation"])
+    return calculate_energy(tuple1, tuple2)
+
 df_edges["coord"] = df_edges.apply(from_row_to_coord, axis=1)
-df_edges["work"] = df_edges.apply(from_row_to_work, axis=1)
+df_edges["fx"] = df_edges.apply(from_row_to_energy, axis=1)
 edge_coords = np.vstack(df_edges["coord"])
 df_edges["coord"] = list(edge_coords)
-edge_work = df_edges["work"].to_numpy()
-edge_coord_to_work = {tuple(e): w for e, w in zip(edge_coords, edge_work)}
+edge_fx = df_edges["fx"].to_numpy()
+edge_coord_to_fx = {tuple(e): w for e, w in zip(edge_coords, edge_fx)}
 
-print(df_edges["work"].describe())
+print(df_edges["fx"].describe())
 
 
 start = 3939
@@ -104,7 +131,7 @@ goal = 446
 start_coord = (df_nodes.loc[start]["longitude"], df_nodes.loc[start]["latitude"])
 goal_coord = (df_nodes.loc[goal]["longitude"], df_nodes.loc[goal]["latitude"])
 
-
+#%%
 algo_params = {
     "name" : "DijkstraNx",
     "start": start,
@@ -124,13 +151,14 @@ def obj_func(X):
     y_values = []
     for x in X:
         x_tuple = tuple(x.tolist())
-        y_values.append(edge_coord_to_work[x_tuple])
+        y_values.append(edge_coord_to_fx[x_tuple])
     return torch.tensor(y_values)
+#%%
 
-
-problem_dir = os.path.join(cwd, "results/california_normwork")
-bax_dir = os.path.join(problem_dir, "bax_1")
-ps_dir = os.path.join(problem_dir, "ps_1")
+problem_dir = os.path.join(cwd, "results/new_california_energy")
+# bax_dir = os.path.join(problem_dir, "bax_1")
+# ps_dir = os.path.join(problem_dir, "ps_1")
+# random_dir = os.path.join(problem_dir, "random_1")
 policy = "ps"
 dir = os.path.join(problem_dir, f"{policy}_1")
 trial = 1
@@ -142,28 +170,27 @@ print(true_ep.true_cost)
 
 # plot true path
 nodes_true = true_ep.nodes
-nodes_coord_true_hav = np.array([
+nodes_coord_true = np.array([
     (df_nodes.loc[u]["longitude"], df_nodes.loc[u]["latitude"])
     for u in nodes_true
 ])
 
-fig, ax = plt.subplots()
+# fig, ax = plt.subplots()
 
-points = ax.scatter(df_nodes["longitude"], df_nodes["latitude"], c=df_nodes["elevation"], s=20, cmap="BuGn")
-# start and end
-ax.scatter(*start_coord, c="red", s=50, marker="x")
-ax.scatter(*goal_coord, c="red", s=50, marker="x")
+# points = ax.scatter(df_nodes["longitude"], df_nodes["latitude"], c=df_nodes["elevation"], s=20, cmap="BuGn")
+# # start and end
+# ax.scatter(*start_coord, c="red", s=50, marker="x")
+# ax.scatter(*goal_coord, c="red", s=50, marker="x")
 
-ax.plot(nodes_coord_true[:, 0], nodes_coord_true[:, 1], color="orange", label="euclidean")
-ax.plot(nodes_coord_true_hav[:, 0], nodes_coord_true_hav[:, 1], color="blue", label="haversine")
-ax.legend()
-ax.set_title(f"True Shortest Path")
-fig_dir = os.path.join(problem_dir, "plots")
-os.makedirs(fig_dir, exist_ok=True)
-# plt.savefig(os.path.join(fig_dir, f"true_path.pdf"))
-plt.show()
+# ax.plot(nodes_coord_true[:, 0], nodes_coord_true[:, 1], color="orange", label="euclidean")
+# # ax.plot(nodes_coord_true_hav[:, 0], nodes_coord_true_hav[:, 1], color="blue", label="haversine")
+# ax.legend()
+# ax.set_title(f"True Shortest Path")
+# fig_dir = os.path.join(problem_dir, "plots")
+# os.makedirs(fig_dir, exist_ok=True)
+# # plt.savefig(os.path.join(fig_dir, f"true_path.pdf"))
+# plt.show()
 
-#%%
 
 inputs = np.loadtxt(os.path.join(dir, "inputs", f"inputs_{trial}.txt"))
 obj_vals = np.loadtxt(os.path.join(dir, "obj_vals", f"obj_vals_{trial}.txt"))
@@ -219,3 +246,25 @@ plt.savefig(os.path.join(fig_dir, f"{policy}_trial{trial}_gtmf.pdf"))
 plt.show()
 
 # %%
+
+pred_y = model.posterior(inputs).mean.detach().numpy()
+true_y = obj_func(inputs).detach().numpy()
+# print mse
+mse = np.mean((true_y - pred_y)**2)
+print(f"MSE: {mse}")
+
+fig, ax = plt.subplots()
+# plot true vs predicted
+ax.plot(true_y, pred_y, 'o', label="True vs Predicted")
+# plot y = x line
+
+ax.set_xlabel("True")
+ax.set_ylabel("Predicted")
+ax.legend()
+ax.set_title(f"{policy} : True vs Predicted")
+# fig_dir = os.path.join(problem_dir, "plots")
+# os.makedirs(fig_dir, exist_ok=True)
+# plt.savefig(os.path.join(fig_dir, f"{policy}_trial{trial}_true_vs_pred.pdf"))
+plt.show()
+# %%
+

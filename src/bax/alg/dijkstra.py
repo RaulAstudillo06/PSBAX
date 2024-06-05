@@ -396,9 +396,6 @@ import math
 import networkx as nx
 
 from botorch.acquisition.analytic import PosteriorMean
-from argparse import Namespace
-from .algorithms import Algorithm
-from ..util.misc_util import dict_to_namespace
 
 class DijkstraNx(Algorithm):
     
@@ -412,8 +409,8 @@ class DijkstraNx(Algorithm):
         self.df_edges = getattr(params, "df_edges", None)
         self.df_nodes = getattr(params, "df_nodes", None)
         # self.params.weight = getattr(params, "weight", "pos_weight")
-        G = nx.from_pandas_edgelist(self.df_edges, source="start_nodeid", target="end_nodeid", edge_attr=None)
-        self.G = nx.DiGraph(G)
+        G = nx.from_pandas_edgelist(self.df_edges, source="start_nodeid", target="end_nodeid", edge_attr=None, create_using=nx.DiGraph)
+        self.G = G
         self.edge_coords = np.vstack(self.df_edges["coord"])
 
     def initialize(self):
@@ -441,15 +438,15 @@ class DijkstraNx(Algorithm):
             return fx 
         for u, v, data in G_copy.edges(data=True):
             if self.params.softplus:
-                data["work"] = softplus_np(weight_func(u, v))
+                data["fx"] = softplus_np(weight_func(u, v))
             else:
-                data["work"] = weight_func(u, v)
+                data["fx"] = weight_func(u, v)
                 
         # use dijkstra algorithm when softplus is used
         if self.params.softplus:
-            P = nx.dijkstra_path(G_copy, self.params.start, self.params.end, weight="work")
+            P = nx.dijkstra_path(G_copy, self.params.start, self.params.end, weight="fx")
         else:
-            P = nx.bellman_ford_path(self.G, self.params.start, self.params.end, weight="work")
+            P = nx.bellman_ford_path(G_copy, self.params.start, self.params.end, weight="fx")
         # get edge id from self.params.df_edges where start_nodeid = P[i] and end_nodeid = P[i+1]
         edge_pos = []
         edges_weights = []
@@ -467,7 +464,7 @@ class DijkstraNx(Algorithm):
             edge = self.df_edges[
                 (self.df_edges["start_nodeid"] == u) & (self.df_edges["end_nodeid"] == v)
             ]
-            true_cost += edge["work"].values[0]
+            true_cost += edge["fx"].values[0]
         
         self.exe_path.nodes = P
         self.exe_path.x = np.array(edge_pos)
@@ -518,3 +515,23 @@ def calculate_work(u, v, mu=10):
     # print("W_friction:", W_friction)
     total_work = W_gravity + W_friction
     return total_work / 10000
+
+def calculate_energy(u, v, neg_weights=False):
+    m = 1830 # mass of the vehicle in kg
+    C_r = 0.01 # rolling resistance coefficient
+    A = 2.6 # frontal area in m^2
+    C_d = 0.35 # drag coefficient
+    g = 9.81  # gravity in m/s^2
+    rho = 1.225 # air density in kg/m^3
+    velocity = 40 # velocity in m/s
+    long_u, lat_u, elev_u = u
+    long_v, lat_v, elev_v = v
+
+    d = euclidean(long_u, lat_u, long_v, lat_v) * 1000
+    delta_elev = elev_v - elev_u
+    h = np.sqrt(d**2 + delta_elev**2)
+    sin = delta_elev / h
+    cos = d / h
+    energy = m * g * d * sin + m * g * C_r * d * cos + 0.5 * C_d * A * rho * d * velocity**2 
+    
+    return energy / 3600 if neg_weights else np.maximum(0, energy / 3600)
