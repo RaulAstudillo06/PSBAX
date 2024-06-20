@@ -5,8 +5,10 @@ from typing import Callable, Dict, Optional
 import os
 import numpy as np
 import torch
+import gpytorch
 
-from torch import Tensor
+# from torch import Tensor
+from torch import Tensor, distributions as tdist, nn
 from copy import deepcopy
 from botorch.models.gp_regression import SingleTaskGP
 from botorch.models import ModelListGP
@@ -60,7 +62,10 @@ def generate_random_points(num_points: int, input_dim: int, seed: int = None, ba
         return inputs
     elif x_batch is not None:
         idx = np.random.choice(range(x_batch.shape[0]), num_points, replace=True)
-        inputs = torch.tensor(np.atleast_2d(x_batch[idx]))
+        if isinstance(x_batch, torch.Tensor):
+            inputs = x_batch[idx]
+        else:
+            inputs = torch.tensor(np.atleast_2d(x_batch[idx]))
         return inputs
 
     if seed is not None:
@@ -157,22 +162,75 @@ def optimize_acqf_and_get_suggested_batch(
     return new_x
 
 
-def get_function_samples(model):
-    if isinstance(model, DKGP):
-        aux_model = deepcopy(model)
-        inputs = aux_model.train_inputs[0]
-        aux_model.train_inputs = (aux_model.embedding(inputs),)
-        gp_layer_sample = get_gp_samples(
-            model=aux_model,
-            num_outputs=1,
-            n_samples=1,
-            num_rff_features=1000,
-        )
+def get_linear_weight_dist(model, architecture):
+    """If GP has a linear kernel, then returns the multivariate Gaussian
+    distribution for the equivalent weight vector w, such that
+        sampling f ~ GP(𝜇,k)
+    is equivalent to
+        sampling w ~ N(mn, Sn), then computing f(x) = x @ w + 𝜇(x).
 
-        def aux_obj_func_sample_callable(X):
-            return gp_layer_sample.posterior(aux_model.embedding(X)).mean
-        
-        obj_func_sample = GenericDeterministicModel(f=aux_obj_func_sample_callable)
+    Usage:
+        wdist = gp.get_linear_weight_dist()
+        w = wdist.sample()
+        fX = X @ w + gp.mean_module(X)  # posterior sample from GP
+
+    Raises:
+        Exception: if kernel is nonlinear
+    """
+
+    with torch.no_grad():
+        X = model.embedding(model.train_inputs[0])  # shape [n, h]
+        y = model.train_targets  # shape [n]
+
+        # LinearKernel has S0 = v * I, so S0^{-1} = I / v
+        S0_inv = torch.eye(architecture[-1]) / model.covar_module.base_kernel.variance
+        sigma2 = model.likelihood.noise.item()
+        Sn_inv = S0_inv + X.T @ X / sigma2
+
+        # mn = Sn @ X.T @ (y - self.mean_module(X)) / sigma2
+        mn = torch.linalg.solve(Sn_inv, X.T @ (y - model.mean_module(X))) / sigma2
+
+        dist = tdist.MultivariateNormal(loc=mn, precision_matrix=Sn_inv)
+        return dist
+
+
+def get_function_samples(model, **kwargs):
+    if isinstance(model, DKGP):
+        if isinstance(model.covar_module.base_kernel, gpytorch.kernels.LinearKernel):
+            # this call also checks whether the kernel is linear
+            architecture = kwargs.get("architecture", None)
+            w = get_linear_weight_dist(model, architecture).sample()
+
+            def f(X: Tensor) -> Tensor:
+                """
+                Args:
+                    X: shape [n, d]
+                    batch_size: batch size, set to -1 to treat X as a single batch
+
+                Returns:
+                    y: Tensor, shape [n, 1], the output dimension is required
+                        by GenericDeterministicModel
+                """
+                emb = model.embedding(X)
+                y = emb @ w + model.mean_module(emb)
+                return y[:, None]
+
+            obj_func_sample = GenericDeterministicModel(f)
+        else: 
+            aux_model = deepcopy(model)
+            inputs = aux_model.train_inputs[0]
+            aux_model.train_inputs = (aux_model.embedding(inputs),)
+            gp_layer_sample = get_gp_samples(
+                model=aux_model,
+                num_outputs=1,
+                n_samples=1,
+                num_rff_features=1000,
+            )
+
+            def aux_obj_func_sample_callable(X):
+                return gp_layer_sample.posterior(aux_model.embedding(X)).mean
+            
+            obj_func_sample = GenericDeterministicModel(f=aux_obj_func_sample_callable)
     elif isinstance(model, SingleTaskGP):
         obj_func_sample = get_gp_samples(
             model=model,

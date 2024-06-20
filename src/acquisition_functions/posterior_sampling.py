@@ -49,7 +49,7 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
     if algorithm.params.name == "SubsetSelect":
         batch = []
         while len(batch) < batch_size:
-            obj_func_sample = get_function_samples(model)
+            obj_func_sample = get_function_samples(model, **kwargs)
             idx_output = algorithm.execute(obj_func_sample)
             batch.extend(idx_output)
         x_batch = algorithm.index_to_x(batch)
@@ -65,9 +65,10 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
     else:
         batch = []
         while len(batch) < batch_size:
-            obj_func_sample = get_function_samples(model)
+            obj_func_sample = get_function_samples(model, **kwargs)
             x_output = algorithm.execute(obj_func_sample)
-            x_output = torch.tensor(x_output)
+            if not isinstance(x_output, torch.Tensor):
+                x_output = torch.tensor(x_output)
             if len(x_output.shape) == 1:
                 x_output = x_output.view(torch.Size([1, x_output.shape[0]]))
             for x in x_output:

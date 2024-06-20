@@ -220,19 +220,35 @@ def one_trial(
         if check_GP_fit:
 
             edge_coords = kwargs.get("edge_coords", None)
+            x_batch = kwargs.get("x_batch", None)
             if edge_coords is not None:
                 x_ = torch.tensor(np.array(edge_coords))
+            elif x_batch is not None:
+                x_ = x_batch
             else:
                 x_ = generate_random_points(num_points=1000, input_dim=input_dim, **kwargs)
             y_ = obj_func(x_)
             post_ = model.posterior(x_)
             mean_ = post_.mean.detach().numpy().flatten()
-            std_ = post_.variance.detach().sqrt().numpy().flatten()
+            # std_ = post_.variance.detach().sqrt().numpy().flatten()
+
+            train_x = model.train_inputs[0]
+            train_y_standardized = model.train_targets.numpy().flatten()
+            train_y_true = obj_func(train_x)
+            mean_y_true = train_y_true.mean().item()
+            std_y_true = train_y_true.std().item()
+            train_y = train_y_standardized * std_y_true + mean_y_true
+
+            post_train = model.posterior(train_x)
+            mean_train = post_train.mean.detach().numpy().flatten()
+            mean_train = mean_train * std_y_true + mean_y_true
+            # std_train_ = post_train_.variance.detach().sqrt().numpy().flatten
 
             RSS = np.sum((mean_ - y_.numpy()) ** 2)
 
             fig, ax = plt.subplots()
             ax.scatter(y_, mean_, color='b', marker='.', s=20, label='All')
+            ax.scatter(train_y, mean_train, color='g', marker='+', s=20, label='Train')
             
             # plot y = x line
             ax.plot([min(y_), max(y_)], [min(y_), max(y_)], color='r')
@@ -430,7 +446,7 @@ def get_new_suggested_batch(
             algo=algo_acq,
             **kwargs, 
         )
-        acq_func.initialize()
+        acq_func.initialize(**kwargs)
         continuos_bax_opt = kwargs.get("continuos_bax_opt", False)
         if continuos_bax_opt:
             standard_bounds = torch.tensor(
@@ -453,6 +469,8 @@ def get_new_suggested_batch(
             elif algo_acq.params.name == "TopK":
                 x_batch = np.array(algo_acq.params.x_path)
                 x_batch = torch.from_numpy(x_batch)
+            elif algo_acq.params.name == "TopKTorch":
+                x_batch = algo_acq.params.x_path
             else:
                 num_points=kwargs.get("bax_num_cand", 500)
                 x_batch = generate_random_points(

@@ -99,9 +99,16 @@ class DKGP(SingleTaskGP):
             self.dkl = len(architecture) > 2
 
 
+        # covar_module = gpytorch.kernels.ScaleKernel(
+        #     gpytorch.kernels.MaternKernel( # default is 2.5
+        #         ard_num_dims=architecture[-2],
+        #         num_dims=architecture[-2],
+        #     )
+        # )
+
+        # linear kernel
         covar_module = gpytorch.kernels.ScaleKernel(
-            gpytorch.kernels.MaternKernel( # default is 2.5
-                ard_num_dims=architecture[-2],
+            gpytorch.kernels.LinearKernel(
                 num_dims=architecture[-2],
             )
         )

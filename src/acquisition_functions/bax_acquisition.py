@@ -222,7 +222,7 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         batch_size = kwargs.pop("batch_size", 1)
         f_sample_list = []
         for _ in range(self.n_samples):
-            obj_func_sample = get_function_samples(self.model)
+            obj_func_sample = get_function_samples(self.model, **kwargs)
             f_sample_list.append(obj_func_sample)
 
         exe_path_list, output_list = self.run_algorithm_on_f_list(f_sample_list)
@@ -231,16 +231,20 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         self.comb_model_list = []
 
         for exe_path in self.exe_path_list:
-            if self.algorithm.params.name == "Dijkstras" or self.algorithm.params.name == "TopK":
-                # comb_data_x = torch.cat([data_x, torch.tensor(np.array(exe_path.x))], dim=-2)
-                # comb_data_y = torch.cat([data_y, torch.tensor(np.array(exe_path.y))]) # (N, )
-                new_data_x = torch.tensor(np.array(exe_path.x)) # (N, n_dim)
-                new_data_y = torch.tensor(np.array(exe_path.y)) # (N, )
+            if (not isinstance(exe_path.x, torch.Tensor)) or (not isinstance(exe_path.y, torch.Tensor)):
+                if self.algorithm.params.name == "Dijkstras" or self.algorithm.params.name == "TopK":
+                    # comb_data_x = torch.cat([data_x, torch.tensor(np.array(exe_path.x))], dim=-2)
+                    # comb_data_y = torch.cat([data_y, torch.tensor(np.array(exe_path.y))]) # (N, )
+                    new_data_x = torch.tensor(np.array(exe_path.x)) # (N, n_dim)
+                    new_data_y = torch.tensor(np.array(exe_path.y)) # (N, )
+                else:
+                    # comb_data_x = torch.cat([data_x, torch.tensor(exe_path.x)], dim=-2) # (N, n_dim)
+                    # comb_data_y = torch.cat([data_y, torch.tensor(exe_path.y)]) # (N, )
+                    new_data_x = torch.tensor(exe_path.x) # (N, n_dim)
+                    new_data_y = torch.tensor(exe_path.y) # (N, )
             else:
-                # comb_data_x = torch.cat([data_x, torch.tensor(exe_path.x)], dim=-2) # (N, n_dim)
-                # comb_data_y = torch.cat([data_y, torch.tensor(exe_path.y)]) # (N, )
-                new_data_x = torch.tensor(exe_path.x) # (N, n_dim)
-                new_data_y = torch.tensor(exe_path.y) # (N, )
+                new_data_x = exe_path.x
+                new_data_y = exe_path.y
             # comb_model = self.model.clone()
             # fit gp model again with the new data
             comb_model = self.fit_with_old_model(

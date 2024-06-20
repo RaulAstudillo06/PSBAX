@@ -1,6 +1,9 @@
 import torch
 import numpy as np
+import pandas as pd 
+import os
 
+from torch import Tensor
 from gpytorch.kernels import ScaleKernel, RBFKernel
 from gpytorch.distributions import MultivariateNormal
 
@@ -237,3 +240,92 @@ class DiscoBAXObjective(DiscreteObjective):
 
 
 # class CaliforniaObjective():
+
+
+class GB1onehot():
+    """GB1 one-hot inputs. Larger values are better.
+
+    Total dataset size: 149361
+
+    Args:
+        noise_std: standard deviation of the observation noise
+        negate: if True, negate the function
+        dtype: dtype for self.X and self._y
+
+    Attributes:
+        X: Tensor, shape [149361, 80], type self.dtype, by default on CPU
+        _y: Tensor, shape [149361], type self.dtype, by default on CPU
+        dtype: torch.dtype
+    """
+    name = 'gb1onehot'
+
+    # BoTorch API
+    dim = 80
+    _bounds = [(0, 1)] * 80     # 4 positions, 20 possible amino acids each
+    # _optimal_value: float
+    _optimizers = [(
+        0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  # F
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,  # W
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  # A
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0   # A
+    )]
+
+    def __init__(self, DATA_DIR, noise_std: float | None = None, negate: bool = False, dtype: torch.dtype = torch.float64, data_size: int | None = None):
+        self.dtype = dtype
+
+        self.df = pd.read_csv(os.path.join(DATA_DIR, 'GB1_fitness.csv'))
+        self.X = torch.load(os.path.join(DATA_DIR, 'GB1_onehot_x_bool.pt')).to(dtype)
+        if data_size is not None:
+            idx = np.random.choice(len(self.X), data_size, replace=False)
+            self.X = self.X[idx]
+            self.df = self.df.loc[idx]
+
+        self._y = torch.from_numpy(self.df['fit'].values).to(dtype)
+
+        self._optimal_value = self._y.max().item()
+        # assert torch.isclose(
+        #     torch.tensor(self._optimal_value).to(dtype),
+        #     torch.tensor(OPTIMAL_VALUE).to(dtype))
+        assert (self._y == self._optimal_value).sum() == 1
+
+        if noise_std is not None:
+            self.noise_std = noise_std
+            self._y += torch.randn_like(self._y) * noise_std
+        
+        if negate:
+            self._y = -self._y
+
+    def __call__(self, X: torch.Tensor) -> torch.Tensor:
+        """Returns label associated with closest point to X. Always returns labels
+        corresponding to self.negate=False.
+
+        Args:
+            X: shape [batch_size, dim]
+
+        Returns:
+            y: shape [batch_size]
+        """
+        _, y = query_discrete(self.X, self._y, X)
+        return y
+    
+    def update_data(self, indices):
+        self.df = self.df.loc[indices]
+        self.X = self.X[indices]
+        self._y = self._y[indices]
+
+
+
+def query_discrete(X: Tensor, y: Tensor, q: Tensor) -> tuple[Tensor, Tensor]:
+    """
+    Args
+        X: shape [n, d], inputs
+        y: shape [n], labels corresponding to X
+        q: shape [m, d], query points
+
+    Returns:
+        X_closest: shape [m, d], closest entry in X to each point in q, by L1 norm
+        y_closest: shape [m], corresponding y values
+    """
+    dists = torch.cdist(X, q, p=1)  # shape [n, m]
+    closest_inds = dists.argmin(dim=0)
+    return X[closest_inds], y[closest_inds]

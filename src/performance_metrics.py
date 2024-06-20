@@ -157,9 +157,15 @@ class SumOfObjectiveValues(PosteriorMeanPerformanceMetric):
     def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
         if self.sum_gt is None:
             _, self.output_gt = self.algo.run_algorithm_on_f(self.obj_func)
-            sum_gt = self.obj_func(np.array(self.output_gt.x)).sum().item()
+            if not isinstance(self.output_gt, torch.Tensor):
+                sum_gt = self.obj_func(np.array(self.output_gt.x)).sum().item()
+            else:
+                sum_gt = self.obj_func(self.output_gt).sum().item()
         _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
-        sum_mf = self.obj_func(np.array(output_mf.x)).sum().item()
+        if not isinstance(output_mf, torch.Tensor):
+            sum_mf = self.obj_func(np.array(output_mf.x)).sum().item()
+        else: 
+            sum_mf = self.obj_func(output_mf).sum().item()
         
         return sum_gt - sum_mf
 
@@ -553,8 +559,15 @@ def output_dist_fn_norm(a, b):
 
 def output_dist_fn_jaccard(a, b):
     """Output dist_fn based on Jaccard similarity."""
-    a_x_tup = set([tuple(x) for x in a.x])
-    b_x_tup = set([tuple(x) for x in b.x])
+
+    if isinstance(a, torch.Tensor):
+        a = a.numpy()
+        b = b.numpy()
+        a_x_tup = set([tuple(x) for x in a])
+        b_x_tup = set([tuple(x) for x in b])
+    else:
+        a_x_tup = set([tuple(x) for x in a.x])
+        b_x_tup = set([tuple(x) for x in b.x])
 
     jac_sim = len(a_x_tup & b_x_tup) / len(a_x_tup | b_x_tup)
     dist = 1 - jac_sim
