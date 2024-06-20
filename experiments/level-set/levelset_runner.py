@@ -15,6 +15,8 @@ torch.set_default_dtype(torch.float64)
 torch.autograd.set_detect_anomaly(False)
 # debug._set_state(False)
 
+from botorch.test_functions.synthetic import Levy
+
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
@@ -28,7 +30,7 @@ from src.utils import reshape_mesh, get_mesh
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
-parser.add_argument('--problem', type=str, default='himmelblau')
+parser.add_argument('--problem', type=str, default='volcano')
 parser.add_argument('--tau', type=float, default=0.55)
 parser.add_argument('--dim', type=int, default=3)
 parser.add_argument('--n_init', type=int, default=0)
@@ -105,7 +107,44 @@ elif args.problem == "griewank":
     x_to_elevation = {tuple(x): f for x, f in zip(x_set, fx)}
     idx = torch.argmax(fx)
     x_init = torch.tensor(x_set[idx]).reshape(1, -1)
+elif args.problem == "levy":
+    args.dim = 3
+    args.steps = 15
+    args.tau = 0.8
+    bounds = [-10, 10]
+    f = Levy(dim=args.dim, negate=True)
+    def levy(X: torch.Tensor, minimize=False) -> torch.Tensor:
+        X = (bounds[1] - bounds[0]) * X + bounds[0]
+        return f(X)
+    threshold = get_threshold(levy, args.tau)
+    print(f"Threshold: {threshold}")
+    xx = get_mesh(args.dim, args.steps)
+    x_set = reshape_mesh(xx).numpy()
+    fx = levy(torch.tensor(x_set))
+    x_to_elevation = {tuple(x): f for x, f in zip(x_set, fx)}
+    idx = torch.argmax(fx)
+    x_init = torch.tensor(x_set[idx]).reshape(1, -1)
+elif args.problem == "alpine":
+    args.dim = 3
+    args.steps = 15
+    args.tau = 0.9
+    bounds = [-10, 10]
+    def alpine(X: torch.Tensor, minimize=False) -> torch.Tensor:
+        X = (bounds[1] - bounds[0]) * X + bounds[0]
+        result = torch.sum(torch.abs(X * torch.sin(X) + 0.1 * X), dim=-1)
+        if not minimize:
+            return -result
+        return result
+    threshold = get_threshold(alpine, args.tau)
+    print(f"Threshold: {threshold}")
+    xx = get_mesh(args.dim, args.steps)
+    x_set = reshape_mesh(xx).numpy()
+    fx = alpine(torch.tensor(x_set))
+    x_to_elevation = {tuple(x): f for x, f in zip(x_set, fx)}
+    idx = torch.argmax(fx)
+    x_init = torch.tensor(x_set[idx]).reshape(1, -1)
 
+        
 
 def obj_func(X):
     if not isinstance(X, torch.Tensor):
