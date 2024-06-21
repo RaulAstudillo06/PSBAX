@@ -27,18 +27,19 @@ sys.path.append('../')
 
 
 problem_setting = [
-    "discobax",
+    # "discobax",
     # "single-objective",
     # "multi-objective",
     # "shortest-path",
-    # "topk",
+    "topk",
     # "level-set",
 ] # Comment out the rest, only keep one
 results_dir = os.path.join(".", problem_setting[0], "results")
 
 # problem = "topk_original"
 # problem = "old_topk_himmelblau"
-# problem = "topk_himmelblau"
+problem = "topk_himmelblau"
+problem = "topk_gb1_test"
 # problem = "ackley_10d"
 # problem = "ackley_5d"
 # problem = "dtlz1_6d"
@@ -54,24 +55,27 @@ results_dir = os.path.join(".", problem_setting[0], "results")
 # problem = "ackley_10d"
 # problem = "rastrigin_10d"
 # problem = "dijkstra"
-# problem = "california"
+# problem = "new_california"
+# problem = "new_california_energy"
 # problem = "california_bax"
 # problem = "sanchez_2021_tau_dim5_size1700"
 # problem = "schmidt_2021_ifng_top_10000"
 # problem = "schmidt_2021_ifng_top_1700"
 # problem = "old_discobax_sanchez_2021_tau_top_5000"
 # problem = "discobax_sanchez_2021_tau_top_5000"
-problem = "discobax_schmidt_2021_ifng_top_5000"
+# problem = "discobax_schmidt_2021_ifng_top_5000"
 # problem = "dijkstra"
 # problem = "lbfgsb_rastrigin_10d"
-problem = "levelset_himmelblau"
+# problem = "levelset_himmelblau"
 # problem = "levelset_volcano"
 # problem = "levelset_griewank"
+# problem = "levelset_alpine"
+# problem = "levelset_levy"
 
 policies = [
     # "random",
     # "bax", 
-    # "ps", 
+    "ps", 
     # "lse",
     # "OPT",
     # "random_modelgp", 
@@ -81,9 +85,9 @@ policies = [
     # "qei_gp_lbfgsb",
     # "bax_gp_lbfgsb",
     # "ps_gp_lbfgsb",
-    "random_modelgp_dim5",
-    "bax_modelgp_dim5",
-    "ps_modelgp_dim5",
+    # "random_modelgp_dim5",
+    # "bax_modelgp_dim5",
+    # "ps_modelgp_dim5",
     # "OPT_modelgp_dim5",
     # "bax_modelgp_dim20",
     # "ps_modelgp_dim20",
@@ -97,21 +101,21 @@ graph_trials = [
     2, 
     3, 
     4, 
-    5, 
-    6, 
-    7, 
-    8, 
-    9, 
-    10,
+    # 5, 
+    # 6, 
+    # 7, 
+    # 8, 
+    # 9, 
+    # 10,
 ]
-graph_trials = [i for i in range(1, 31)]
-show_title = False
+# graph_trials = [i for i in range(1, 21)]
+show_title = True
 save_fig = True
 path = os.path.join(results_dir, problem)
-batch_size = 1
+batch_size = 5
 log = False
-bax_iters = 100
-max_iters = 100
+bax_iters = 150
+max_iters = 150
 # bax_iters = None
 optimum = None # 3.32237
 file_format = ".png"
@@ -138,7 +142,7 @@ policy_to_label = {
     "bax": "EIG",
     "qehvi": "EHVI",
     "qei": "EI",
-    "lse" "LSE"
+    "lse": "LSE",
     "OPT": "OPT",
     "random": "Random",
 }
@@ -186,7 +190,11 @@ for policy in policies:
                 arrs[metrics_name] = arrs.get(metrics_name, []) + [vals]
             
     for (metrics_name, arr) in arrs.items():
-        arrs[metrics_name] = np.vstack(arr) # (n_trials, n_iter)
+        try:
+            arrs[metrics_name] = np.vstack(arr) # (n_trials, n_iter)
+        except:
+            print(f"Error in {policy} {metrics_name}")
+            # pass
         if optimum is not None:
             arrs[metrics_name] = optimum - arrs[metrics_name]
         if log:
@@ -308,6 +316,8 @@ for metrics_name in metrics:
 
 
 #%%
+
+
 
 
     
