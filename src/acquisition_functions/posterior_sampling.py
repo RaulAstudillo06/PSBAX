@@ -64,7 +64,8 @@ def gen_posterior_sampling_batch(model, algorithm, batch_size, **kwargs):
         return idx_next
     else:
         batch = []
-        while len(batch) < batch_size:
+        # while len(batch) < batch_size:
+        for _ in range(batch_size):
             obj_func_sample = get_function_samples(model, **kwargs)
             x_output = algorithm.execute(obj_func_sample)
             if not isinstance(x_output, torch.Tensor):
