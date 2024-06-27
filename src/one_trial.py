@@ -109,6 +109,7 @@ def one_trial(
                 for i in range(performance_metrics_arr.shape[0]):
                     performance_metrics_vals.append(performance_metrics_arr[i])
             iteration = len(runtimes)
+            # iterations_sampled = (len(inputs) - num_init_points) // batch_size
 
             # Fit GP model
             t0 = time.time()
@@ -122,6 +123,10 @@ def one_trial(
             )
             t1 = time.time()
             model_training_time = t1 - t0
+
+            current_performance_metrics = evaluate_performance(performance_metrics, model, **kwargs)
+
+
 
             # iteration = len(performance_metrics_vals[:, 0]) - 1
             print("Restarting experiment from available data.")

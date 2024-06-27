@@ -11,9 +11,9 @@ torch.set_default_dtype(torch.float64)
 torch.autograd.set_detect_anomaly(False)
 # debug._set_state(False)
 
-# script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-cwd = os.getcwd()
-script_dir = cwd
+script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
+# cwd = os.getcwd()
+# script_dir = cwd
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
@@ -39,7 +39,6 @@ args = parser.parse_args()
 # python gb1_runner.py -s --policy ps --first_trial 1 --trials 5 --max_iter 100 --batch_size 5 --model_type dkgp --epochs 10000 --k 10
 
 input_dim = 80
-
 DATA_DIR = os.path.join(script_dir, 'data')
 
 #%%
@@ -56,7 +55,14 @@ obj_func.update_data(test_indices)
 X = obj_func.X
 rescaled_domain = [[0.0, 1.0]] * input_dim
 k = args.k
-algo = TopKTorch({"x_path": X, "k": k}, verbose=False)
+algo = TopKTorch(
+    {
+        "x_path": X, 
+        "k": k,
+        "no_copy" : True,
+    }
+    , verbose=False
+)
 
 algo_metric = algo.get_copy()
 performance_metrics = [
@@ -109,4 +115,5 @@ experiment_manager(
     architecture=model_architecture,
     epochs=args.epochs,
     # check_GP_fit=True,
+    no_copy=True,
 )
