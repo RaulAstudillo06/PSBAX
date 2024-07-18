@@ -18,11 +18,11 @@ from src.performance_metrics import *
 
 # TODO
 problem_setting = [
-    # "discobax",
+    "discobax",
     # "single-objective",
     # "multi-objective",
     # "shortest-path",
-    "topk",
+    # "topk",
     # "level-set",
 ] # Comment out the rest, only keep one
 
@@ -36,21 +36,22 @@ problem_setting = [
 # problem = "ackley_10d"
 # problem = "discobax_1"
 # problem = "levelset_volcano_Raul"
-# problem = "sanchez"
+# problem = "levelset_himmelblau_raul"
+problem = "sanchez"
 # problem = "schimdt"
 # problem = "rosenbrock"
-problem = "himmelblau"
+# problem = "topk_gb1_raul"
 results_dir = os.path.join(".", problem_setting[0], "results") 
 path = os.path.join(results_dir, problem)
 
 policies = [
-    "bax",
-    "ps",
+    # "bax",
+    # "ps",
     # "random",
     # "bax_gp_lbfgsb",
     # "ps_gp_lbfgsb",
-    # "bax_modelgp_dim5",
-    # "ps_modelgp_dim5",
+    "bax_modelgp_dim5",
+    "ps_modelgp_dim5",
 ]
 
 # TODO
@@ -70,16 +71,18 @@ for policy in policies:
             runtimes = np.loadtxt(os.path.join(files_dir, f)).squeeze() # runtimes of one trial
             if iters is None:
                 iters = len(runtimes)
-            runtime_arrs[policy] = runtime_arrs.get(policy, np.zeros((iters, )))
-            try:
-                runtime_arrs[policy] += runtimes[:iters]
-            except:
-                print(f)
+            runtime_arrs[policy] = runtime_arrs.get(policy, [])
+            if len(runtimes) < iters:
+                print(policy, f, len(runtimes))
                 continue
+            else:
+                runtime_arrs[policy].append(runtimes[:iters])
+            
                 
 #%%
 print(problem)
 for policy in runtime_arrs:
+    runtime_arrs[policy] = np.vstack(runtime_arrs[policy])
     print(policy, runtime_arrs[policy].mean())
 #%%
 
