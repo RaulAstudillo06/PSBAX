@@ -47,8 +47,11 @@ def generate_initial_data(
     return inputs, outputs
 
 
-def generate_random_points(num_points: int, input_dim: int, seed: int = None, batch_size: int = None, **kwargs):
-    # Generate `num_batches` inputs each constituted by `batch_size` points chosen uniformly at random
+def generate_random_points(num_points: int, input_dim: int, seed: int = None, **kwargs):
+    '''
+    Returns:
+        torch tensor of shape (num_points, input_dim)
+    '''
     edge_coords = kwargs.get("edge_coords", None) # Dijkstra
     x_set = kwargs.get("x_set", None) # Level set
     x_batch = kwargs.get("x_batch", None) # Top k
@@ -75,21 +78,6 @@ def generate_random_points(num_points: int, input_dim: int, seed: int = None, ba
         torch.random.set_rng_state(old_state)
     else:
         inputs = torch.rand([num_points, input_dim])
-    return inputs
-
-    if seed is not None:
-        old_state = torch.random.get_rng_state()
-        torch.manual_seed(seed)
-        if batch_size is not None:
-            inputs = torch.rand([num_points, batch_size, input_dim])
-        else:
-            inputs = torch.rand([num_points, input_dim])
-        torch.random.set_rng_state(old_state)
-    else:
-        if batch_size is not None:
-            inputs = torch.rand([num_points, batch_size, input_dim])
-        else:
-            inputs = torch.rand([num_points, input_dim])
     return inputs
 
 
@@ -318,3 +306,4 @@ def f1_score(x_gt, x_pred):
     recall = tp / (tp + fn)
     f1 = 2 * precision * recall / (precision + recall)
     return f1
+

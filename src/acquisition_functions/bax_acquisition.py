@@ -232,20 +232,12 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
 
         for exe_path in self.exe_path_list:
             if (not isinstance(exe_path.x, torch.Tensor)) or (not isinstance(exe_path.y, torch.Tensor)):
-                if self.algorithm.params.name == "Dijkstras" or self.algorithm.params.name == "TopK":
-                    # comb_data_x = torch.cat([data_x, torch.tensor(np.array(exe_path.x))], dim=-2)
-                    # comb_data_y = torch.cat([data_y, torch.tensor(np.array(exe_path.y))]) # (N, )
-                    new_data_x = torch.tensor(np.array(exe_path.x)) # (N, n_dim)
-                    new_data_y = torch.tensor(np.array(exe_path.y)) # (N, )
-                else:
-                    # comb_data_x = torch.cat([data_x, torch.tensor(exe_path.x)], dim=-2) # (N, n_dim)
-                    # comb_data_y = torch.cat([data_y, torch.tensor(exe_path.y)]) # (N, )
-                    new_data_x = torch.tensor(exe_path.x) # (N, n_dim)
-                    new_data_y = torch.tensor(exe_path.y) # (N, )
+                new_data_x = torch.tensor(exe_path.x) # (N, n_dim)
+                new_data_y = torch.tensor(exe_path.y) # (N, )
             else:
                 new_data_x = exe_path.x
                 new_data_y = exe_path.y
-            # comb_model = self.model.clone()
+
             # fit gp model again with the new data
             comb_model = self.fit_with_old_model(
                 new_data_x,
@@ -258,20 +250,6 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
             self, 
             f_sample_list, 
         ):
-
-        # if self.algorithm.params.name == "Dijkstras":
-        #     exe_path_list = []
-        #     output_list = []
-        #     for f_sample in f_sample_list:
-        #         algo = self.algorithm.initialize()
-        #         exe_path, output = algo.run_algorithm_on_f(f_sample)
-        #         if self.crop:
-        #             exe_path = algo.get_exe_path_crop()
-
-        #         exe_path_list.append(exe_path)
-        #         output_list.append(output)
-            
-        #     return exe_path_list, output_list
 
         self.algorithm.initialize()
         if (nocopy := getattr(self.algorithm.params, "no_copy", False)):
@@ -287,42 +265,13 @@ class BAXAcquisitionFunction(MultiObjectiveMCAcquisitionFunction):
         
 
         algo_list = [self.algorithm.get_copy() for _ in range(self.n_samples)]
-        if self.algorithm.params.name == "TopK":
-            for algo in algo_list:
-                algo.initialize()
-            x_list = [algo.get_next_x() for algo in algo_list]
-            while any(x is not None for x in x_list):
-                fx_list = [f(torch.tensor(x).unsqueeze(0)).item() for f, x in zip(f_sample_list, x_list)]
-                x_list_new = []
-                for algo, x, fx in zip(algo_list, x_list, fx_list):
-                    if x is not None:
-                        algo.exe_path.x.append(x)
-                        algo.exe_path.y.append(fx)
-                        x_next = algo.get_next_x()
-                    else:
-                        x_next = None
-                    x_list_new.append(x_next) # the next_x for every x in x_list
-                x_list = x_list_new
-            self.algo_list = algo_list
-            exe_path_list = [algo.exe_path for algo in algo_list]
-            output_list = [algo.get_output() for algo in algo_list] # FIXME
-            
-        else:
-            exe_path_list = []
-            output_list = []
-            for f_sample, algo in zip(f_sample_list, algo_list):
-                # algo = self.algorithm.get_copy()
-                exe_path, output = algo.run_algorithm_on_f(f_sample)
-                # algo_list.append(algo)
-                exe_path_list.append(exe_path)
-                output_list.append(output)
-            
-
-        if self.crop:
-            exe_path_list_crop = []
-            for algo in algo_list:
-                exe_path_crop = algo.get_exe_path_crop()
-                exe_path_list_crop.append(exe_path_crop)
-            exe_path_list = exe_path_list_crop
+        exe_path_list = []
+        output_list = []
+        for f_sample, algo in zip(f_sample_list, algo_list):
+            # algo = self.algorithm.get_copy()
+            exe_path, output = algo.run_algorithm_on_f(f_sample)
+            # algo_list.append(algo)
+            exe_path_list.append(exe_path)
+            output_list.append(output)
         
         return exe_path_list, output_list

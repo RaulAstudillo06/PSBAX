@@ -19,21 +19,19 @@ script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
-from src.bax.alg.evolution_strategies import EvolutionStrategies
-from src.bax.alg.lbfgsb import LBFGSB
+from src.algorithms.lbfgsb import LBFGSB
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import BestValue
 from src.utils import compute_noise_std
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--dim', type=int, default=10)
-parser.add_argument('--policy', type=str, default='ps')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--trials', type=int, default=5)
 parser.add_argument('--first_trial', type=int, default=1)
 parser.add_argument('--noise', type=float, default=0.0)
 parser.add_argument('--batch_size', type=int, default=5)
 parser.add_argument('--max_iter', type=int, default=200)
-parser.add_argument('--samp_str', type=str, default='mut')
 parser.add_argument('--model_type', type=str, default='gp')
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
@@ -52,37 +50,18 @@ def obj_func(X: Tensor) -> Tensor:
     objective_X = ackley((2.0 * X) - 1.0)
     return objective_X
 
-
 # Algorithm
-algo_id = "lbfgsb"
+num_restarts = 5 * n_dim
+raw_samples = 100 * n_dim
 
-if algo_id == "cma":
-    domain = [[0, 1]] * n_dim
-    init_x = [[0.0] * n_dim]
-
-    algo_params = {
-        "n_generation": 100 * n_dim,
-        "n_population": 10,
-        "samp_str": args.samp_str,
-        "init_x": init_x[0],
-        "domain": domain,
-        "crop": True,
-        "opt_mode": "max",
-    }
-    algo = EvolutionStrategies(algo_params)
-elif algo_id == "lbfgsb":
-    num_restarts = 5 * n_dim
-    raw_samples = 100 * n_dim
-
-    algo_params = {
-        "name" : "LBFGSB",
-        "opt_mode" : "max",
-        "n_dim" : n_dim,
-        "num_restarts" : num_restarts,
-        "raw_samples" : raw_samples,
-    }
-    algo = LBFGSB(algo_params)
-
+algo_params = {
+    "name" : "LBFGSB",
+    "opt_mode" : "max",
+    "n_dim" : n_dim,
+    "num_restarts" : num_restarts,
+    "raw_samples" : raw_samples,
+}
+algo = LBFGSB(algo_params)
 
 # Performance metric
 algo_metric = algo.get_copy()
@@ -109,7 +88,6 @@ if args.save:
         if k not in params_dict and k != "ref_point":
             params_dict[k] = v
 
-    params_dict["algo_id"] = algo_id
     with open(os.path.join(results_dir, f"{policy}_{args.batch_size}_params.json"), "w") as file:
         json.dump(params_dict, file)
 
@@ -124,7 +102,7 @@ experiment_manager(
     input_dim=n_dim,
     noise_type=noise_type,
     noise_level=noise_levels,
-    policy=args.policy + f"_{args.model_type}" + f"_{algo_id}", 
+    policy=args.policy + f"_{args.model_type}", 
     batch_size=args.batch_size,
     num_init_points=2 * (n_dim + 1),
     num_iter=args.max_iter,

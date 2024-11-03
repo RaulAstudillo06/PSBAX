@@ -21,7 +21,7 @@ from botorch.utils.multi_objective import Hypervolume
 
 from src.models.deep_kernel_gp import DKGP
 from src.utils import optimize_acqf_and_get_suggested_batch, f1_score
-from .bax.util.graph import area_of_polygons
+
 
 class PosteriorMeanPerformanceMetric:
     def __init__(self, name: str):
@@ -136,7 +136,6 @@ class NormDifference(PosteriorMeanPerformanceMetric):
         
         return output_dist_fn_norm(output_mf, self.output_gt)
 
-
 class ShortestPathCost(PosteriorMeanPerformanceMetric):
     def __init__(self, algo):
         super().__init__("Shortest path cost")
@@ -168,117 +167,6 @@ class SumOfObjectiveValues(PosteriorMeanPerformanceMetric):
             sum_mf = self.obj_func(output_mf).sum().item()
         
         return sum_gt - sum_mf
-
-class ShortestPathArea(PosteriorMeanPerformanceMetric):
-    def __init__(self, algo, obj_func):
-        super().__init__("Shortest path area")
-        self.algo = algo
-        self.obj_func = obj_func
-        self.output_gt = None
-
-    def __call__(self, posterior_mean_func: PosteriorMean) -> Tensor:
-        if self.output_gt is None:
-            _, self.output_gt = self.algo.run_algorithm_on_f(self.obj_func)
-        _, output_mf = self.algo.run_algorithm_on_f(posterior_mean_func)
-        
-        return area_of_polygons(self.output_gt[1], output_mf[1])
-    
-
-class DijkstraBAXMetric(SamplePerformanceMetric):
-    def __init__(self, algo, obj_func, **kwargs):
-        super().__init__("DijkstraBAXMetric")
-        self.algo = algo
-        self.obj_func = obj_func
-        self.n_samples = kwargs.pop("n_samples", 1)
-        self.grid_area = kwargs.pop("total_area", 1)
-        self.optimum_cost = kwargs.pop("optimum_cost", 0)
-        self.output_gt = None
-        self.algo_list = None
-        self.output_list = None
-
-    def initialize(self, model):
-        data_x = model.train_inputs[0]
-        data_y = model.train_targets
-        if self.algo.params.opt_mode == "min":
-            opt_idx = np.argmin(data_y)
-        elif self.algo.params.opt_mode == "max":
-            opt_idx = np.argmax(data_y)
-        self.algo.params.init_x = data_x[opt_idx].tolist()
-
-        if self.output_gt is None:
-            _, self.output_gt = self.algo.run_algorithm_on_f(self.obj_func)
-
-        f_sample_list = []
-        for _ in range(self.n_samples):
-
-            if isinstance(model, DKGP):
-                aux_model = deepcopy(model)
-                inputs = aux_model.train_inputs[0]
-                aux_model.train_inputs = (aux_model.embedding(inputs),)
-                gp_layer_sample = get_gp_samples(
-                    model=aux_model,
-                    num_outputs=1,
-                    n_samples=1,
-                    num_rff_features=1000,
-                )
-        
-                def aux_obj_func_sample_callable(X):
-                    return gp_layer_sample.posterior(aux_model.embedding(X)).mean
-                
-                obj_func_sample = GenericDeterministicModel(f=aux_obj_func_sample_callable)
-            elif isinstance(model, SingleTaskGP):
-                obj_func_sample = get_gp_samples(
-                    model=model,
-                    num_outputs=1,
-                    n_samples=1,
-                    num_rff_features=1000,
-                )
-                obj_func_sample = PosteriorMean(model=obj_func_sample)
-            f_sample_list.append(obj_func_sample)
-
-        algo_list, output_list = self.run_algorithm_on_f_list(f_sample_list)
-        self.algo_list = algo_list
-        self.output_list = output_list
-    
-    def run_algorithm_on_f_list(
-            self, 
-            f_sample_list, 
-        ):
-
-        self.algo.initialize()
-        algo_list = []
-        algo_list = [self.algo.get_copy() for _ in range(self.n_samples)]
-        output_list = []
-        for f_sample, algo in zip(f_sample_list, algo_list):
-            _, output = algo.run_algorithm_on_f(f_sample)
-            output_list.append(output)
-        
-        return algo_list, output_list
-
-    def __call__(self, model) -> Tensor:
-        # if self.algo_list is None or self.output_list is None:
-        #     self.initialize(model)
-        
-        assert self.output_list is not None and self.algo_list is not None
-        costs = []
-        areas = []
-        errors = []
-
-        for output, algo in zip(self.output_list, self.algo_list):
-            cost = algo.true_cost_of_shortest_path
-            area = area_of_polygons(self.output_gt[1], output[1]) / self.grid_area
-            error = (cost - self.optimum_cost) * area
-            costs.append(cost)
-            areas.append(area)
-            errors.append(error)
-            
-        # costs = [algo.true_cost_of_shortest_path.item() for algo in self.algo_list]
-        # areas = [area_of_polygons(self.output_gt[1], output[1]) for output in self.output_list]
-        
-        
-        return np.mean(costs), np.mean(areas), np.mean(errors)
-        
-    
 
 class DiscretePerformanceMetric(PosteriorMeanPerformanceMetric):
     def __init__(self, name, data_df):

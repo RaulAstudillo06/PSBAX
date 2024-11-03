@@ -83,5 +83,7 @@ discobax-scripts/
 # *.csv
 *h5
 
+slide-scripts/
+
 # *.txt
 # *.json

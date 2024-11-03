@@ -20,6 +20,7 @@ sys.path.append(src_dir)
 
 from src.bax.alg.evolution_strategies import EvolutionStrategies
 from src.bax.alg.lbfgsb import LBFGSB
+# from src.algorithms.lbfgsb import LBFGSB
 from src.bax.util.domain_util import unif_random_sample_domain
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import BestValue

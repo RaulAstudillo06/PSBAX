@@ -17,7 +17,8 @@ script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
-from src.bax.alg.topk import TopKTorch
+from src.algorithms.topk import TopK
+# from src.bax.alg.topk import TopKTorch
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import JaccardSimilarity, NormDifference, SumOfObjectiveValues
 from src.problems import GB1onehot
@@ -55,7 +56,7 @@ obj_func.update_data(test_indices)
 X = obj_func.X
 rescaled_domain = [[0.0, 1.0]] * input_dim
 k = args.k
-algo = TopKTorch(
+algo = TopK(
     {
         "x_path": X, 
         "k": k,

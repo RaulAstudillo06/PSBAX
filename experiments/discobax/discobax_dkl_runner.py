@@ -14,10 +14,9 @@ script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
-from src.bax.alg.discobax import SubsetSelect
-from src.acquisition_functions.posterior_sampling import gen_posterior_sampling_batch
-from src.acquisition_functions.bax_acquisition import BAXAcquisitionFunction
-from src.performance_metrics import DiscreteTopKMetric, DiscreteDiscoBAXMetric
+# from src.bax.alg.discobax import SubsetSelect
+from src.algorithms.discobax import SubsetSelect
+from src.performance_metrics import DiscreteDiscoBAXMetric
 from src.experiment_manager import experiment_manager
 from src.problems import DiscoBAXObjective
 

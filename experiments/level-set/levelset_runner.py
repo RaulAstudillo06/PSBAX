@@ -21,7 +21,8 @@ script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
-from src.bax.alg.levelset import LevelSetEstimator
+from src.algorithms.levelset import LevelSetEstimator
+# from src.bax.alg.levelset import LevelSetEstimator
 from src.performance_metrics import F1Score
 from src.acquisition_functions.lse import LSE
 from src.experiment_manager import experiment_manager

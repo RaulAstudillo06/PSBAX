@@ -21,7 +21,8 @@ script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
-from src.bax.alg.algorithms import TopK
+from src.algorithms.topk import TopK
+# from src.bax.alg.algorithms import TopK
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import JaccardSimilarity, NormDifference, SumOfObjectiveValues
 from src.bax.util.domain_util import unif_random_sample_domain
@@ -29,7 +30,7 @@ from src.bax.util.graph import jaccard_similarity
 from src.utils import seed_torch, generate_random_points, get_mesh, reshape_mesh
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--policy', type=str, default='random')
+parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--function', type=str, default='original')
 parser.add_argument('--dim', type=int, default=3)
 parser.add_argument('--first_trial', type=int, default=1)
@@ -143,13 +144,11 @@ if args.function == 'himmelblau':
 # elif args.function == 'original':
 #     x_path = np.load(f"{script_dir}/data/ori_x_np.npy")
 
-x_path = [list(x) for x in x_path]
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 
 algo_metric = algo.get_copy()
 performance_metrics = [
     JaccardSimilarity(algo_metric, obj_func),
-    # NormDifference(algo_metric, obj_func),
     SumOfObjectiveValues(algo_metric, obj_func),
 ]
 
