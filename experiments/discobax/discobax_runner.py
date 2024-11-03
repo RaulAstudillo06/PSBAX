@@ -49,8 +49,6 @@ args = parser.parse_args()
 
 # script_dir = '/home/ec2-user/projects/PSBAX/experiments/discobax'
 data_path = f"{script_dir}/data/"
-# if "discobax" not in os.getcwd():
-#     data_path = "./experiments/discobax/data/"
 problem_lst = [
     "schmidt_2021_ifng",
     "schmidt_2021_il2",
@@ -59,9 +57,6 @@ problem_lst = [
     "zhu_2021_sarscov2_host_factors",
 ]
 problem = problem_lst[args.problem_idx]
-
-# get the absolute path of the current file
-
 
 # === Testing === #
 TEST = True
