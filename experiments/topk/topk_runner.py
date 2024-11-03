@@ -25,9 +25,7 @@ from src.algorithms.topk import TopK
 # from src.bax.alg.algorithms import TopK
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import JaccardSimilarity, NormDifference, SumOfObjectiveValues
-from src.bax.util.domain_util import unif_random_sample_domain
-from src.bax.util.graph import jaccard_similarity
-from src.utils import seed_torch, generate_random_points, get_mesh, reshape_mesh
+from src.utils import generate_random_points, get_mesh, reshape_mesh
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
