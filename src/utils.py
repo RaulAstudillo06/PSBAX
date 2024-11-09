@@ -6,8 +6,8 @@ import os
 import numpy as np
 import torch
 import gpytorch
+import pandas as pd
 
-# from torch import Tensor
 from torch import Tensor, distributions as tdist, nn
 from copy import deepcopy
 from botorch.models.gp_regression import SingleTaskGP
@@ -307,3 +307,9 @@ def f1_score(x_gt, x_pred):
     f1 = 2 * precision * recall / (precision + recall)
     return f1
 
+def topk_indices(y: pd.Series, k):
+    if isinstance(k, float):
+        return list(y.sort_values(ascending=False).index[:int(k * y.shape[0])].values)
+    elif isinstance(k, int):
+        return list(y.sort_values(ascending=False).index[:k].values)
+    

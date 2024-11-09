@@ -243,9 +243,6 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
         self.true_values = None
         self.OPT = self.compute_OPT()
 
-    # def set_obj_func(self, obj_func):
-    #     self.obj_func = obj_func
-    
     def set_algo(self, algo):
         self.algo = algo
     
@@ -258,8 +255,6 @@ class DiscreteDiscoBAXMetric(PosteriorMeanPerformanceMetric):
         x = self.obj_func.get_idx()
         fx = self.obj_func(x).detach().numpy()
         _, output_mf = self.algo.run_algorithm_on_f(fx)
-        # values = obj_func.get_noisy_f_lst(fx) # (n, budget)
-        # max_values = np.max(values, axis=1) # (n,)
         if self.true_values is None:
             self.true_values = self.obj_func.get_noisy_f_lst(fx) # (n, budget)
         _, idxes = self.algo.get_values_and_selected_indices()

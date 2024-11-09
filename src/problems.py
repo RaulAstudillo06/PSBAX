@@ -65,15 +65,11 @@ class DiscoBAXObjective(DiscreteObjective):
         super().__init__(name, df, idx_type)
         self.noise_budget = noise_budget
         self.noise_type = noise_type
-        # self.etas_lst = None
-        # self.fout_lst = None
         self.etas = None
         self.verbose = False
-        # self.nonneg = False
         for key, value in kwargs.items():
             setattr(self, key, value)
             # sets self.nonneg
-        
 
     def get_y_from_x(self, X):
         if len(X.shape) == 1:
@@ -83,16 +79,6 @@ class DiscoBAXObjective(DiscreteObjective):
             x_tuple = tuple(x.tolist())
             y_values.append(self.x_to_y[x_tuple])
         return torch.tensor(y_values)
-
-    # def __call__(self, X):
-    #     if len(X.shape) == 1:
-    #         X = X.reshape(1, -1)
-    #     y_values = []
-    #     for x in X:
-    #         x_tuple = tuple(x.tolist())
-    #         y_values.append(self.x_to_y[x_tuple])
-    #     return torch.tensor(y_values)
-
 
     def set_dict(self):
         x_tuples = [tuple(x.tolist()) for x in self.get_x()]
@@ -111,6 +97,7 @@ class DiscoBAXObjective(DiscreteObjective):
         return indices
                 
     def update(self, available_idx):
+        ''''''
         # Keep the fraction of etas to use
         int_idx = self.index_to_int_index(available_idx)
         self.etas = self.etas[:, int_idx]
@@ -118,7 +105,6 @@ class DiscoBAXObjective(DiscreteObjective):
         new_df = self.df.loc[available_idx]
         self.update_df(new_df)
         self.set_dict()
-
 
     def get_etas(self, lengthscale=1.0, outputscale=1.0):
         x = self.get_x()
@@ -153,9 +139,7 @@ class DiscoBAXObjective(DiscreteObjective):
                 p = stable_sigmoid(ls) # (budget, 17176)
                 etas = np.random.binomial(1, p) # (budget, 17176)
 
-            # self.etas_lst = etas_lst
             self.etas = etas
-        # assert np.asarray(self.etas_lst).shape == (self.noise_budget, n), "etas_lst needs initialization."
         assert self.etas.shape == (self.noise_budget, n), "etas needs initialization."
         return 
 
@@ -181,9 +165,11 @@ class DiscoBAXObjective(DiscreteObjective):
     
     def initialize(self, **kwargs):
         seed = kwargs.get("seed", None)
+        regenerate = kwargs.get("regenerate", False)
         if seed is not None:
             seed_torch(seed)
-        # self.set_noise()
+        if regenerate:
+            self.etas = None
         self.get_etas()
 
 class GB1onehot():

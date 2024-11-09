@@ -26,8 +26,7 @@ debug._set_state(False)
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='ps')
-parser.add_argument('--problem_idx', type=int, default=3)
-parser.add_argument('--use_random', default=False, action='store_true')
+parser.add_argument('--problem_idx', type=int, default=1)
 parser.add_argument('--do_pca', default=False, action='store_true')
 parser.add_argument('--pca_dim', type=int, default=20)
 parser.add_argument('--data_size', type=int, default=5000)
@@ -39,62 +38,34 @@ parser.add_argument('--n_init', type=int, default=None)
 parser.add_argument('--eta_budget', type=int, default=100)
 parser.add_argument('--model_type', type=str, default="dkgp")
 parser.add_argument('--check_GP_fit', type=bool, default=False)
-parser.add_argument('--allow_reselect', type=bool, default=False) # CHANGE
+parser.add_argument('--allow_reselect', type=bool, default=True) # CHANGE
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
 
 # === To RUN === # 
-# python discobax_dkl_runner.py -s --problem_idx 3 --max_iter 200 --data_size 1700 --n_init 100 --eta_budget 100 --policy ps --first_trial 1 --trials 5
+# python discobax_dkl_runner.py -s --max_iter 10 --n_init 100 --policy ps
 
 # check gp fit
-# python discobax_dkl_runner.py -s --problem_idx 4 --max_iter 10 --policy ps --data_size 1700 --n_init 100 --check_GP_fit 1 --trials 1 
+# python discobax_dkl_runner.py -s --max_iter 10 --n_init 100 --policy ps --check_GP_fit 1 --trials 1 
 
 data_path = f"{script_dir}/data/"
-
 problem_lst = [
     "schmidt_2021_ifng",
-    "schmidt_2021_il2",
-    "zhuang_2019",
     "sanchez_2021_tau",
-    "zhu_2021_sarscov2_host_factors",
 ]
 problem = problem_lst[args.problem_idx]
+data_path = os.path.join(data_path, f"{problem}_top_{args.data_size}.csv")
+assert(os.path.exists(data_path))
 
-# === Testing === #
-TEST = False
-if TEST:
-    args.problem_idx = 3
-    args.num_iter = 100
-    args.do_pca = True
-    args.pca_dim = 5
-    args.data_size = 1700
-    args.policy = "ps"
-    args.restart = True
-    problem = problem_lst[args.problem_idx]
-# =============== #
-if args.use_random:
-    data_path = os.path.join(data_path, f"{problem}_random_{args.data_size}.csv")
-else:
-    data_path = os.path.join(data_path, f"{problem}_top_{args.data_size}.csv")
-    # check if data_path exists
-    os.path.exists(data_path)
+# Prepares data for PCA
 df = pd.read_csv(data_path, index_col=0)
 df_x = df.drop(columns=["y"])
 df_y = df["y"]
 
 if not args.do_pca:
     args.pca_dim = df_x.shape[1]
-
 print(f'pca_dim: {args.pca_dim}, data_size: {args.data_size}')
-
-def topk_indices(y: pd.Series, k):
-    if isinstance(k, float):
-        return list(y.sort_values(ascending=False).index[:int(k * y.shape[0])].values)
-    elif isinstance(k, int):
-        return list(y.sort_values(ascending=False).index[:k].values)
-    
-
 if args.do_pca or args.pca_dim != df_x.shape[1]:
     print("===== Doing PCA =====")
     pca_x = torch.tensor(df_x.values)
@@ -107,6 +78,7 @@ if args.do_pca or args.pca_dim != df_x.shape[1]:
     df_x = df.drop(columns=["y"])
     df_y = df["y"]
 
+# Data normalization
 df_x = (df_x - df_x.min()) / (df_x.max() - df_x.min())
 df = df_x
 df["y"] = df_y
@@ -119,8 +91,9 @@ obj_func = DiscoBAXObjective(
     noise_type="additive",
     idx_type="str",
     nonneg=False, # NOTE: not taking np.maximum(0, fx) 
+    verbose=True,
 )
-obj_func.set_dict()
+obj_func.set_dict() # sets the disctionary for x to y, x to idx mapping
 
 algo_params = {
     "name": "SubsetSelect",
@@ -134,7 +107,6 @@ fn = f"{script_dir}/data/etas_seed0_size{args.data_size}.txt"
 if os.path.exists(fn):
     etas = np.loadtxt(fn)
     if len(etas) == args.eta_budget:
-        # obj_func.etas_lst = etas
         obj_func.etas = etas
         print("Loaded etas from file.")
 obj_func.initialize(seed=0, verbose=True)
@@ -157,9 +129,6 @@ performance_metrics = [
 
 for metric in performance_metrics:
     metric.set_algo(algo)
-
-# == DO if not update_objective == #
-# update_objective = True
     
 problem = data_path.split("/")[-1].split(".")[0]
 problem = "discobax" + "_" + problem
@@ -186,7 +155,7 @@ last_trial = args.first_trial + args.trials - 1
 
 # NOTE: Change DKGP hyperparameters here!
 model_architecture = [160, 40, 10, 5] # Excluding input_dim and output_dim
-epochs = 5000
+epochs = 100
 experiment_manager(
     problem=problem,
     algorithm=algo,
