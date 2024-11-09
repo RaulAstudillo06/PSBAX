@@ -82,20 +82,11 @@ def discobax_trial(
         pass
 
     if update_objective:
-        obj_func.initialize(seed=seed)
+        obj_func.initialize(seed=seed, regenerate=True)
         algorithm.set_obj_func(obj_func)
         for metric in performance_metrics:
             metric.set_algo(algorithm)
-    # if "OPT" in policy:
-        # if not os.path.exists(results_folder):
-        #     os.makedirs(results_folder)
-        # for metric in performance_metrics:
-        #     OPT = metric.compute_OPT()
-        #     fn = results_folder + "performance_metrics_" + str(trial) + ".txt"
-        #     # create an array of OPT with size (iter + 1, 1)
-        #     OPT_arr = np.array([OPT for i in range(num_iter + 1)]).reshape(-1, 1)
-        #     np.savetxt(fn, OPT_arr)
-        # return 
+
     if restart:
         try: 
             inputs = torch.tensor(np.loadtxt(
@@ -209,7 +200,6 @@ def discobax_trial(
             obj_func.update(available_indices)
             algorithm.set_obj_func(obj_func)
 
-
         # New suggested batch
         t0 = time.time()
         if "random" in policy:
@@ -218,7 +208,7 @@ def discobax_trial(
             last_selected_indices = list(np.random.choice(obj_func.get_idx(), batch_size, replace=allow_reselect))
         elif "ps" in policy:
             last_selected_indices = gen_posterior_sampling_batch(
-                model, algorithm, batch_size, eval_all=eval_all
+                model, algorithm, batch_size, eval_all=eval_all, **kwargs
             )
 
         elif "bax" in policy:
@@ -239,8 +229,6 @@ def discobax_trial(
         
         else:
             raise ValueError("Policy not recognized")
-
-        # x_new = x_next
         
         t1 = time.time()
         acquisition_time = t1 - t0
@@ -251,7 +239,6 @@ def discobax_trial(
         new_obj_vals = obj_func(last_selected_indices)
         x_new = obj_func.get_x(last_selected_indices)
         inputs = torch.cat([inputs, x_new])   
-        # new_obj_vals = obj_func.get_y_from_x(x_new)
         obj_vals = torch.cat([obj_vals, new_obj_vals])
 
         # Fit GP model
