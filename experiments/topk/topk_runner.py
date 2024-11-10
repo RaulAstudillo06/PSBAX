@@ -22,7 +22,6 @@ src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
 from src.algorithms.topk import TopK
-# from src.bax.alg.algorithms import TopK
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import JaccardSimilarity, NormDifference, SumOfObjectiveValues
 from src.utils import generate_random_points, get_mesh, reshape_mesh
@@ -113,9 +112,6 @@ elif args.function == 'rosenbrock':
 
     def obj_func(X, domain=domain):
         return rosenbrock(torch.tensor(4.0*X - 2.0))
-
-# seed_torch(1234) # NOTE: fix seed for generating x_path
-
 
 if args.use_mesh:
     xx = get_mesh(input_dim, args.steps)

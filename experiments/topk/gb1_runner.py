@@ -68,7 +68,6 @@ algo = TopK(
 algo_metric = algo.get_copy()
 performance_metrics = [
     JaccardSimilarity(algo_metric, obj_func),
-    # NormDifference(algo_metric, obj_func),
     SumOfObjectiveValues(algo_metric, obj_func),
 ]
 

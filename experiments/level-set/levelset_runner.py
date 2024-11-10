@@ -22,7 +22,6 @@ src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
 from src.algorithms.levelset import LevelSetEstimator
-# from src.bax.alg.levelset import LevelSetEstimator
 from src.performance_metrics import F1Score
 from src.acquisition_functions.lse import LSE
 from src.experiment_manager import experiment_manager
@@ -174,13 +173,6 @@ performance_metrics = [
         obj_func,
     )
 ]
-
-# if "lse" in args.policy:
-#     acq_func = LSE(
-#         x_set,
-#         threshold,
-#     )
-    
 
 if args.n_init == 0:
     args.n_init = 2 * (args.dim + 1)

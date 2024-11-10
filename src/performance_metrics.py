@@ -108,7 +108,7 @@ class BestValue(PosteriorMeanPerformanceMetric):
 
 class JaccardSimilarity(PosteriorMeanPerformanceMetric):
     def __init__(self, algo, obj_func):
-        super().__init__("Jaccard similarity")
+        super().__init__("Jaccard Distance")
         self.algo = algo # TopK({"x_path": x_path, "k": k}, verbose=False)
         # TODO: x_path is another source of randomness...
         self.obj_func = obj_func
