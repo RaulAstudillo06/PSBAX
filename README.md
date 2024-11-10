@@ -52,3 +52,32 @@ $ bash run_discobax.sh discobax_runner.py
 $ bash run_discobax.sh discobax_dkl_runner.py
 ```
 
+### Local Bayesian Optimization
+To run the experiments for Local Bayesian Optimization, navigate to the `experiments/single-objective` directory and run the following commands:
+
+- Ackley 10D synthetic function:
+    ```
+    $ bash run_local-bo.sh ackley_runner.py
+    ```
+- Hartmann 6D synthetic function:
+    ```
+    $ bash run_local-bo.sh hartmann_runner.py
+    ```
+
+### Level Set Estimation
+To run the experiments for Level Set Estimation, navigate to the `experiments/level-set` directory. The following commands include both the experiments on the synthetic Himmelblau function and the Auckland’s Maunga Whau volcano dataset. 
+```
+$ bash run_level-set.sh
+```
+
+### TopK
+To run the experiments for TopK, navigate to the `experiments/topk` directory and run the following commands:
+
+- Rosenbrock synthetic function:
+    ```
+    $ bash run_topk.sh topk_runner.py
+    ```
+- GB1 Protein Fitness:
+    ```
+    $ bash run_topk.sh gb1_runner.py
+    ```

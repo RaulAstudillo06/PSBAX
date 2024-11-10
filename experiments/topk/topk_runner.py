@@ -28,23 +28,22 @@ from src.utils import generate_random_points, get_mesh, reshape_mesh
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
-parser.add_argument('--function', type=str, default='original')
+parser.add_argument('--function', type=str, default='rosenbrock')
 parser.add_argument('--dim', type=int, default=3)
 parser.add_argument('--first_trial', type=int, default=1)
-parser.add_argument('--trials', type=int, default=5)
-parser.add_argument('--max_iter', type=int, default=30)
+parser.add_argument('--trials', type=int, default=30)
+parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--batch_size', type=int, default=3)
 parser.add_argument('--len_path', type=int, default=150)
 parser.add_argument('--use_mesh', action='store_true', default=True)
 parser.add_argument('--steps', type=int, default=15)
-parser.add_argument('--k', type=int, default=10)
+parser.add_argument('--k', type=int, default=4)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
 args = parser.parse_args()
 
 # === To RUN === # 
 # python topk_runner.py -s --trials 30 --policy ps
-
 
 if args.function == 'himmelblau':
     input_dim = 2
@@ -117,14 +116,10 @@ if args.use_mesh:
     xx = get_mesh(input_dim, args.steps)
     x_path = reshape_mesh(xx).numpy()
     len_path = x_path.shape[0]
-    print(x_path.shape)
 else: 
-    # x_path = unif_random_sample_domain(rescaled_domain, len_path) # NOTE: Action set
     x_path = generate_random_points(num_points=len_path, input_dim=input_dim, seed=1234).numpy()
-    # np.save(f"{script_dir}/data/{args.function[:3]}_x_np.npy", x_path)
 
 if args.function == 'himmelblau':
-#     x_path = np.load(f"{script_dir}/data/him_x_np.npy")
     himmelblau_opt = np.array(
         [
             [3.0, 2.0],
@@ -135,8 +130,6 @@ if args.function == 'himmelblau':
     )
     himmelblau_opt = (himmelblau_opt - np.array(domain)[:, 0]) / (np.array(domain)[:, 1] - np.array(domain)[:, 0])
     x_path = np.concatenate([x_path, np.array(himmelblau_opt)], axis=0)
-# elif args.function == 'original':
-#     x_path = np.load(f"{script_dir}/data/ori_x_np.npy")
 
 algo = TopK({"x_path": x_path, "k": k}, verbose=False)
 

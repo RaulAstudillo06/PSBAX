@@ -12,13 +12,10 @@ torch.autograd.set_detect_anomaly(False)
 # debug._set_state(False)
 
 script_dir = os.path.dirname(os.path.realpath(sys.argv[0]))
-# cwd = os.getcwd()
-# script_dir = cwd
 src_dir = "/".join(script_dir.split("/")[:-2]) # src directory is two levels up
 sys.path.append(src_dir)
 
 from src.algorithms.topk import TopK
-# from src.bax.alg.topk import TopKTorch
 from src.experiment_manager import experiment_manager
 from src.performance_metrics import JaccardSimilarity, NormDifference, SumOfObjectiveValues
 from src.problems import GB1onehot
@@ -26,11 +23,11 @@ from src.problems import GB1onehot
 parser = argparse.ArgumentParser()
 parser.add_argument('--policy', type=str, default='bax')
 parser.add_argument('--first_trial', type=int, default=1)
-parser.add_argument('--trials', type=int, default=1)
+parser.add_argument('--trials', type=int, default=30)
 parser.add_argument('--max_iter', type=int, default=100)
 parser.add_argument('--batch_size', type=int, default=5)
 parser.add_argument('--model_type', type=str, default='dkgp')
-parser.add_argument('--epochs', type=int, default=100)
+parser.add_argument('--epochs', type=int, default=5000)
 parser.add_argument('--k', type=int, default=10)
 parser.add_argument('--save', '-s', action='store_true', default=False)
 parser.add_argument('--restart', '-r', action='store_true', default=False)
@@ -80,9 +77,6 @@ if args.save:
     os.makedirs(results_dir, exist_ok=True)
     policy = args.policy
     params_dict = vars(args)
-    # for k,v in algo_params.items():
-    #     if k not in params_dict:
-    #         params_dict[k] = v
     params_dict['architecture'] = " ".join([str(x) for x in model_architecture])
 
 
