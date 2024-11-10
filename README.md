@@ -38,7 +38,7 @@ The experiment results are saved in the `demos/results` directory. A graph of th
 
 ## Running the Experiments
 
-The `experiments` directory contains the runner files used to run the experiments conducted for the paper. The DiscoBAX 
+The `experiments` directory contains the runner files used to run the experiments conducted for the paper.
 
 ### DiscoBAX
 The DiscoBAX experiments were ran using data from the paper "DiscoBAX - Discovery of optimal intervention sets in genomic experiment design" by Lyle et al. The data included in this repository is preprocessed and saved in the `discobax/data` directory. To access the full dataset, please refer to the original DiscoBAX repository [here](https://github.com/amehrjou/DiscoBAX). 
