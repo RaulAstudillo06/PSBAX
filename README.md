@@ -31,7 +31,7 @@ In the `demos` directory, there are three demo files that can be run to showcase
     ```
     $ python level-set.py
     ```
-- Demo 3: Top-k
+- Demo 3: Top-k Estimation
     ```
     $ python topk.py
     ```
