@@ -39,9 +39,9 @@ In the `demos` directory, there are three demo files that can be run to showcase
 The experiment results are saved in the `demos/results` directory. A graph of the results is automatically generated and saved in the `demos/plots` directory.
 
 
-## Reproducing the main experiments
+## Main experiments
 
-The `experiments` directory contains the runner files used to run the experiments conducted for the paper.
+The `experiments` directory contains the runner files used to run the experiments conducted in the main paper.
 
 ### DiscoBAX
 The DiscoBAX experiments were performed using data from the paper "DiscoBAX - Discovery of optimal intervention sets in genomic experiment design" by Lyle et al. The data included in this repository is preprocessed and saved in the `discobax/data` directory. To access the full dataset, please refer to the original DiscoBAX repository [here](https://github.com/amehrjou/DiscoBAX). 
@@ -69,8 +69,8 @@ To run the experiments for Level Set Estimation, navigate to the `experiments/le
 $ bash run_level-set.sh
 ```
 
-### Top-K Estimation
-To run the experiments for Top-K Estimation, navigate to the `experiments/topk` directory and run the following commands:
+### Top-k Estimation
+To run the experiments for Top-k Estimation, navigate to the `experiments/topk` directory and run the following commands:
 
 - Rosenbrock synthetic function:
     ```
